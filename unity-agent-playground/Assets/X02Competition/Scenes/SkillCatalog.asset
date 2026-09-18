@@ -19,11 +19,6 @@ MonoBehaviour:
     AnimatorTrigger:
     NominalDurationSec: 2.5
   - SkillType: gesture
-    SkillName: bow
-    Executor: 1
-    AnimatorTrigger:
-    NominalDurationSec: 3
-  - SkillType: gesture
     SkillName: open_arms
     Executor: 1
     AnimatorTrigger:

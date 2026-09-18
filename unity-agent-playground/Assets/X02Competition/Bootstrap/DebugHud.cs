@@ -104,7 +104,6 @@ namespace X02Competition.Bootstrap
             GUILayout.Label("技能测试:");
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("挥手")) TestSkill("gesture", "wave_hands");
-            if (GUILayout.Button("鞠躬")) TestSkill("gesture", "bow");
             if (GUILayout.Button("张臂")) TestSkill("gesture", "open_arms");
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();

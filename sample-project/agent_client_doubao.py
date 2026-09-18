@@ -388,7 +388,6 @@ def cut_sentences(pending: str, min_weak: int = 8, max_buf: int = 40):
 # 技能即时口播表：纯工具调用时立刻回话（与动作并行），不等二轮 LLM
 SKILL_ACKS = {
     ("gesture", "wave_hands"): "好呀，我这就挥挥手～",
-    ("gesture", "bow"): "给您鞠个躬～",
     ("gesture", "open_arms"): "欢迎欢迎！",
     ("movement", "stop"): "好的，我停下了。",
     ("emotion", "happy"): "我现在好开心呀！",
@@ -831,7 +830,7 @@ def main():
                    default="你是人形机器人X2的语音助手，名叫灵犀。"
                            "回答口语化、简洁（一般不超过两句话），不要用列表和markdown。"
                            "你可以通过 robot_skill 工具做动作和表情：动作有挥手"
-                           "（wave_hands）、鞠躬（bow）、张开双臂（open_arms）；"
+                           "（wave_hands）、张开双臂（open_arms）；"
                            "表情有开心（happy）、"
                            "难过（sad）、惊讶（surprised）、生气（angry）、爱心"
                            "（love）。用户表达这类意图时调用工具，同时必须给一句"
