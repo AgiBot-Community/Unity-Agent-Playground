@@ -185,15 +185,19 @@ VAD 检测到用户开始说话（ Rising energy）。`audio2tts` 模式携带 `
 
 | skillType | skillName | skillParam | 说明 |
 |---|---|---|---|
-| gesture | `wave_hands` | — | 挥手（手臂举起摆动，当前唯一手势） |
+| gesture | `wave_hands` | — | 挥手（手臂举起摆动） |
+| gesture | `nod` | — | 点头（头部俯仰摆动） |
+| gesture | `shake_head` | — | 摇头（头部左右摆动） |
+| gesture | `bow` | — | 鞠躬（腰前倾+低头，慢起慢收） |
+| gesture | `open_arms` | — | 张开双臂（欢迎姿势） |
 | movement | `walk` | `{"distanceM": 1.0}` | 前进指定米数（0.2~5） |
 | movement | `turn` | `{"angleDeg": 90}` | 原地转角（右转为正） |
 | movement | `stop` | — | 立即停止 |
-| emotion | `happy` / `thinking` / `apologetic` / `surprised` / `listening` / `sad` / `sleepy` / `wink` / `love` / `angry` / `neutral` | `{"durationMs": 3000}` | 头部表情屏 |
+| emotion | `happy` / `sad` / `surprised` / `angry` / `love` / `neutral` | `{"durationMs": 3000}` | 头部表情屏（5 种经典表情 + 复位） |
 
-- 手势由程序化关节轨迹驱动（肩/肘/腕/头），步态机器人可边走边做上半身手势
+- 手势由程序化关节轨迹驱动（肩/肘/腕/腰/头），步态机器人可边走边做上半身手势
 - 运动指令在步态支撑相位切换、结束在支撑相位归零，动作完成即回报
-- 表情屏同时联动 TTS 播放能量做口型张合；用户说话时自动切 `listening`
+- 表情屏同时联动 TTS 播放能量做口型张合
 - 未知 `skillName` 回报 `failed`，不影响语音链路
 - LLM function calling 绑定：示例项目把上表注册为 `robot_skill` 工具（见 sample-project），模型对"挥挥手/做个开心的表情/往前走一米"类意图自动调用
 
@@ -286,6 +290,6 @@ VAD 检测到用户开始说话（ Rising energy）。`audio2tts` 模式携带 `
 ## 9. 仿真演示说明（Unity exe / Play Mode）
 
 - **调试面板**：默认隐藏，**F1** 呼出/隐藏（录屏时画面干净，隐藏态右下角有恢复提示）。面板含连接状态、ASR/LLM 字幕、技能触发记录；按钮可手动触发技能（不经过 Agent，直接路由到 Unity 执行器），方便在无云端 Key 时验证动作
-- **技能按钮**：挥手 / 10 种表情 / 前进 1m / 右转 90° / 停止，与协议技能表一一对应
+- **技能按钮**：3 个基本动作（挥手/鞠躬/张臂）/ 5 种表情（开心/难过/惊讶/生气/爱心）/ 前进 1m / 右转 90° / 停止，与协议技能表一一对应
 - **开场播报**：Agent 收到 `robot_state.sync` 后主动下发一轮 `llm_response` + `tts_response`（"你好，我是灵犀，有什么可以帮您？"，示例项目 `--greeting` 可改），网关直接播放，不依赖对话轮次
 - **打断验证**：机器人播报中开口说话 → VAD 冻结到播完（半双工），Agent 下发 `interrupt` 则立即停播停动作

@@ -1,0 +1,23 @@
+{
+    "name": "X02Competition.Tests.Editor",
+    "rootNamespace": "X02Competition.Tests.Editor",
+    "references": [
+        "X02Competition.Protocol",
+        "X02Competition.Gateway",
+        "X02Competition.Robot"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll",
+        "Newtonsoft.Json.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
