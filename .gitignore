@@ -4,3 +4,5 @@ __pycache__/
 .env
 *.wav
 *.sln
+unity-project/Assets/ML-Agents/
+unity-project/Assets/XRI/
