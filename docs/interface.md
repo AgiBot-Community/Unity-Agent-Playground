@@ -1,5 +1,7 @@
 # X02 机器人 Agent 网关接口文档
 
+**中文** | [English](interface.en.md) | [Français](interface.fr.md)
+
 版本：v1.0（对应 LinkSoul AgentSDK v1.4.0 线上协议）
 
 ## 1. 概述
@@ -62,12 +64,12 @@ signature = hmac.new(app_secret.encode(), payload.encode(),
 | `404` | 路径不匹配 |
 | `503` | 已有会话占用（单会话限制） |
 
-> 交付的 exe 默认宽松模式（不校验签名，仅要求路径与 WebSocket 升级）。
-> 需要开启严格鉴权时，在网关配置 `StrictAuth = true` 并下发三元组。
+> 示例客户端始终发送签名。是否强制校验由网关构建配置决定；不要依赖宽松模式。
+> 修改 `StrictAuth` 需要可修改的网关工程或更新后的构建，本仓库不包含完整 Unity 工程。
 
 ### 2.4 会话生命周期
 
-- 连接成功后网关**立即下发** `robot_state.sync`（state=online，见 §4.1）
+- 连接成功后等待 `robot_state.sync`（state=online，见 §4.1）；音频事件可能先到达，不要假定同步是第一帧
 - 断线后 Agent 应自动重连（建议间隔 3s），机器人重复上线以最新 sync 为准
 - 机器人侧状态周期性推送见 §4.5
 
@@ -75,7 +77,7 @@ signature = hmac.new(app_secret.encode(), payload.encode(),
 
 所有消息为 JSON 对象，公共字段：
 
-```json
+```jsonc
 {
   "type": "agentsdk.xxx.yyy",   // 消息类型，见下表
   "agentId": "demo-app",        // Agent 应用 ID（原样回传）
@@ -102,7 +104,7 @@ signature = hmac.new(app_secret.encode(), payload.encode(),
   "agentMeta": {}
 }
 ```
-连接建立后第一帧。`agentMeta` 为机器人能力元信息。
+连接建立后发送的状态同步帧，不保证是第一帧。`agentMeta` 为机器人能力元信息。
 
 ### 4.2 音频流开始 `agentsdk.audio_request.start`
 
@@ -118,7 +120,7 @@ VAD 检测到用户开始说话（ Rising energy）。`audio2tts` 模式携带 `
 ```json
 { "type": "agentsdk.audio_request.append", "...": "...",
   "itemId": "item-...",
-  "audio": "<base64 PCM>",     // 16kHz / 16bit / mono，约 100ms/帧
+  "audio": "<base64 PCM>",
   "audioLen": 3200 }
 ```
 
@@ -130,7 +132,7 @@ VAD 检测到用户开始说话（ Rising energy）。`audio2tts` 模式携带 `
 { "type": "agentsdk.audio_request.commit", "...": "...", "itemId": "item-..." }
 ```
 
-收到此帧即表示一轮完整语音已就绪，Agent 开始处理并回包（见 §6 时序）。
+收到此帧即表示一轮录音已结束。默认客户端已在 start/append 阶段上传 ASR 音频，commit 后等待最终识别再回包（见 §6）。
 
 ### 4.5 状态推送 `agentsdk.state_request.meta`
 
@@ -195,7 +197,7 @@ VAD 检测到用户开始说话（ Rising energy）。`audio2tts` 模式携带 `
 - 运动指令在步态支撑相位切换、结束在支撑相位归零，动作完成即回报
 - 表情屏同时联动 TTS 播放能量做口型张合；用户说话时自动切 `listening`
 - 未知 `skillName` 回报 `failed`，不影响语音链路
-- LLM function calling 绑定：示例项目把上表注册为 `robot_skill` 工具（见 sample-project），模型对"挥挥手/做个开心的表情/往前走一米"类意图自动调用
+- LLM function calling 绑定：示例项目把上表注册为 `robot_skill` 工具（见 example），模型对"挥挥手/做个开心的表情/往前走一米"类意图自动调用
 
 ### 5.5 技能状态回报 `agentsdk.skill_response.state`（网关 → Agent，v1 仿真扩展）
 
@@ -248,10 +250,10 @@ VAD 检测到用户开始说话（ Rising energy）。`audio2tts` 模式携带 `
     │  audio_request.start      ──►  │  VAD 开始
     │  audio_request.append ×N  ──►  │  语音流（100ms/帧）
     │  audio_request.commit     ──►  │  一轮语音就绪
-    │                                │  ┌─ ASR（可流式回 middle）
+    │                                │  ┌─ ASR 最终结果（此前边录边传）
     │  ◄── asr_response.final        │  ├─ LLM 流式
     │  ◄── llm_response.item.delta×N │  │   （每段立即下发）
-    │  ◄── llm_response.item.done    │  ├─ 凑句即送 TTS
+    │  ◄── llm_response.item.done    │  ├─ LLM 增量直接送双向 TTS
     │  ◄── llm_response.done         │  │
     │  ◄── tts_response.item.delta×N │  ├─ TTS PCM 分段下发
     │      （收到即播放）             │  │
@@ -262,9 +264,11 @@ VAD 检测到用户开始说话（ Rising energy）。`audio2tts` 模式携带 `
     │  （本轮复位，等待下一轮）        │
 ```
 
-**流式要点**：LLM delta 与 TTS 分段无需等全部生成完成——首句 TTS 在 LLM 仍在生成后续内容时即可开始播放，实测首包音频延迟 < 2.5s。
+**流式要点**：LLM delta 与 TTS 音频可交错到达，以上图示并非要求先完成 LLM 再开始 TTS。默认使用双向 TTS，逐句合成为兼容模式。延迟应区分录音与静音检测、commit 后 ASR 等待、LLM 首 token 和 TTS 首包；不保证固定的端到端耗时。
 
 ## 7. 音频与 VAD 约定
+
+下表为原构建的参考参数；当前交付二进制没有暴露全部可配置项，实际录音时序以运行日志为准。
 
 | 项 | 值 |
 |---|---|

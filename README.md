@@ -1,80 +1,74 @@
-# X02 机器人语音 Agent —— 交付包
+# Unity Agent Playground · X2
 
-对机器人说话，它会听懂、思考、用语音回答你；让它挥手、做表情、走两步，它也会照做。这个交付包包含机器人侧网关程序和一个可以直接跑的语音大脑（Agent 示例）。
+**中文** | [English](docs/README.en.md) | [Français](docs/README.fr.md)
 
-```
-你说"挥挥手" ─► 机器人麦克风 ─► [网关 exe] ─► [示例 Agent：识别→思考→合成]
-                                              │
-机器人挥手+表情 ◄─ [网关 exe] ◄─ 语音+动作指令 ┘
-```
+通过 Python 语音 Agent 与 Unity 中的 X2 机器人对话，并触发挥手、移动和表情。仓库提供 Windows 单文件模拟器、可安装的 Python 示例及网关协议文档。
 
-## 包里有什么
+## 仓库结构
 
-| 目录 | 是什么 |
+| 路径 | 内容 |
 |---|---|
-| `exe/` | 机器人侧程序（Unity 打包 exe，含打包说明） |
-| `sample-project/` | 语音大脑示例：对机器人说话→豆包大模型回答→机器人说出来 |
-| `docs/interface.md` | 协议文档：想自己写 Agent 时看 |
+| [exe/](docs/simulator.md) | `x2模拟器.exe`，66.88 MB 的 Unity 单文件便携程序 |
+| [example/](example/README.md) | Python 包 `x2_agent`、配置模板及本机回归测试 |
+| [docs/](docs/index.md) | 三语文档索引、接口规范及开发指南 |
+| `scripts/check_docs.py` | 文档语言覆盖与本地链接检查 |
+| `.github/workflows/ci.yml` | Windows Python 测试与文档检查 |
 
-## 5 分钟上手
+Unity 是 WebSocket 服务端；Python Agent 接收麦克风音频，调用 ASR、LLM 和 TTS，再将文字、音频及动作指令发回 Unity。模拟器和 Agent 分别启动。
 
-**前提**：Windows 电脑 + 麦克风 + 扬声器；要跑全链路需火山引擎 API Key（见下）。
+本仓库不包含完整 Unity 工程。独立打包资料保存在维护者本机的同级 `../x2-simulator/`，不随仓库分发。仅使用模拟器不需要这些资料。
 
-1. **启动机器人**：双击运行 `exe/` 里的程序（窗口出现机器人；调试面板默认隐藏，按 **F1** 呼出）
+## 快速开始
 
-2. **接入大脑**：
+需要 Windows 10/11 x64、Python 3.10+、麦克风和扬声器。豆包对话还需火山引擎语音 API Key 和方舟 API Key；离线 demo 不需要云服务。
 
-   ```bash
-   cd sample-project
-   python -m venv .venv && .venv/bin/pip install -r requirements.txt
+1. 双击 [exe/x2模拟器.exe](exe/x2模拟器.exe)，等待机器人窗口出现。按 **F1** 显示调试面板。
+2. 在仓库根目录打开 PowerShell，安装示例并运行 demo：
 
-   # 没有云 Key？先跑这个（回固定台词），确认链路通
-   .venv/bin/python agent_client_demo.py
+```powershell
+cd example
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e .
+.\.venv\Scripts\python.exe -m x2_agent.demo
+```
 
-   # 配置 Key 体验完整对话
-   cp .env.example .env    # 编辑 .env 填入 API Key
-   .venv/bin/python agent_client_doubao.py
-   ```
+demo 返回固定文字和正弦提示音，用来验证网关与音频链路，不进行真实语音识别或语音合成。
 
-3. **开聊**：连上后机器人会先说"你好，我是灵犀，有什么可以帮您？"，之后对它说话即可。
+3. 按 Ctrl+C 退出 demo，然后配置并启动豆包客户端：
 
-## 玩法
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+# 编辑 .env，填写 DOUBAO_SPEECH_API_KEY 和 ARK_API_KEY
+.\.venv\Scripts\python.exe -m x2_agent
+```
 
-对着机器人说：
+等待开场白结束再说话，例如“你好”“挥挥手”“往前走一米”。同一时间只能连接一个 Agent。当前流程为半双工：播报期间暂停语音检测，普通说话不会打断播报；协议提供显式打断指令。
 
-- **"挥挥手"** —— 机器人抬起手臂摆动
-- **"你开心吗""给我比个爱心""我有点难过"** —— 头部屏幕切换 10 种像素表情，说话时嘴巴还会动
-- **"往前走一米""向左转""停"** —— 机器人迈步行走
-- **打断它** —— 播报中直接开口，它会停下来听你说
+文档提供三种语言，不代表语音模型、默认中文音色或 Unity 界面已完成三语适配。
 
-**演示技巧**：
-- 调试面板默认隐藏（录屏画面干净），按 **F1** 随时呼出/隐藏
-- 没网/没 Key 时，调试面板的按钮可以直接触发挥手、表情、行走（验收动作用）
-- 台词和人设可自定义：`--system-prompt "你是养老陪护机器人"`；开场白 `--greeting`（置空禁用）
+## 单文件分发
 
-**Key 从哪来**（仅全链路需要）：[火山引擎控制台](https://console.volcengine.com/) 开通"语音技术"（ASR+TTS）和"火山方舟"（LLM），各取一个 API Key 填进 `.env`。
+只分发 `exe/x2模拟器.exe` 即可运行模拟器，不包含 Python 或 API Key。首次启动静默释放资源到 `%LOCALAPPDATA%\x2sim\`，以后复用缓存，无需手动解压或配置。建议至少留出 500 MB 磁盘空间。
 
-## 怎么确认交付没问题（验收清单）
+本机曾测得首次打开窗口约 12.6 秒、后续约 1.8 秒，其他电脑可能不同。语音响应耗时还受静音检测、网络、模型和语音资源影响，不保证固定延迟。
 
-| # | 操作 | 预期 |
-|---|---|---|
-| 1 | Agent 连上机器人 | 立即播报开场白"你好，我是灵犀，有什么可以帮您？" |
-| 2 | 说"你好" | ~2.5s 内开始语音应答（实测 ~2.3s） |
-| 3 | 问长一点的问题 | 机器人边想边说，不用等全文生成 |
-| 4 | 说"挥挥手" | 边说话边挥手，面板显示 `技能: gesture/wave_hands` |
-| 5 | 说"往前走一米" | 走完站稳，面板出现 `walk → done` |
-| 6 | 播放中说话 | 机器人先说完再听（半双工），不会自己打断自己 |
-| 7 | 拔掉 Agent（Ctrl+C）再重连 | 重新连上即可用（自动重连+重新播开场白） |
-| 8 | 第二个客户端接入 | 被拒（503，单会话限制） |
-| 9 | 按 F1 | 调试面板呼出/隐藏（默认隐藏） |
+## 开发与验证
 
-## 出问题了？
+```powershell
+# 从仓库根目录检查文档
+python -B scripts/check_docs.py
+cd example
+# 本机测试，不调用云服务
+.\.venv\Scripts\python.exe -B -m unittest discover -s tests -v
+```
 
-| 现象 | 去哪看 |
+详见[开发指南](docs/development.md)。密钥、录音、缓存与本地诊断资料不提交到 Git；模拟器 EXE 是有意保留的分发产物。
+
+## 文档
+
+| 需求 | 文档 |
 |---|---|
-| Agent 连不上机器人 | 确认 exe 先启动；跨机器加 `--host` |
-| 机器人没反应 | Unity 窗口是否被最小化（需保持后台运行） |
-| 语音相关报错 | `sample-project/README.md` 排障速查 |
-| 协议对接问题 | `docs/interface.md` §2.3 / §8 |
-
-更多细节：`sample-project/README.md`（Agent 侧）、`exe/README.md`（打包说明）、`docs/interface.md`（协议）。
+| 模型、音色、开场白、参数及排障 | [示例 Agent](example/README.md) |
+| 缓存、启动与重新封装 | [模拟器说明](docs/simulator.md) |
+| 自己实现 Agent、鉴权和消息时序 | [网关协议](docs/interface.md) |
+| 所有语言文档 | [文档索引](docs/index.md) |
