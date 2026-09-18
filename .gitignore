@@ -3,6 +3,9 @@ __pycache__/
 .venv/
 .env
 *.wav
+!sample-project/greeting.wav
+!sample-project/tts.wav
 *.sln
 unity-project/Assets/ML-Agents/
 unity-project/Assets/XRI/
+unity-project/Assets/XRI.meta

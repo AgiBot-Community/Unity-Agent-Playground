@@ -29,7 +29,7 @@
    cd sample-project
    python -m venv .venv && .venv/bin/pip install -r requirements.txt
 
-   # 没有云 Key？先跑这个（回固定台词），确认链路通
+   # 没有云 Key？先跑这个（回放内置录音），确认链路通
    .venv/bin/python agent_client_demo.py
 
    # 配置 Key 体验完整对话

@@ -9,6 +9,8 @@ X02 竞赛 Mock 网关联调客户端（模拟 Agent SDK 侧，基于 websockets
   - 会话：连上后等 agentsdk.robot_state.sync(online)
   - 上行监听：audio_request.start/append/commit（机器人说话），
     收到 commit 后按官方时序回一轮：asr final → llm delta/done → tts delta/done
+  - TTS 音频：播放内置真实录音（开场白 greeting.wav / 应答 tts.wav，16k/mono，
+    按 200ms/包分帧下发）；wav 缺失时退回正弦波
   - 断线自动 3s 重连（模拟 SDK 行为）
 
 用法（用项目 venv）：
@@ -27,6 +29,7 @@ import hashlib
 import hmac
 import json
 import math
+import os
 import struct
 import time
 import uuid
@@ -90,11 +93,29 @@ def envelope(ftype, agent_id, robot_cid, event_id, item_id=None, **extra):
 
 
 def sine_pcm(ms, freq=440, rate=16000, amp=0.35):
-    """生成 16k/16bit/mono 正弦波 PCM（模拟 TTS 音频）。"""
+    """生成 16k/16bit/mono 正弦波 PCM（wav 缺失时的兜底音频）。"""
     n = int(rate * ms / 1000)
     return b"".join(
         struct.pack("<h", int(amp * 32767 * math.sin(2 * math.pi * freq * i / rate)))
         for i in range(n))
+
+
+# 内置真实 TTS 录音（16k/16bit/mono）：开场白与应答各一段
+_BASE = os.path.dirname(os.path.abspath(__file__))
+GREETING_WAV = os.path.join(_BASE, "greeting.wav")
+REPLY_WAV = os.path.join(_BASE, "tts.wav")
+
+
+def load_pcm(path, fallback_ms, fallback_freq):
+    """读 16k/16bit/mono wav；文件缺失或格式不符时退回正弦波。"""
+    try:
+        with wave.open(path) as w:
+            if (w.getframerate(), w.getnchannels(), w.getsampwidth()) == (16000, 1, 2):
+                return w.readframes(w.getnframes())
+    except (OSError, wave.Error):
+        pass
+    print("agent     警告: %s 缺失或非 16k/mono，退回正弦波" % path)
+    return sine_pcm(fallback_ms, freq=fallback_freq)
 
 
 def save_wav(path, pcm, rate=16000):
@@ -123,6 +144,18 @@ class AgentDemo:
         print("agent -> gw  %s" % trunc(text))
         await ws.send(text)
 
+    async def send_tts_audio(self, ws, event_id, item_id, pcm):
+        """PCM 按 200ms/包分帧下发（对齐官方建议，与 doubao 客户端一致）。"""
+        a = self.args
+        chunk = 6400  # 200ms @ 16k/16bit/mono
+        for i in range(0, len(pcm), chunk):
+            part = bytes(pcm[i:i + chunk])
+            await self.send(ws, envelope(
+                T["tts_delta"], a.app_id, self.robot_cid, event_id,
+                item_id=item_id,
+                audio=base64.b64encode(part).decode("ascii"),
+                audioLen=len(part)))
+
     async def agent_round(self, ws, req):
         """收到 commit 后按官方时序回一轮：asr final → llm → tts。"""
         a = self.args
@@ -139,19 +172,17 @@ class AgentDemo:
         await self.send(ws, envelope(T["llm_done_item"], a.app_id, self.robot_cid,
                                      event_id, item_id=item_id))
         await self.send(ws, envelope(T["llm_done"], a.app_id, self.robot_cid, event_id))
-        # 3) TTS 音频（正弦波模拟）
-        pcm = sine_pcm(a.tts_ms, a.tts_freq)
-        await self.send(ws, envelope(T["tts_delta"], a.app_id, self.robot_cid,
-                                     event_id, item_id=item_id,
-                                     audio=base64.b64encode(pcm).decode("ascii"),
-                                     audioLen=len(pcm)))
+        # 3) TTS 音频（内置 tts.wav 真实录音，缺失退回正弦波）
+        pcm = load_pcm(REPLY_WAV, a.tts_ms, a.tts_freq)
+        await self.send_tts_audio(ws, event_id, item_id, pcm)
         await self.send(ws, envelope(T["tts_done_item"], a.app_id, self.robot_cid,
                                      event_id, item_id=item_id))
         await self.send(ws, envelope(T["tts_done"], a.app_id, self.robot_cid, event_id))
-        print("agent     本轮应答完成（TTS %d ms / %d bytes）" % (a.tts_ms, len(pcm)))
+        print("agent     本轮应答完成（TTS %.0f ms / %d bytes）"
+              % (len(pcm) / 32.0, len(pcm)))
 
     async def greet(self, ws):
-        """连接就绪后的开场播报（llm 字幕 + 正弦波模拟 TTS）。"""
+        """连接就绪后的开场播报（llm 字幕 + greeting.wav 真实录音）。"""
         a = self.args
         event_id = "evt-greet-" + uuid.uuid4().hex[:8]
         item_id = "item-greet-" + uuid.uuid4().hex[:8]
@@ -161,16 +192,14 @@ class AgentDemo:
                                      event_id, item_id=item_id))
         await self.send(ws, envelope(T["llm_done"], a.app_id, self.robot_cid,
                                      event_id))
-        pcm = sine_pcm(1200, freq=880)   # 1.2s 短提示音模拟播报
-        await self.send(ws, envelope(T["tts_delta"], a.app_id, self.robot_cid,
-                                     event_id, item_id=item_id,
-                                     audio=base64.b64encode(pcm).decode("ascii"),
-                                     audioLen=len(pcm)))
+        pcm = load_pcm(GREETING_WAV, 1200, 880)  # 内置开场白录音
+        await self.send_tts_audio(ws, event_id, item_id, pcm)
         await self.send(ws, envelope(T["tts_done_item"], a.app_id, self.robot_cid,
                                      event_id, item_id=item_id))
         await self.send(ws, envelope(T["tts_done"], a.app_id, self.robot_cid,
                                      event_id))
-        print("agent     开场播报已下发: %r" % a.greeting)
+        print("agent     开场播报已下发: %r（%.0f ms）"
+              % (a.greeting, len(pcm) / 32.0))
 
     async def session(self, ws):
         a = self.args
@@ -279,8 +308,10 @@ def main():
     p.add_argument("--app-secret", default="demo-secret")
     p.add_argument("--reply", default="你好，我是灵犀，很高兴认识你。",
                    help="收到机器人语音后回复的 ASR/LLM 文本")
-    p.add_argument("--tts-ms", type=int, default=1200, help="TTS 正弦波时长（毫秒）")
-    p.add_argument("--tts-freq", type=int, default=440, help="TTS 正弦波频率（Hz）")
+    p.add_argument("--tts-ms", type=int, default=1200,
+                  help="wav 缺失时兜底正弦波时长（毫秒）")
+    p.add_argument("--tts-freq", type=int, default=440,
+                  help="wav 缺失时兜底正弦波频率（Hz）")
     p.add_argument("--save-audio", metavar="PATH",
                    help="把机器人上行语音保存为 wav，如 out.wav")
     p.add_argument("--skill", metavar="TYPE/NAME", default=None,

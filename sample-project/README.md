@@ -7,7 +7,7 @@
 | 文件 | 什么时候用 |
 |---|---|
 | `agent_client_doubao.py` | **正式体验/演示**。对接豆包云端三件套（ASR + LLM + TTS），全链路流式，实测首包语音 ~2.3s |
-| `agent_client_demo.py` | **先跑通网关**。不依赖任何云服务和 API Key，收到语音后回固定台词，用于确认网络/协议没问题 |
+| `agent_client_demo.py` | **先跑通网关**。不依赖任何云服务和 API Key，收到语音后回放内置录音（应答 `tts.wav`、开场 `greeting.wav`），用于确认网络/协议没问题 |
 
 建议路径：先用 demo 跑通 → 再配 Key 切 doubao 全链路。
 
@@ -31,7 +31,7 @@ Windows 下用 `.venv\Scripts\` 代替 `.venv/bin/`。
 2. **再启动 Agent**：
 
 ```bash
-# 先验证连通（无需 Key，机器人会回固定台词）
+# 先验证连通（无需 Key，机器人会播报开场白并回放内置录音）
 .venv/bin/python agent_client_demo.py
 
 # 确认没问题后，配置 Key 跑全链路
