@@ -7,5 +7,6 @@ __pycache__/
 !sample-project/tts.wav
 *.sln
 unity-project/Assets/ML-Agents/
+unity-project/Assets/ML-Agents.meta
 unity-project/Assets/XRI/
 unity-project/Assets/XRI.meta
