@@ -17,7 +17,7 @@
 - **F1** 呼出/隐藏调试面板（默认隐藏，录屏画面干净）
 - 调试面板显示连接状态、ASR/LLM 字幕、技能触发记录，并可手动触发全部技能（无 Agent/无 Key 时验证动作用）
 
-Agent 接入方式见 [../sample-project/README.md](../sample-project/README.md)，协议见 [../docs/interface.md](../docs/interface.md)。
+Agent 接入方式见 [../python-agent-client/README.md](../python-agent-client/README.md)，协议见 [../docs/interface.md](../docs/interface.md)。
 
 ## 重新打包
 

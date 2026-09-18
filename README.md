@@ -14,7 +14,7 @@
 |---|---|
 | `unity-agent-playground/` | Unity 工程（2022.3.62），机器人模型与网关、动作、表情全部源码 |
 | `exe/` | 机器人侧程序（Unity Build 产物，[运行与打包说明](exe/README.md)） |
-| `sample-project/` | Agent 示例（Python，[使用说明](sample-project/README.md)） |
+| `python-agent-client/` | Agent 客户端（Python，[使用说明](python-agent-client/README.md)） |
 | `docs/interface.md` | WebSocket 协议文档（自己写 Agent 时看） |
 
 ## 环境要求
@@ -33,7 +33,7 @@
 2. **启动 Agent**：
 
    ```bash
-   cd sample-project
+   cd python-agent-client
    python -m venv .venv && .venv/bin/pip install -r requirements.txt
 
    # 第一步：无 Key 验证链路（机器人回放内置录音）
@@ -77,5 +77,5 @@
 | 现象 | 参见 |
 |---|---|
 | Agent 连不上机器人 | [exe/README.md](exe/README.md) 运行须知 |
-| 语音/云端报错 | [sample-project/README.md](sample-project/README.md) 排障表 |
+| 语音/云端报错 | [python-agent-client/README.md](python-agent-client/README.md) 排障表 |
 | 协议对接问题 | [docs/interface.md](docs/interface.md) |

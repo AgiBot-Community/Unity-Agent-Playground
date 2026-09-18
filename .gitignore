@@ -3,10 +3,10 @@ __pycache__/
 .venv/
 .env
 *.wav
-!sample-project/greeting.wav
-!sample-project/tts.wav
+!python-agent-client/greeting.wav
+!python-agent-client/tts.wav
 *.sln
-unity-project/Assets/ML-Agents/
-unity-project/Assets/ML-Agents.meta
+unity-agent-playground/Assets/ML-Agents/
+unity-agent-playground/Assets/ML-Agents.meta
 unity-agent-playground/Assets/XRI/
-unity-project/Assets/XRI.meta
+unity-agent-playground/Assets/XRI.meta

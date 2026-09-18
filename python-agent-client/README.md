@@ -1,4 +1,4 @@
-# Agent 示例（sample-project/）
+# Agent 客户端（python-agent-client/）
 
 对接机器人网关的 Agent 参考实现，两个客户端按需选用：
 
