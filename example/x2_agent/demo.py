@@ -1,93 +1,15 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-X02 竞赛 Mock 网关联调客户端（模拟 Agent SDK 侧，基于 websockets 库）。
-
-对齐 Unity 端 X02Competition 协议实现：
-  - 握手鉴权：HMAC-SHA256(secret, "GET\\n<path>\\n<ts>\\n<nonce>") 小写 hex
-    头：X-App-Id / X-App-Key / X-Timestamp(毫秒) / X-Nonce / X-Signature / X-Callback-Types
-  - 会话：连上后等 agentsdk.robot_state.sync(online)
-  - 上行监听：audio_request.start/append/commit（机器人说话），
-    收到 commit 后按官方时序回一轮：asr final → llm delta/done → tts delta/done
-  - 断线自动 3s 重连（模拟 SDK 行为）
-
-用法（用项目 venv）：
-  .venv/bin/python agent_client_demo.py                        # 默认连 ws://localhost:9002
-  .venv/bin/python agent_client_demo.py --reply "你好，我是灵犀"
-  .venv/bin/python agent_client_demo.py --save-audio out.wav    # 保存机器人上行语音
-  .venv/bin/python agent_client_demo.py --skill gesture/wave_hands  # sync 后下发技能帧
-  .venv/bin/python agent_client_demo.py --interrupt chat        # sync 后下发打断帧
-  .venv/bin/python agent_client_demo.py --bad-sig               # 错误签名，验证 401
-"""
-
+"""Offline Unity gateway demo client."""
 import argparse
 import asyncio
 import base64
-import hashlib
-import hmac
 import json
 import math
 import struct
 import time
 import uuid
-import wave
-
 import websockets
-
-# ----------------------------------------------------------------------------
-# 协议常量（对齐 LinkskyTypes.cs）
-# ----------------------------------------------------------------------------
-
-T = {
-    "sync": "agentsdk.robot_state.sync",
-    "a_start": "agentsdk.audio_request.start",
-    "a_append": "agentsdk.audio_request.append",
-    "a_commit": "agentsdk.audio_request.commit",
-    "state": "agentsdk.state_request.meta",
-    "asr_final": "agentsdk.asr_response.final",
-    "llm_delta": "agentsdk.llm_response.item.delta",
-    "llm_done_item": "agentsdk.llm_response.item.done",
-    "llm_done": "agentsdk.llm_response.done",
-    "tts_delta": "agentsdk.tts_response.item.delta",
-    "tts_done_item": "agentsdk.tts_response.item.done",
-    "tts_done": "agentsdk.tts_response.done",
-    "skill": "agentsdk.xlm_response.skill",
-    "interrupt": "agentsdk.xlm_response.interrupt",
-    "error": "agentsdk.error",
-}
-
-
-def build_headers(app_id, app_key, app_secret, path, bad_sig=False):
-    """对齐 AuthVerifier.cs：payload = "GET\\n<path>\\n<ts>\\n<nonce>"。"""
-    ts = str(int(time.time() * 1000))
-    nonce = "nonce-" + uuid.uuid4().hex[:8]
-    payload = "GET\n%s\n%s\n%s" % (path, ts, nonce)
-    sig = hmac.new(app_secret.encode("utf-8"), payload.encode("utf-8"),
-                   hashlib.sha256).hexdigest()
-    return {
-        "X-App-Id": app_id,
-        "X-App-Key": app_key,
-        "X-Timestamp": ts,
-        "X-Nonce": nonce,
-        "X-Signature": "deadbeef" if bad_sig else sig,
-        "X-Callback-Types": '["audio2tts"]',
-    }
-
-
-def envelope(ftype, agent_id, robot_cid, event_id, item_id=None, **extra):
-    d = {
-        "type": ftype,
-        "agentId": agent_id,
-        "agentMode": "passive",
-        "robotCid": robot_cid,
-        "cid": robot_cid,
-        "eventId": event_id,
-    }
-    if item_id is not None:
-        d["itemId"] = item_id
-    d.update(extra)
-    return d
-
+from .audio import save_wav, trunc
+from .gateway import T, build_headers, envelope
 
 def sine_pcm(ms, freq=440, rate=16000, amp=0.35):
     """生成 16k/16bit/mono 正弦波 PCM（模拟 TTS 音频）。"""
@@ -97,16 +19,6 @@ def sine_pcm(ms, freq=440, rate=16000, amp=0.35):
         for i in range(n))
 
 
-def save_wav(path, pcm, rate=16000):
-    with wave.open(path, "wb") as w:
-        w.setnchannels(1)
-        w.setsampwidth(2)
-        w.setframerate(rate)
-        w.writeframes(bytes(pcm))
-
-
-def trunc(s, n=160):
-    return s if len(s) <= n else s[:n] + "...(%d)" % len(s)
 
 
 # ----------------------------------------------------------------------------
