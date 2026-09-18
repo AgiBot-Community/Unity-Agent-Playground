@@ -12,70 +12,40 @@
 
 | 目录 | 内容 |
 |---|---|
-| `unity-agent-playground/` | Unity 工程（2022.3.62），机器人模型与网关、动作、表情全部源码 |
-| `exe/` | 机器人侧程序（Unity Build 产物，[运行与打包说明](exe/README.md)） |
-| `python-agent-client/` | Agent 客户端（Python，[使用说明](python-agent-client/README.md)） |
-| `docs/interface.md` | WebSocket 协议文档（自己写 Agent 时看） |
-
-## 环境要求
-
-| 项 | 要求 |
-|---|---|
-| 机器人侧 | Windows 10/11 x64，麦克风 + 扬声器 |
-| Agent 侧 | Python 3.10+（Linux/macOS/Windows 均可） |
-| 云服务 | 完整对话需火山引擎 API Key（语音技术 + 火山方舟各一）；连通性验证无需 Key |
-| 网络 | Agent 与机器人同机（默认 `127.0.0.1:9002`）或网络可达 |
+| `unity-agent-playground/` | Unity 工程源码（[说明](unity-agent-playground/README.md)） |
+| `exe/` | 机器人侧程序，Build 产物（[说明](exe/README.md)） |
+| `python-agent-client/` | Agent 客户端，Python（[说明](python-agent-client/README.md)） |
+| `docs/interface.md` | WebSocket 协议（自己写 Agent 时看） |
 
 ## 快速开始
 
-1. **启动机器人**：运行 `exe/` 中的程序，窗口出现机器人（调试面板按 **F1** 呼出，默认隐藏）
+环境：机器人侧 Windows 10/11 x64（麦克风+扬声器）；Agent 侧 Python 3.10+。
 
+1. **启动机器人**：运行 `exe/` 中的程序（F1 呼出调试面板）
 2. **启动 Agent**：
 
    ```bash
    cd python-agent-client
    python -m venv .venv && .venv/bin/pip install -r requirements.txt
 
-   # 第一步：无 Key 验证链路（机器人回放内置录音）
-   .venv/bin/python agent_client_demo.py
-
-   # 第二步：配置 Key 跑完整对话
-   cp .env.example .env    # 填入两个 API Key
+   .venv/bin/python agent_client_demo.py     # 无 Key 验证链路
+   cp .env.example .env                     # 填火山引擎 API Key 后跑完整对话
    .venv/bin/python agent_client_doubao.py
    ```
 
-3. **开始对话**：机器人播报开场白后，用下表语音指令体验。
-
-## 语音指令
+3. **开始对话**：
 
 | 你说 | 机器人做 |
 |---|---|
 | "挥挥手" / "张开双臂" | 对应手势 |
-| "你开心吗" / "给我比个爱心" / "我有点难过" | 表情屏切换（开心/难过/惊讶/生气/爱心） |
-| "往前走一米" / "向左转" | 步态前进 / 原地转向 |
-| "停" | 立即停止 |
+| "你开心吗" / "给我比个爱心" | 表情屏切换 |
+| "往前走一米" / "向左转" / "停" | 步态前进 / 转向 / 停止 |
 | 播报中开口 | 打断当前播报，转入聆听 |
-
-回答问题时边说边做动作，表情屏的嘴巴随语音张合。
-
-## 验收清单
-
-| # | 操作 | 预期 |
-|---|---|---|
-| 1 | Agent 连上机器人 | 立即播报开场白 |
-| 2 | 说"你好" | ~2.5s 内开始语音应答 |
-| 3 | 问长一点的问题 | 边想边说，不等全文生成 |
-| 4 | 说"挥挥手" | 边说话边挥手，面板显示 `技能: gesture/wave_hands` |
-| 5 | 说"往前走一米" | 走完站稳，面板出现 `walk → done` |
-| 6 | 播放中说话 | 先说完再听（半双工），不会自我打断 |
-| 7 | Ctrl+C 后重连 Agent | 自动重连并重新播报开场白 |
-| 8 | 第二个客户端接入 | 被拒（503，单会话） |
-| 9 | 按 F1 | 调试面板呼出/隐藏 |
 
 ## 故障排查
 
 | 现象 | 参见 |
 |---|---|
-| Agent 连不上机器人 | [exe/README.md](exe/README.md) 运行须知 |
-| 语音/云端报错 | [python-agent-client/README.md](python-agent-client/README.md) 排障表 |
+| Agent 连不上机器人 | [exe/README.md](exe/README.md) |
+| 语音/云端报错 | [python-agent-client/README.md](python-agent-client/README.md) |
 | 协议对接问题 | [docs/interface.md](docs/interface.md) |
