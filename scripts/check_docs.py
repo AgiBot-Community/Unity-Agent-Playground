@@ -16,6 +16,13 @@ README_GROUPS = (
     ('example/README.md', 'example/docs/README.en.md', 'example/docs/README.fr.md'),
 )
 README_PATHS = {path for group in README_GROUPS for path in group}
+# Vendored Unity package documentation and licenses retain upstream locations.
+VENDORED_DOCS = (
+    'unity-project/com.unity.ml-agents/',
+    'unity-project/com.unity.ml-agents.extensions/',
+    'unity-project/com.unity.robotics.ros-tcp-connector/',
+    'unity-project/com.unity.robotics.urdf-importer/',
+)
 LINK = re.compile(r'\[[^\]]*\]\(([^)]+)\)')
 FENCE = re.compile(r'^```.*?^```\s*$', re.MULTILINE | re.DOTALL)
 
@@ -28,6 +35,8 @@ def main():
         cwd=ROOT,
     ).decode('utf-8').split('\0')
     for relative in maintained:
+        if relative.startswith(VENDORED_DOCS):
+            continue
         path = Path(relative)
         if not relative or not (ROOT / path).is_file():
             continue

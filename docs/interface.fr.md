@@ -24,7 +24,7 @@ payload = "GET\n" + path + "\n" + ts + "\n" + nonce
 signature = hmac.new(app_secret.encode(), payload.encode(), hashlib.sha256).hexdigest()
 ```
 
-Le chemin, avec sa casse exacte, participe à la signature. Identifiants de démonstration : `demo-app` / `demo-key` / `demo-secret`. Les clients signent toujours ; le contrôle dépend du build de la passerelle. Ne supposez pas un mode permissif. Sa modification nécessite un nouveau build ; le projet Unity complet n’est pas inclus.
+Le chemin, avec sa casse exacte, participe à la signature. Identifiants de démonstration : `demo-app` / `demo-key` / `demo-secret`. Les clients signent toujours ; le contrôle dépend du build de la passerelle. Ne supposez pas un mode permissif. Sa modification nécessite de reconstruire la passerelle depuis les [sources Unity](../unity-project/).
 
 | Code HTTP | Signification |
 |---|---|
@@ -88,13 +88,15 @@ La lecture commence à l’arrivée des fragments PCM. Le texte LLM et l’audio
 
 ## Actions et interruptions
 
+Ce tableau correspond aux sources Unity actuelles. L’EXE portable n’a pas été reconstruit à partir de ces sources et peut proposer des actions différentes.
+
 | `skillType` | `skillName` | `skillParam` |
 |---|---|---|
-| `gesture` | `wave_hands` | `{}` ; seul geste actuel |
+| `gesture` | `wave_hands`, `bow`, `open_arms` | `{}` |
 | `movement` | `walk` | `{"distanceM": 1.0}` ; plage de référence 0,2–5 m |
 | `movement` | `turn` | `{"angleDeg": 90}` ; valeur positive vers la droite |
 | `movement` | `stop` | `{}` |
-| `emotion` | `happy`, `thinking`, `apologetic`, `surprised`, `listening`, `sad`, `sleepy`, `wink`, `love`, `angry`, `neutral` | `{"durationMs": 3000}` |
+| `emotion` | `happy`, `sad`, `surprised`, `angry`, `love`, `neutral` | `{"durationMs": 3000}` |
 
 L’exemple expose ces actions via l’outil LLM `robot_skill`. Les gestes suivent des trajectoires articulaires, les expressions pilotent le visage et l’énergie TTS anime la bouche. La fin d’un déplacement est signalée une fois le robot stabilisé. Une action inconnue échoue sans couper la chaîne vocale.
 

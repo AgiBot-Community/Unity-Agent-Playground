@@ -1,0 +1,17 @@
+{
+    "name": "X02Competition.Robot",
+    "rootNamespace": "X02Competition.Robot",
+    "references": [
+        "X02Competition.Protocol",
+        "X02Competition.Gateway"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

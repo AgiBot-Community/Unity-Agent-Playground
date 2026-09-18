@@ -1,0 +1,16 @@
+{
+    "name": "X02Competition.Gateway",
+    "rootNamespace": "X02Competition.Gateway",
+    "references": [
+        "X02Competition.Protocol"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

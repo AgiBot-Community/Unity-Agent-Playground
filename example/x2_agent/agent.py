@@ -23,7 +23,7 @@ SKILL_TOOLS = [{
         "name": "robot_skill",
         "description": (
             "让机器人执行一个动作或表情技能。用户表达动作/表情/移动意图时调用；"
-            "调用后正常用自然语言回应即可。动作仅支持挥手。"
+            "调用后正常用自然语言回应即可。"
         ),
         "parameters": {
             "type": "object",
@@ -31,13 +31,12 @@ SKILL_TOOLS = [{
                 "skillType": {"type": "string",
                              "enum": ["gesture", "movement", "emotion"]},
                 "skillName": {"type": "string", "enum": [
-                    # gesture（仅挥手）
-                    "wave_hands",
+                    # gesture（3 个基本动作）
+                    "wave_hands", "bow", "open_arms",
                     # movement
                     "walk", "turn", "stop",
-                    # emotion
-                    "happy", "thinking", "apologetic", "surprised",
-                    "listening", "sad", "sleepy", "wink", "love", "angry",
+                    # emotion（5 个经典表情）
+                    "happy", "sad", "surprised", "angry", "love",
                     "neutral"]},
                 "skillParam": {
                     "type": "object",
@@ -98,17 +97,14 @@ def cut_sentences(pending: str, min_weak: int = 8, max_buf: int = 40):
 # 技能即时口播表：纯工具调用时立刻回话（与动作并行），不等二轮 LLM
 SKILL_ACKS = {
     ("gesture", "wave_hands"): "好呀，我这就挥挥手～",
+    ("gesture", "bow"): "给您鞠个躬～",
+    ("gesture", "open_arms"): "欢迎欢迎！",
     ("movement", "stop"): "好的，我停下了。",
     ("emotion", "happy"): "我现在好开心呀！",
-    ("emotion", "thinking"): "让我想一想～",
-    ("emotion", "apologetic"): "哎呀，不好意思～",
-    ("emotion", "surprised"): "哇！真的吗？",
-    ("emotion", "listening"): "我在听您说～",
     ("emotion", "sad"): "呜，有点难过……",
-    ("emotion", "sleepy"): "我好困呀……",
-    ("emotion", "wink"): "嘿嘿，给您眨个眼～",
-    ("emotion", "love"): "爱心送给您～",
+    ("emotion", "surprised"): "哇！真的吗？",
     ("emotion", "angry"): "哼，我生气啦！",
+    ("emotion", "love"): "爱心送给您～",
     ("emotion", "neutral"): "好的。",
 }
 SKILL_ACK_GENERIC = "好的，我这就来！"
@@ -564,11 +560,13 @@ def parse_args(argv=None):
     p.add_argument("--system-prompt",
                    default="你是人形机器人X2的语音助手，名叫灵犀。"
                            "回答口语化、简洁（一般不超过两句话），不要用列表和markdown。"
-                           "你可以通过 robot_skill 工具做动作和表情：动作仅支持挥手"
-                           "（wave_hands）；表情有开心、思考、惊讶、难过、困倦、"
-                           "眨眼、爱心、生气等。用户表达这类意图时调用工具，同时必须"
-                           "给一句简短的口头回应（如'好呀，我这就挥手'），不能只调用"
-                           "工具不说话。还可以走（walk）、转（turn）、停（stop）。")
+                           "你可以通过 robot_skill 工具做动作和表情：动作有挥手"
+                           "（wave_hands）、鞠躬（bow）、张开双臂（open_arms）；"
+                           "表情有开心（happy）、"
+                           "难过（sad）、惊讶（surprised）、生气（angry）、爱心"
+                           "（love）。用户表达这类意图时调用工具，同时必须给一句"
+                           "简短的口头回应（如'好呀，我这就挥手'），不能只调用工具"
+                           "不说话。还可以走（walk）、转（turn）、停（stop）。")
     p.add_argument("--history-turns", type=int, default=5,
                    help="LLM 记忆的对话轮数")
     p.add_argument("--greeting",

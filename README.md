@@ -9,6 +9,7 @@
 | 路径 | 内容 |
 |---|---|
 | [exe/](docs/simulator.md) | `x2模拟器.exe`，66.88 MB 的 Unity 单文件便携程序 |
+| [unity-project/](unity-project/) | Unity 工程源码、机器人模型、技能与网关实现 |
 | [example/](example/README.md) | Python 包 `x2_agent`、配置模板及本机回归测试 |
 | [docs/](docs/index.md) | 三语文档索引、接口规范及开发指南 |
 | `scripts/check_docs.py` | 文档语言覆盖与本地链接检查 |
@@ -16,7 +17,7 @@
 
 Unity 是 WebSocket 服务端；Python Agent 接收麦克风音频，调用 ASR、LLM 和 TTS，再将文字、音频及动作指令发回 Unity。模拟器和 Agent 分别启动。
 
-本仓库不包含完整 Unity 工程。独立打包资料保存在维护者本机的同级 `../x2-simulator/`，不随仓库分发。仅使用模拟器不需要这些资料。
+Unity 工程源码位于 [unity-project/](unity-project/)，编辑器版本为 `2022.3.62f3c1`。独立打包资料保存在维护者本机的同级 `../x2-simulator/`，不随仓库分发。仅使用模拟器不需要这些资料。
 
 ## 快速开始
 
@@ -32,7 +33,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m x2_agent.demo
 ```
 
-demo 返回固定文字和正弦提示音，用来验证网关与音频链路，不进行真实语音识别或语音合成。
+demo 返回固定文字并播放内置录音，用来验证网关与音频链路，不进行真实语音识别或实时语音合成。录音缺失或格式不符时退回正弦提示音。
 
 3. 按 Ctrl+C 退出 demo，然后配置并启动豆包客户端：
 

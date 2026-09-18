@@ -24,7 +24,7 @@ payload = "GET\n" + path + "\n" + ts + "\n" + nonce
 signature = hmac.new(app_secret.encode(), payload.encode(), hashlib.sha256).hexdigest()
 ```
 
-The path, including case, participates in the signature. Demo credentials are `demo-app` / `demo-key` / `demo-secret`. Clients always sign; enforcement depends on the gateway build. Do not assume permissive authentication. Changing it requires a modified gateway build; this repository has no full Unity project.
+The path, including case, participates in the signature. Demo credentials are `demo-app` / `demo-key` / `demo-secret`. Clients always sign; enforcement depends on the gateway build. Do not assume permissive authentication. Changing it requires rebuilding the gateway from [Unity sources](../unity-project/).
 
 | HTTP status | Meaning |
 |---|---|
@@ -88,13 +88,15 @@ PCM playback starts as chunks arrive. LLM text and TTS audio may interleave: do 
 
 ## Skills and interrupts
 
+This table matches the current Unity source catalog. The portable EXE has not been rebuilt from these sources and may support a different skill set.
+
 | `skillType` | `skillName` | `skillParam` |
 |---|---|---|
-| `gesture` | `wave_hands` | `{}`; only current gesture |
+| `gesture` | `wave_hands`, `bow`, `open_arms` | `{}` |
 | `movement` | `walk` | `{"distanceM": 1.0}`; reference range 0.2–5 m |
 | `movement` | `turn` | `{"angleDeg": 90}`; positive turns right |
 | `movement` | `stop` | `{}` |
-| `emotion` | `happy`, `thinking`, `apologetic`, `surprised`, `listening`, `sad`, `sleepy`, `wink`, `love`, `angry`, `neutral` | `{"durationMs": 3000}` |
+| `emotion` | `happy`, `sad`, `surprised`, `angry`, `love`, `neutral` | `{"durationMs": 3000}` |
 
 The example exposes these through the `robot_skill` LLM tool. Gestures use joint trajectories, expressions drive the face, and TTS energy animates the mouth. Movement completion is reported after the robot settles. Unknown skills report failure without terminating speech.
 

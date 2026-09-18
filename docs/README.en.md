@@ -9,6 +9,7 @@ Talk to an X2 robot in Unity through a Python voice agent and request gestures, 
 | Path | Purpose |
 |---|---|
 | [exe/](simulator.en.md) | `x2模拟器.exe`, a 66.88 MB single-file Unity distribution |
+| [unity-project/](../unity-project/) | Unity sources, robot models, skills and gateway implementation |
 | [example/](../example/docs/README.en.md) | The `x2_agent` Python package, configuration template and local tests |
 | [docs/](index.en.md) | Documentation index, protocol and development guide in three languages |
 | `scripts/check_docs.py` | Language coverage and local link checks |
@@ -16,7 +17,7 @@ Talk to an X2 robot in Unity through a Python voice agent and request gestures, 
 
 Unity is the WebSocket server. The Python agent receives microphone audio, calls ASR, LLM and TTS services, then sends text, audio and skill commands back. Start the simulator and agent separately.
 
-The full Unity project is not included. The maintainer keeps packaging tools and frozen resources in a separate sibling directory, `../x2-simulator/`; it is not distributed with this repository or required to run the simulator.
+Unity project sources are in [unity-project/](../unity-project/), using editor version `2022.3.62f3c1`. The maintainer keeps packaging tools and frozen resources in a separate sibling directory, `../x2-simulator/`; it is not distributed with this repository or required to run the simulator.
 
 ## Quick start
 
@@ -32,7 +33,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m x2_agent.demo
 ```
 
-The demo returns fixed text and a sine-wave tone to check the gateway and audio path. It does not recognize speech or synthesize spoken replies.
+The demo returns fixed text and plays bundled recordings to check the gateway and audio path. It does not recognize speech or synthesize replies in real time. Missing or invalid recordings fall back to a sine-wave tone.
 
 3. Stop the demo with Ctrl+C, configure credentials and start Doubao:
 

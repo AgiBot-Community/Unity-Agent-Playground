@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ec77f0bec9d85c989b273f0294d6bda, type: 3}
+  m_Name: SkillCatalog
+  m_EditorClassIdentifier: 
+  Entries:
+  - SkillType: gesture
+    SkillName: wave_hands
+    Executor: 1
+    AnimatorTrigger:
+    NominalDurationSec: 2.5
+  - SkillType: gesture
+    SkillName: bow
+    Executor: 1
+    AnimatorTrigger:
+    NominalDurationSec: 3
+  - SkillType: gesture
+    SkillName: open_arms
+    Executor: 1
+    AnimatorTrigger:
+    NominalDurationSec: 3
+  - SkillType: movement
+    SkillName: walk
+    Executor: 0
+    AnimatorTrigger:
+    NominalDurationSec: 3
+  - SkillType: movement
+    SkillName: turn
+    Executor: 0
+    AnimatorTrigger:
+    NominalDurationSec: 2
+  - SkillType: movement
+    SkillName: stop
+    Executor: 0
+    AnimatorTrigger:
+    NominalDurationSec: 1
+  - SkillType: emotion
+    SkillName: happy
+    Executor: 2
+    AnimatorTrigger:
+    NominalDurationSec: 3
+  - SkillType: emotion
+    SkillName: sad
+    Executor: 2
+    AnimatorTrigger:
+    NominalDurationSec: 3
+  - SkillType: emotion
+    SkillName: surprised
+    Executor: 2
+    AnimatorTrigger:
+    NominalDurationSec: 3
+  - SkillType: emotion
+    SkillName: angry
+    Executor: 2
+    AnimatorTrigger:
+    NominalDurationSec: 3
+  - SkillType: emotion
+    SkillName: love
+    Executor: 2
+    AnimatorTrigger:
+    NominalDurationSec: 3
+  - SkillType: emotion
+    SkillName: neutral
+    Executor: 2
+    AnimatorTrigger:
+    NominalDurationSec: 1

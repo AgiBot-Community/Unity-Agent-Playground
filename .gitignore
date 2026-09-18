@@ -23,7 +23,9 @@ htmlcov/
 # Local diagnostics: logs, recordings, downloaded tools and DLL backups
 /.diagnostics/
 *.log
-/example/*.wav
+*.wav
+!example/x2_agent/greeting.wav
+!example/x2_agent/tts.wav
 /example/recordings/
 /example/output/
 
@@ -37,3 +39,7 @@ Desktop.ini
 *.swp
 
 # exe/x2模拟器.exe is an intentional release artifact; do not ignore *.exe.
+*.sln
+unity-project/Assets/ML-Agents/
+unity-project/Assets/XRI/
+unity-project/Assets/XRI.meta

@@ -39,4 +39,4 @@ Manual end-to-end validation: start Unity → connect one agent → wait for the
 
 ## Unity and distribution boundaries
 
-The full Unity project is absent. The maintainer's `../x2-simulator/` contains separate packaging materials that are not available in a normal clone. The launcher uses a disk cache, so do not describe it as memory-only execution. See the [simulator guide](simulator.en.md).
+The Unity project is in [unity-project/](../unity-project/), using editor `2022.3.62f3c1`. Rebuild Unity after changing the gateway or skills; the portable EXE does not update automatically. The maintainer's `../x2-simulator/` contains separate packaging materials that are not available in a normal clone. The launcher uses a disk cache, so do not describe it as memory-only execution. See the [simulator guide](simulator.en.md).

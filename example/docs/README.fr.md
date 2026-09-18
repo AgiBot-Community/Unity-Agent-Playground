@@ -2,7 +2,7 @@
 
 [中文](../README.md) | [English](README.en.md) | **Français**
 
-Utilisez `python -m x2_agent` pour les conversations Doubao et les commandes du robot. Commencez par `python -m x2_agent.demo` pour vérifier la passerelle sans clé cloud : cette démo renvoie du texte fixe et un signal sinusoïdal, sans reconnaissance ni synthèse vocale réelle.
+Utilisez `python -m x2_agent` pour les conversations Doubao et les commandes du robot. Commencez par `python -m x2_agent.demo` pour vérifier la passerelle sans clé cloud : cette démo renvoie du texte fixe et lit les enregistrements fournis, sans reconnaissance ni synthèse en temps réel. Un enregistrement absent ou invalide est remplacé par un signal sinusoïdal.
 
 ## Organisation
 
@@ -46,10 +46,14 @@ Attendez la fin de l’accueil avant de parler. Le fonctionnement est semi-duple
 
 ## Commandes du robot
 
-- « 挥挥手 » : faire un signe de la main ; `gesture/wave_hands` est le seul geste actuel.
+- « 挥挥手 », « 鞠个躬 », « 张开双臂 » : saluer, s’incliner et ouvrir les bras (`wave_hands`, `bow`, `open_arms`).
 - « 往前走一米 », « 向左转 », « 停 » : avancer, tourner et s’arrêter.
 - Les demandes d’expressions heureuses, tristes ou surprises changent le visage. Le protocole prévoit aussi une expression neutre.
 - **F1** ouvre le panneau Unity, dont les boutons fonctionnent sans clé cloud.
+
+La liste correspond aux sources Unity actuelles. L’EXE portable n’a pas été reconstruit à partir de ces sources ; les anciennes versions peuvent ne pas gérer l’inclinaison et l’ouverture des bras.
+
+Les options `--reply` et `--greeting` changent les sous-titres, pas les enregistrements. Les fichiers `x2_agent/greeting.wav` et `x2_agent/tts.wav` sont envoyés par tranches de 200 ms.
 
 ## Configuration
 
