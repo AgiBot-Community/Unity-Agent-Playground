@@ -1,4 +1,39 @@
+# Python environments and generated caches
 __pycache__/
-*.pyc
+*.py[cod]
 .venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+/example/build/
+/example/dist/
+
+# Local credentials (keep distributable templates)
 .env
+.env.*
+!.env.example
+!.env.*.example
+
+# Local diagnostics: logs, recordings, downloaded tools and DLL backups
+/.diagnostics/
+*.log
+/example/*.wav
+/example/recordings/
+/example/output/
+
+# Editor and operating-system artifacts
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.tmp
+*.swp
+
+# exe/x2模拟器.exe is an intentional release artifact; do not ignore *.exe.
