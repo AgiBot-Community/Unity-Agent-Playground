@@ -46,12 +46,12 @@ Attendez la fin de l’accueil avant de parler. Le fonctionnement est semi-duple
 
 ## Commandes du robot
 
-- « 挥挥手 », « 鞠个躬 », « 张开双臂 » : saluer, s’incliner et ouvrir les bras (`wave_hands`, `bow`, `open_arms`).
+- « 挥挥手 », « 张开双臂 » : saluer et ouvrir les bras (`wave_hands`, `open_arms`).
 - « 往前走一米 », « 向左转 », « 停 » : avancer, tourner et s’arrêter.
 - Les demandes d’expressions heureuses, tristes ou surprises changent le visage. Le protocole prévoit aussi une expression neutre.
 - **F1** ouvre le panneau Unity, dont les boutons fonctionnent sans clé cloud.
 
-La liste correspond aux sources Unity actuelles. L’EXE portable n’a pas été reconstruit à partir de ces sources ; les anciennes versions peuvent ne pas gérer l’inclinaison et l’ouverture des bras.
+La liste correspond aux sources Unity actuelles. L’EXE portable n’a pas été reconstruit à partir de ces sources ; les anciennes versions peuvent ne pas gérer l’ouverture des bras.
 
 Les options `--reply` et `--greeting` changent les sous-titres, pas les enregistrements. Les fichiers `x2_agent/greeting.wav` et `x2_agent/tts.wav` sont envoyés par tranches de 200 ms.
 

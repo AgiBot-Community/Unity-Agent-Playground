@@ -1,4 +1,4 @@
-# Unity Agent Playground · X2
+# X2 Agent Playground
 
 [中文](../README.md) | [English](README.en.md) | **Français**
 
@@ -9,7 +9,7 @@ Dialoguez avec un robot X2 dans Unity à l’aide d’un agent vocal Python et d
 | Chemin | Rôle |
 |---|---|
 | [exe/](simulator.fr.md) | `x2模拟器.exe`, distribution Unity en un seul fichier de 66,88 Mo |
-| [unity-project/](../unity-project/) | Sources Unity, modèles, actions et passerelle |
+| [unity-agent-playground/](unity.fr.md) | Sources Unity, modèles, actions et passerelle |
 | [example/](../example/docs/README.fr.md) | Paquet Python `x2_agent`, modèle de configuration et tests locaux |
 | [docs/](index.fr.md) | Index, protocole et guide de développement en trois langues |
 | `scripts/check_docs.py` | Vérification de la couverture linguistique et des liens locaux |
@@ -17,7 +17,7 @@ Dialoguez avec un robot X2 dans Unity à l’aide d’un agent vocal Python et d
 
 Unity joue le rôle de serveur WebSocket. L’agent Python reçoit le son du microphone, appelle les services ASR, LLM et TTS, puis renvoie texte, audio et commandes au robot. Le simulateur et l’agent se lancent séparément.
 
-Les sources Unity sont dans [unity-project/](../unity-project/), avec l’éditeur `2022.3.62f3c1`. Les outils d’empaquetage et les ressources figées sont conservés par le mainteneur dans le dossier voisin `../x2-simulator/`. Ce dossier n’est pas distribué avec le dépôt et n’est pas nécessaire pour utiliser le simulateur.
+Les sources Unity sont dans [unity-agent-playground/](../unity-agent-playground/), avec l’éditeur `2022.3.62f3c1`. Les outils d’empaquetage et les ressources figées sont conservés par le mainteneur dans le dossier voisin `../x2-simulator/`. Ce dossier n’est pas distribué avec le dépôt et n’est pas nécessaire pour utiliser le simulateur.
 
 ## Démarrage rapide
 

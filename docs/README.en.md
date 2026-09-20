@@ -1,4 +1,4 @@
-# Unity Agent Playground · X2
+# X2 Agent Playground
 
 [中文](../README.md) | **English** | [Français](README.fr.md)
 
@@ -9,7 +9,7 @@ Talk to an X2 robot in Unity through a Python voice agent and request gestures, 
 | Path | Purpose |
 |---|---|
 | [exe/](simulator.en.md) | `x2模拟器.exe`, a 66.88 MB single-file Unity distribution |
-| [unity-project/](../unity-project/) | Unity sources, robot models, skills and gateway implementation |
+| [unity-agent-playground/](unity.en.md) | Unity sources, robot models, skills and gateway implementation |
 | [example/](../example/docs/README.en.md) | The `x2_agent` Python package, configuration template and local tests |
 | [docs/](index.en.md) | Documentation index, protocol and development guide in three languages |
 | `scripts/check_docs.py` | Language coverage and local link checks |
@@ -17,7 +17,7 @@ Talk to an X2 robot in Unity through a Python voice agent and request gestures, 
 
 Unity is the WebSocket server. The Python agent receives microphone audio, calls ASR, LLM and TTS services, then sends text, audio and skill commands back. Start the simulator and agent separately.
 
-Unity project sources are in [unity-project/](../unity-project/), using editor version `2022.3.62f3c1`. The maintainer keeps packaging tools and frozen resources in a separate sibling directory, `../x2-simulator/`; it is not distributed with this repository or required to run the simulator.
+Unity project sources are in [unity-agent-playground/](../unity-agent-playground/), using editor version `2022.3.62f3c1`. The maintainer keeps packaging tools and frozen resources in a separate sibling directory, `../x2-simulator/`; it is not distributed with this repository or required to run the simulator.
 
 ## Quick start
 

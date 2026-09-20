@@ -36,4 +36,4 @@ Le dossier voisin `../x2-simulator/` du mainteneur contient le code du lanceur, 
 
 Sortie : `dist/x2模拟器.exe`. Les ressources figées suffisent ; le projet Unity original n’est pas nécessaire pour cette étape. Pour les remplacer, utilisez `-Source 'chemin-du-build-Unity-complet'`. Le script vérifie l’archive et impose une taille inférieure à 100 000 000 octets.
 
-L’empaquetage ne modifie ni l’adresse d’écoute ni l’authentification Unity. Pour les modifier, il faut obtenir un build Unity mis à jour puis l’empaqueter. Les sources sont dans [unity-project/](../unity-project/), avec l’éditeur `2022.3.62f3c1`. Cet EXE portable n’a pas été reconstruit à partir des sources actuelles ; les actions disponibles peuvent différer.
+L’empaquetage ne modifie ni l’adresse d’écoute ni l’authentification Unity. Pour les modifier, il faut obtenir un build Unity mis à jour puis l’empaqueter. Les sources sont dans [unity-agent-playground/](../unity-agent-playground/), avec l’éditeur `2022.3.62f3c1`. Cet EXE portable n’a pas été reconstruit à partir des sources actuelles ; les actions disponibles peuvent différer.

@@ -46,12 +46,12 @@ Wait for the greeting to finish before speaking. The current flow is half-duplex
 
 ## Skills
 
-- “挥挥手”, “鞠个躬”, “张开双臂”: wave, bow and open arms (`wave_hands`, `bow`, `open_arms`).
+- “挥挥手”, “张开双臂”: wave and open arms (`wave_hands`, `open_arms`).
 - “往前走一米”, “向左转”, “停”: walk, turn and stop.
 - Requests for happy, sad, surprised or other expressions change the robot face. The protocol also includes a neutral expression.
 - **F1** opens the Unity debug panel; its skill buttons work without a cloud key.
 
-The skill list matches the current Unity sources. The portable EXE has not been rebuilt from those sources; older builds may not support bow and open arms.
+The skill list matches the current Unity sources. The portable EXE has not been rebuilt from those sources; older builds may not support open arms.
 
 The demo’s `--reply` and `--greeting` change captions, not the bundled voice recordings. Audio comes from `x2_agent/greeting.wav` and `x2_agent/tts.wav`, sent in 200 ms chunks.
 

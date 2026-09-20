@@ -28,7 +28,7 @@ class RecordingTests(unittest.TestCase):
                 self.assertEqual(demo.load_pcm(path, 100, 440), demo.sine_pcm(100, 440))
 
     def test_agent_skills_match_unity_source_catalog(self):
-        catalog = (Path(__file__).resolve().parents[2] / 'unity-project/Assets/'
+        catalog = (Path(__file__).resolve().parents[2] / 'unity-agent-playground/Assets/'
                    'X02Competition/Robot/Skills/SkillCatalog.cs').read_text(encoding='utf-8')
         expected = set(re.findall(r'SkillName = "([^"]+)"', catalog))
         actual = agent.SKILL_TOOLS[0]['function']['parameters']['properties']['skillName']['enum']

@@ -39,4 +39,4 @@ Validation manuelle complète : lancer Unity → connecter un seul agent → att
 
 ## Unity et distribution
 
-Le projet Unity est dans [unity-project/](../unity-project/), avec l’éditeur `2022.3.62f3c1`. Reconstruisez Unity après toute modification des actions ou de la passerelle ; l’EXE portable ne se met pas à jour automatiquement. Le dossier `../x2-simulator/` du mainteneur contient les éléments d’empaquetage, indisponibles dans un clone normal. Le lanceur utilise un cache disque : ne pas le présenter comme une exécution uniquement en mémoire. Voir le [guide du simulateur](simulator.fr.md).
+Le projet Unity est dans [unity-agent-playground/](../unity-agent-playground/), avec l’éditeur `2022.3.62f3c1`. Reconstruisez Unity après toute modification des actions ou de la passerelle ; l’EXE portable ne se met pas à jour automatiquement. Le dossier `../x2-simulator/` du mainteneur contient les éléments d’empaquetage, indisponibles dans un clone normal. Le lanceur utilise un cache disque : ne pas le présenter comme une exécution uniquement en mémoire. Voir le [guide du simulateur](simulator.fr.md).

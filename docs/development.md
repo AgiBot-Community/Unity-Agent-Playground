@@ -39,4 +39,4 @@ python -B -m unittest discover -s tests -v
 
 ## Unity 与权限边界
 
-Unity 工程位于 [unity-project/](../unity-project/)，使用 `2022.3.62f3c1` 编辑器。修改网关或技能后需重新构建 Unity；现有便携 EXE 不会自动更新。维护者的 `../x2-simulator/` 保存独立打包材料，但普通克隆不会得到它。封装程序使用磁盘缓存，不能描述为零落盘运行。完整封装步骤见 [模拟器指南](simulator.md)。
+Unity 工程位于 [unity-agent-playground/](../unity-agent-playground/)，使用 `2022.3.62f3c1` 编辑器。修改网关或技能后需重新构建 Unity；现有便携 EXE 不会自动更新。维护者的 `../x2-simulator/` 保存独立打包材料，但普通克隆不会得到它。封装程序使用磁盘缓存，不能描述为零落盘运行。完整封装步骤见 [模拟器指南](simulator.md)。

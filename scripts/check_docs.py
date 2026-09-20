@@ -9,7 +9,7 @@ import sys
 from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
-BASES = ('docs/simulator', 'docs/index', 'docs/interface', 'docs/development')
+BASES = ('docs/simulator', 'docs/index', 'docs/interface', 'docs/development', 'docs/unity')
 SUFFIXES = ('.md', '.en.md', '.fr.md')
 README_GROUPS = (
     ('README.md', 'docs/README.en.md', 'docs/README.fr.md'),
@@ -18,10 +18,10 @@ README_GROUPS = (
 README_PATHS = {path for group in README_GROUPS for path in group}
 # Vendored Unity package documentation and licenses retain upstream locations.
 VENDORED_DOCS = (
-    'unity-project/com.unity.ml-agents/',
-    'unity-project/com.unity.ml-agents.extensions/',
-    'unity-project/com.unity.robotics.ros-tcp-connector/',
-    'unity-project/com.unity.robotics.urdf-importer/',
+    'unity-agent-playground/com.unity.ml-agents/',
+    'unity-agent-playground/com.unity.ml-agents.extensions/',
+    'unity-agent-playground/com.unity.robotics.ros-tcp-connector/',
+    'unity-agent-playground/com.unity.robotics.urdf-importer/',
 )
 LINK = re.compile(r'\[[^\]]*\]\(([^)]+)\)')
 FENCE = re.compile(r'^```.*?^```\s*$', re.MULTILINE | re.DOTALL)

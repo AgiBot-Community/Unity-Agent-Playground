@@ -1,15 +1,15 @@
-# Unity Agent Playground · X2
+# X2 Agent Playground
 
 **中文** | [English](docs/README.en.md) | [Français](docs/README.fr.md)
 
-通过 Python 语音 Agent 与 Unity 中的 X2 机器人对话，并触发挥手、移动和表情。仓库提供 Windows 单文件模拟器、可安装的 Python 示例及网关协议文档。
+基于 Unity 的 X2 人形机器人 Agent 开发环境：机器人侧提供网关与动作/表情/步态技能，接入你自己的 Agent 即可实现语音对话驱动机器人。
 
 ## 仓库结构
 
 | 路径 | 内容 |
 |---|---|
 | [exe/](docs/simulator.md) | `x2模拟器.exe`，66.88 MB 的 Unity 单文件便携程序 |
-| [unity-project/](unity-project/) | Unity 工程源码、机器人模型、技能与网关实现 |
+| [unity-agent-playground/](docs/unity.md) | Unity 工程源码、机器人模型、技能与网关实现 |
 | [example/](example/README.md) | Python 包 `x2_agent`、配置模板及本机回归测试 |
 | [docs/](docs/index.md) | 三语文档索引、接口规范及开发指南 |
 | `scripts/check_docs.py` | 文档语言覆盖与本地链接检查 |
@@ -17,7 +17,7 @@
 
 Unity 是 WebSocket 服务端；Python Agent 接收麦克风音频，调用 ASR、LLM 和 TTS，再将文字、音频及动作指令发回 Unity。模拟器和 Agent 分别启动。
 
-Unity 工程源码位于 [unity-project/](unity-project/)，编辑器版本为 `2022.3.62f3c1`。独立打包资料保存在维护者本机的同级 `../x2-simulator/`，不随仓库分发。仅使用模拟器不需要这些资料。
+Unity 工程源码位于 [unity-agent-playground/](unity-agent-playground/)，编辑器版本为 `2022.3.62f3c1`。独立打包资料保存在维护者本机的同级 `../x2-simulator/`，不随仓库分发。仅使用模拟器不需要这些资料。
 
 ## 快速开始
 

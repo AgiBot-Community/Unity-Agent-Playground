@@ -17,11 +17,6 @@ namespace X02Competition.Robot
         public float WaveElbowSwing = 35f;      // 肘摆动幅度（度，只能往弯的方向）
         public float WaveSwingHz = 1.4f;        // 摆动频率
 
-        [Header("bow 鞠躬")]
-        public float BowDuration = 3.0f;
-        public float BowWaistDeg = 16f;         // 腰前倾（限位 ±18，正=前倾）
-        public float BowHeadDeg = 15f;          // 头补充低头（限位 ±22）
-
         [Header("open_arms 张开双臂")]
         public float OpenArmsDuration = 3.0f;
         public float OpenShoulderDeg = 90f;     // 双肩 roll 外展（左正右负，限位 ∓171）
@@ -31,8 +26,6 @@ namespace X02Competition.Robot
         public bool Verbose = true;
 
         ArticulationBody _headYaw;
-        ArticulationBody _headPitch;
-        ArticulationBody _waistPitch;
         readonly List<ArticulationBody> _shoulderPitch = new List<ArticulationBody>();
         readonly List<ArticulationBody> _shoulderRoll = new List<ArticulationBody>();
         readonly List<ArticulationBody> _shoulderYaw = new List<ArticulationBody>();
@@ -61,9 +54,8 @@ namespace X02Competition.Robot
             foreach (var b in GetComponentsInChildren<ArticulationBody>())
             {
                 var n = b.gameObject.name.ToLowerInvariant();
-                var wanted = n.Contains("head_yaw") || n.Contains("head_pitch") ||
-                    n.Contains("shoulder") || n.Contains("elbow") || n.Contains("wrist") ||
-                    n.Contains("waist_pitch");
+                var wanted = n.Contains("head_yaw") ||
+                    n.Contains("shoulder") || n.Contains("elbow") || n.Contains("wrist");
                 if (!wanted) continue;
 
                 // 本场景手臂/头关节被禁用为 Fixed（但保留了 URDF 的
@@ -80,8 +72,6 @@ namespace X02Competition.Robot
                 if (b.jointType != ArticulationJointType.RevoluteJoint) continue;
 
                 if (n.Contains("head_yaw")) _headYaw = b;
-                else if (n.Contains("head_pitch")) _headPitch = b;
-                else if (n.Contains("waist_pitch")) _waistPitch = b;
                 else if (n.Contains("shoulder_pitch")) _shoulderPitch.Add(b);
                 else if (n.Contains("shoulder_roll")) _shoulderRoll.Add(b);
                 else if (n.Contains("shoulder_yaw")) _shoulderYaw.Add(b);
@@ -108,8 +98,6 @@ namespace X02Competition.Robot
             if (Verbose)
             {
                 Debug.Log("[Gesture] 关节: headYaw=" + (_headYaw != null) +
-                    " headPitch=" + (_headPitch != null) +
-                    " waistPitch=" + (_waistPitch != null) +
                     " shoulderPitch=" + _shoulderPitch.Count +
                     " shoulderRoll=" + _shoulderRoll.Count +
                     " shoulderYaw=" + _shoulderYaw.Count +
@@ -126,8 +114,6 @@ namespace X02Competition.Robot
         IEnumerable<ArticulationBody> AllJoints()
         {
             if (_headYaw != null) yield return _headYaw;
-            if (_headPitch != null) yield return _headPitch;
-            if (_waistPitch != null) yield return _waistPitch;
             foreach (var j in _shoulderPitch) yield return j;
             foreach (var j in _shoulderRoll) yield return j;
             foreach (var j in _shoulderYaw) yield return j;
@@ -137,7 +123,7 @@ namespace X02Competition.Robot
 
         static readonly HashSet<string> KnownGestures = new HashSet<string>
         {
-            "wave_hands", "bow", "open_arms",
+            "wave_hands", "open_arms",
         };
 
         /// <summary>播手势。返回 false=未知手势名；新播会掐断旧手势（回调 false）。</summary>
@@ -155,7 +141,6 @@ namespace X02Competition.Robot
             _t = 0f;
             _duration = gestureName switch
             {
-                "bow" => BowDuration,
                 "open_arms" => OpenArmsDuration,
                 _ => WaveDuration,
             };
@@ -185,7 +170,6 @@ namespace X02Competition.Robot
                 if (IsRight(j)) LogJoint(j, "右肩roll");
             foreach (var j in _elbows)
                 if (IsRight(j)) LogJoint(j, "右肘");
-            if (_waistPitch != null) LogJoint(_waistPitch, "腰");
         }
 
         void LogJoint(ArticulationBody j, string label)
@@ -232,12 +216,6 @@ namespace X02Competition.Robot
                             -(0.5f + 0.5f * Mathf.Sin(2f * Mathf.PI * WaveSwingHz * _t)) *
                             WaveElbowSwing * env);
                     SetJoint(_headYaw, 6f * env);
-                    break;
-
-                case "bow":
-                    // 腰前倾（限位 ±18）+ 头补充低头，慢起慢收，手臂贴身保平衡
-                    SetJoint(_waistPitch, BowWaistDeg * env, 400f);
-                    SetJoint(_headPitch, BowHeadDeg * env);
                     break;
 
                 case "open_arms":

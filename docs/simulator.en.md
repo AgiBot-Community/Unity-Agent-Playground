@@ -36,4 +36,4 @@ The maintainer's sibling directory `../x2-simulator/` contains the launcher sour
 
 Output: `dist/x2模拟器.exe`. Frozen resources are sufficient; the original Unity project is not required for this packaging step. To replace resources, pass `-Source 'path-to-complete-Unity-build'`. The script verifies the archive and enforces a size below 100,000,000 bytes.
 
-Repackaging does not change Unity's listen address or authentication settings. To change them, obtain an updated Unity build and package that build. Sources are in [unity-project/](../unity-project/), using editor `2022.3.62f3c1`. This portable EXE has not been rebuilt from the current sources; its supported skills may differ.
+Repackaging does not change Unity's listen address or authentication settings. To change them, obtain an updated Unity build and package that build. Sources are in [unity-agent-playground/](../unity-agent-playground/), using editor `2022.3.62f3c1`. This portable EXE has not been rebuilt from the current sources; its supported skills may differ.

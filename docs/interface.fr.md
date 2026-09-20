@@ -24,7 +24,7 @@ payload = "GET\n" + path + "\n" + ts + "\n" + nonce
 signature = hmac.new(app_secret.encode(), payload.encode(), hashlib.sha256).hexdigest()
 ```
 
-Le chemin, avec sa casse exacte, participe à la signature. Identifiants de démonstration : `demo-app` / `demo-key` / `demo-secret`. Les clients signent toujours ; le contrôle dépend du build de la passerelle. Ne supposez pas un mode permissif. Sa modification nécessite de reconstruire la passerelle depuis les [sources Unity](../unity-project/).
+Le chemin, avec sa casse exacte, participe à la signature. Identifiants de démonstration : `demo-app` / `demo-key` / `demo-secret`. Les clients signent toujours ; le contrôle dépend du build de la passerelle. Ne supposez pas un mode permissif. Sa modification nécessite de reconstruire la passerelle depuis les [sources Unity](../unity-agent-playground/).
 
 | Code HTTP | Signification |
 |---|---|
@@ -92,7 +92,7 @@ Ce tableau correspond aux sources Unity actuelles. L’EXE portable n’a pas é
 
 | `skillType` | `skillName` | `skillParam` |
 |---|---|---|
-| `gesture` | `wave_hands`, `bow`, `open_arms` | `{}` |
+| `gesture` | `wave_hands`, `open_arms` | `{}` |
 | `movement` | `walk` | `{"distanceM": 1.0}` ; plage de référence 0,2–5 m |
 | `movement` | `turn` | `{"angleDeg": 90}` ; valeur positive vers la droite |
 | `movement` | `stop` | `{}` |

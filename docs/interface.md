@@ -65,7 +65,7 @@ signature = hmac.new(app_secret.encode(), payload.encode(),
 | `503` | 已有会话占用（单会话限制） |
 
 > 示例客户端始终发送签名。是否强制校验由网关构建配置决定；不要依赖宽松模式。
-> 修改 `StrictAuth` 后需从 [Unity 工程](../unity-project/) 重新构建网关。
+> 修改 `StrictAuth` 后需从 [Unity 工程](../unity-agent-playground/) 重新构建网关。
 
 ### 2.4 会话生命周期
 
@@ -190,7 +190,6 @@ VAD 检测到用户开始说话（ Rising energy）。`audio2tts` 模式携带 `
 | skillType | skillName | skillParam | 说明 |
 |---|---|---|---|
 | gesture | `wave_hands` | — | 挥手（手臂举起摆动） |
-| gesture | `bow` | — | 鞠躬（腰前倾+低头，慢起慢收） |
 | gesture | `open_arms` | — | 张开双臂（欢迎姿势） |
 | movement | `walk` | `{"distanceM": 1.0}` | 前进指定米数（0.2~5） |
 | movement | `turn` | `{"angleDeg": 90}` | 原地转角（右转为正） |
@@ -294,6 +293,6 @@ VAD 检测到用户开始说话（ Rising energy）。`audio2tts` 模式携带 `
 ## 9. 仿真演示说明（Unity exe / Play Mode）
 
 - **调试面板**：默认隐藏，**F1** 呼出/隐藏（录屏时画面干净，隐藏态右下角有恢复提示）。面板含连接状态、ASR/LLM 字幕、技能触发记录；按钮可手动触发技能（不经过 Agent，直接路由到 Unity 执行器），方便在无云端 Key 时验证动作
-- **技能按钮**：3 个基本动作（挥手/鞠躬/张臂）/ 5 种表情（开心/难过/惊讶/生气/爱心）/ 前进 1m / 右转 90° / 停止，与协议技能表一一对应
+- **技能按钮**：2 个基本动作（挥手/张臂）/ 5 种表情（开心/难过/惊讶/生气/爱心）/ 前进 1m / 右转 90° / 停止，与协议技能表一一对应
 - **开场播报**：Agent 收到 `robot_state.sync` 后主动下发一轮 `llm_response` + `tts_response`（"你好，我是灵犀，有什么可以帮您？"，示例项目 `--greeting` 可改），网关直接播放，不依赖对话轮次
 - **打断验证**：机器人播报中开口说话 → VAD 冻结到播完（半双工），Agent 下发 `interrupt` 则立即停播停动作

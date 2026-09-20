@@ -40,6 +40,7 @@ Desktop.ini
 
 # exe/x2模拟器.exe is an intentional release artifact; do not ignore *.exe.
 *.sln
-unity-project/Assets/ML-Agents/
-unity-project/Assets/XRI/
-unity-project/Assets/XRI.meta
+unity-agent-playground/Assets/ML-Agents/
+unity-agent-playground/Assets/ML-Agents.meta
+unity-agent-playground/Assets/XRI/
+unity-agent-playground/Assets/XRI.meta

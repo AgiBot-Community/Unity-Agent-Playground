@@ -24,7 +24,7 @@ payload = "GET\n" + path + "\n" + ts + "\n" + nonce
 signature = hmac.new(app_secret.encode(), payload.encode(), hashlib.sha256).hexdigest()
 ```
 
-The path, including case, participates in the signature. Demo credentials are `demo-app` / `demo-key` / `demo-secret`. Clients always sign; enforcement depends on the gateway build. Do not assume permissive authentication. Changing it requires rebuilding the gateway from [Unity sources](../unity-project/).
+The path, including case, participates in the signature. Demo credentials are `demo-app` / `demo-key` / `demo-secret`. Clients always sign; enforcement depends on the gateway build. Do not assume permissive authentication. Changing it requires rebuilding the gateway from [Unity sources](../unity-agent-playground/).
 
 | HTTP status | Meaning |
 |---|---|
@@ -92,7 +92,7 @@ This table matches the current Unity source catalog. The portable EXE has not be
 
 | `skillType` | `skillName` | `skillParam` |
 |---|---|---|
-| `gesture` | `wave_hands`, `bow`, `open_arms` | `{}` |
+| `gesture` | `wave_hands`, `open_arms` | `{}` |
 | `movement` | `walk` | `{"distanceM": 1.0}`; reference range 0.2–5 m |
 | `movement` | `turn` | `{"angleDeg": 90}`; positive turns right |
 | `movement` | `stop` | `{}` |
