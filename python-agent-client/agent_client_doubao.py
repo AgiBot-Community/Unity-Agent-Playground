@@ -97,8 +97,8 @@ SKILL_TOOLS = [{
                 "skillType": {"type": "string",
                              "enum": ["gesture", "movement", "emotion"]},
                 "skillName": {"type": "string", "enum": [
-                    # gesture（3 个基本动作）
-                    "wave_hands", "bow", "open_arms",
+                    # gesture（2 个基本动作）
+                    "wave_hands", "open_arms",
                     # movement
                     "walk", "turn", "stop",
                     # emotion（5 个经典表情）

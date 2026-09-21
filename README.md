@@ -9,6 +9,7 @@
 | `unity-agent-playground/` | Unity 工程源码（[说明](unity-agent-playground/README.md)） |
 | `exe/` | 机器人侧程序，Build 产物（[说明](exe/README.md)） |
 | `python-agent-client/` | Agent 客户端，Python（[说明](python-agent-client/README.md)） |
+| `linksoul-agent-client/` | LinkSoul 官方 SDK 真机 Agent demo（[说明](linksoul-agent-client/README.md)） |
 | `docs/interface.md` | WebSocket 协议（自己写 Agent 时看） |
 
 ## 快速开始
