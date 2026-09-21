@@ -1,10 +1,44 @@
+# Python environments and generated caches
 __pycache__/
-*.pyc
+*.py[cod]
 .venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+/example/build/
+/example/dist/
+
+# Local credentials (keep distributable templates)
 .env
+.env.*
+!.env.example
+!.env.*.example
+
+# Local diagnostics: logs, recordings, downloaded tools and DLL backups
+/.diagnostics/
+*.log
 *.wav
-!python-agent-client/greeting.wav
-!python-agent-client/tts.wav
+!example/x2_agent/greeting.wav
+!example/x2_agent/tts.wav
+/example/recordings/
+/example/output/
+
+# Editor and operating-system artifacts
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.tmp
+*.swp
+
+# exe/x2模拟器.exe is an intentional release artifact; do not ignore *.exe.
 *.sln
 unity-agent-playground/Assets/ML-Agents/
 unity-agent-playground/Assets/ML-Agents.meta
