@@ -6,7 +6,6 @@ using Unity.MLAgents.Sensors;
 using Random = UnityEngine.Random;
 using System.Collections.Generic;
 using System.IO;
-using UnityEditor;
 using Unity.Sentis;
 using System.Threading.Tasks;
 
