@@ -4,6 +4,8 @@
 
 Protocol reference v1.0, aligned with LinkSoul AgentSDK v1.4.0. Unity/the robot is the WebSocket server; the agent is the client. The gateway captures microphone audio, plays returned PCM, displays text and executes robot skills.
 
+Before integration, start the robot using the [EXE guide](simulator.en.md) or [Unity project guide](unity.en.md), then connect using the [Agent guide](../example/docs/README.en.md). Both routes use the same gateway protocol.
+
 ## Connection and authentication
 
 Endpoint: `ws://<robot-host>:9002/api/V1/open-portal/app/wss/agent-sdk`. Messages are JSON text frames; audio is base64 PCM. One client may connect at a time. Disable WebSocket compression (`compression=None` in the Python client).
@@ -88,7 +90,7 @@ PCM playback starts as chunks arrive. LLM text and TTS audio may interleave: do 
 
 ## Skills and interrupts
 
-This table matches the current Unity source catalog. The portable EXE has not been rebuilt from these sources and may support a different skill set.
+This table matches the current Unity source catalog. The portable EXE was rebuilt from the current project on 2026-09-23.
 
 | `skillType` | `skillName` | `skillParam` |
 |---|---|---|

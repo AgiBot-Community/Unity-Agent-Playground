@@ -4,6 +4,8 @@
 
 Référence v1.0, alignée sur LinkSoul AgentSDK v1.4.0. Unity/le robot est le serveur WebSocket ; l’agent est le client. La passerelle capture le microphone, lit le PCM reçu, affiche le texte et exécute les commandes.
 
+Avant l’intégration, lancez le robot avec le [guide EXE](simulator.fr.md) ou le [guide du projet Unity](unity.fr.md), puis connectez-le selon le [guide de l’Agent](../example/docs/README.fr.md). Les deux méthodes utilisent le même protocole.
+
 ## Connexion et authentification
 
 Adresse : `ws://<robot-host>:9002/api/V1/open-portal/app/wss/agent-sdk`. Les messages sont des trames texte JSON ; l’audio est du PCM en base64. Un seul client peut se connecter. Désactivez la compression WebSocket (`compression=None` en Python).
@@ -88,7 +90,7 @@ La lecture commence à l’arrivée des fragments PCM. Le texte LLM et l’audio
 
 ## Actions et interruptions
 
-Ce tableau correspond aux sources Unity actuelles. L’EXE portable n’a pas été reconstruit à partir de ces sources et peut proposer des actions différentes.
+Ce tableau correspond aux sources Unity actuelles. L’EXE portable a été reconstruit à partir du projet actuel le 2026-09-23.
 
 | `skillType` | `skillName` | `skillParam` |
 |---|---|---|
