@@ -9,6 +9,10 @@ namespace X02Competition.Bootstrap
     /// 装配链：LinkskyGatewayServer(监听) → SessionOpened → runtime.Bind + SendRobotOnline；
     /// 主线程泵驱动会话入站队列；断线 → runtime.Unbind（等 SDK 3s 自动重连，重连后重发 sync）。
     /// </summary>
+    // GesturePlayer.Awake unlocks the upper-body joints when added below.
+    // Finish that topology setup before X02newAgent.OnEnable/Initialize caches
+    // articulation positions and velocities for episode resets (default order 0).
+    [DefaultExecutionOrder(-200)]
     public class CompetitionLauncher : MonoBehaviour
     {
         public enum InputMode { Microphone, TestClip }
@@ -50,6 +54,7 @@ namespace X02Competition.Bootstrap
         [HideInInspector] public EmotionController Emotions;
         [HideInInspector] public LocomotionCommander Loco;
         [HideInInspector] public SkillRouter Router;
+        [HideInInspector] public RobotCameraRig Cameras;
 
         const string RobotTag = "robot";
 
@@ -100,7 +105,12 @@ namespace X02Competition.Bootstrap
             if (ShowDebugHud)
             {
                 Hud = gameObject.AddComponent<DebugHud>();
-                Hud.Launcher = this;
+                Hud.Initialize(this);
+            }
+            if (robot != null)
+            {
+                Cameras = gameObject.AddComponent<RobotCameraRig>();
+                Cameras.Initialize(robot.transform, Hud);
             }
 
             // ---- L1 网关 ----
@@ -144,7 +154,10 @@ namespace X02Competition.Bootstrap
         {
             Pump.Post(() =>
             {
-                Runtime.Unbind();
+                // Closed sessions leave the server before their disconnect queue is pumped.
+                // Ignore a delayed close if a newer session has already connected.
+                if (Runtime == null || !ReferenceEquals(Runtime.Port, session)) return;
+                Runtime.OnAgentDisconnected();
                 Debug.Log("[Launcher] Agent 会话已断开，等待重连（SDK 将于 3s 后自动重连）");
             });
         }
