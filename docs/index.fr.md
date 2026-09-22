@@ -2,6 +2,12 @@
 
 [中文](index.md) | [English](index.en.md) | **Français**
 
+Ces guides décrivent les sources, modèles de configuration et livrables destinés à être versionnés avec Git.
+
+- **Depuis l’EXE :** suivez le [guide du simulateur](simulator.fr.md) pour lancer l’application Windows portable.
+- **Depuis le projet Unity :** suivez le [guide Unity](unity.fr.md) pour importer le projet, ouvrir la scène, puis l’exécuter ou le compiler.
+- Après le lancement du robot par l’une de ces méthodes, suivez le [guide de l’Agent](../example/docs/README.fr.md) pour la démo hors ligne, puis les conversations vocales.
+
 | Sujet | 中文 | English | Français |
 |---|---|---|---|
 | Projet Unity | [工程指南](unity.md) | [Unity project](unity.en.md) | [Projet Unity](unity.fr.md) |

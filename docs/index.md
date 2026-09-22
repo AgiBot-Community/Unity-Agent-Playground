@@ -2,6 +2,12 @@
 
 **中文** | [English](index.en.md) | [Français](index.fr.md)
 
+文档围绕需要 Git 管理的源码、配置模板和交付文件展开。
+
+- **从 EXE 开始**：阅读 [模拟器运行说明](simulator.md)，直接运行 Windows 便携程序。
+- **从 Unity 工程开始**：阅读 [Unity 工程指南](unity.md)，导入工程、打开场景并运行或构建。
+- 两条路径启动机器人后，都可以按照 [示例 Agent 指南](../example/README.md) 先运行离线 demo，再配置语音对话。
+
 | 内容 | 中文 | English | Français |
 |---|---|---|---|
 | Unity 工程 | [工程指南](unity.md) | [Unity project](unity.en.md) | [Projet Unity](unity.fr.md) |

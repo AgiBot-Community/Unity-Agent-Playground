@@ -2,6 +2,12 @@
 
 [中文](index.md) | **English** | [Français](index.fr.md)
 
+These guides cover source files, configuration templates and deliverables intended for Git.
+
+- **Start from the EXE:** follow the [simulator guide](simulator.en.md) to run the portable Windows application.
+- **Start from the Unity project:** follow the [Unity guide](unity.en.md) to import the project, open the scene, and run or build it.
+- After either route starts the robot, follow the [Agent guide](../example/docs/README.en.md) for the offline demo and then voice conversations.
+
 | Topic | 中文 | English | Français |
 |---|---|---|---|
 | Unity project | [工程指南](unity.md) | [Unity project](unity.en.md) | [Projet Unity](unity.fr.md) |
