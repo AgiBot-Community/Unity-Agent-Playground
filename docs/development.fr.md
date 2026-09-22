@@ -2,13 +2,15 @@
 
 [中文](development.md) | [English](development.en.md) | **Français**
 
+Ce guide s’adresse aux développeurs qui modifient le client Python, la passerelle Unity ou les fichiers distribués. Pour une première utilisation, consultez le [démarrage rapide](README.fr.md). Cette page précise les responsabilités du code, les vérifications et la livraison.
+
 ## Environnement et lancement
 
 Démarrez le robot avec l’[EXE du dépôt](simulator.fr.md) ou la scène principale du [projet Unity](unity.fr.md) en mode Play. Les deux utilisent la même interface Agent ; n’en lancez qu’un à la fois.
 
 Utilisez Python 3.10+. Dans `example/`, installez les dépendances tierces avec `python -m pip install -r requirements.txt`, puis lancez `python agent.py` ou `python demo.py`. Voir le [guide de l’agent](../example/docs/README.fr.md).
 
-Déclarez les dépendances uniquement dans `requirements.txt`. Priorité de configuration : arguments CLI, environnement existant, `.env`, puis valeurs par défaut. Les imports ne chargent pas les clés. Utilisez `--env-file` pour choisir un fichier.
+Déclarez les dépendances Python dans `example/requirements.txt`. Priorité : arguments CLI > variables d’environnement existantes > `example/.env` > valeurs par défaut. Les imports ne chargent pas les clés. Utilisez `--env-file <chemin>` pour choisir un autre fichier.
 
 ## Responsabilités des modules
 
@@ -27,7 +29,12 @@ python -B -m unittest discover -s tests -v
 
 Les tests utilisent des services simulés locaux, sans Unity ni clés API.
 
-Validation manuelle complète : lancer Unity → connecter un seul agent → attendre l’accueil → parler → vérifier texte ASR, texte LLM et audio → déclencher une action → déconnecter et reconnecter. Noter modèle, ressources vocales et délais par étape, sans transformer une mesure ponctuelle en garantie.
+Effectuez la validation manuelle en deux étapes :
+
+1. **Intégration locale :** lancez un simulateur et connectez `demo.py`. Vérifiez `state=online`, les sous-titres et la lecture audio, puis testez les actions dans le panneau F1.
+2. **Voix et services cloud :** arrêtez la démo, configurez les clés et lancez `agent.py`. Après l’accueil, parlez et vérifiez le texte ASR, la réponse LLM et la lecture TTS. Demandez une action, puis déconnectez et reconnectez le client.
+
+Notez le modèle, les ressources vocales, les résultats et les délais par étape. Distinguez l’enregistrement et la détection du silence du traitement cloud ; une mesure isolée ne garantit pas les performances.
 
 ## Modifications et documentation
 

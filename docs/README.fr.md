@@ -1,15 +1,31 @@
-# X2 Agent Playground
+<p align="center">
+  <a href="https://github.com/AgiBot-Community">
+    <img src="https://github.com/AgiBot-Community.png?size=304" alt="AgiBot Community logo" width="152">
+  </a>
+</p>
 
-[![AgiBot Community](https://img.shields.io/badge/Community-AgiBot-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/AgiBot-Community)
-[![GitHub Issues](https://img.shields.io/badge/Feedback-GitHub_Issues-238636?style=flat-square&logo=github&logoColor=white)](https://github.com/AgiBot-Community/Unity-Agent-Playground/issues)
+<h1 align="center">X2 Agent Playground</h1>
 
-![Unity 2022.3](https://img.shields.io/badge/Unity-2022.3-222222?style=flat-square&logo=unity&logoColor=white)
-![C#](https://img.shields.io/badge/C%23-512BD4?style=flat-square&logo=dotnet&logoColor=white)
-![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)
+<p align="center">
+  <a href="../README.md"><img src="https://img.shields.io/badge/语言-简体中文-22314E?style=for-the-badge" alt="简体中文"></a>
+  <a href="README.en.md"><img src="https://img.shields.io/badge/Language-English-3776AB?style=for-the-badge" alt="English documentation"></a>
+  <a href="README.fr.md"><img src="https://img.shields.io/badge/Langue-Français-0055A4?style=for-the-badge" alt="Documentation française"></a>
+</p>
 
-🌐 [中文 ↗](../README.md) | [English ↗](README.en.md) | **Français**
+<p align="center">
+  Dialoguez avec un robot X2 dans Unity à l’aide d’un agent vocal Python et déclenchez des gestes, des déplacements et des expressions. Ce dépôt contient un simulateur Windows portable, des scripts Python d’exemple et la documentation du protocole de la passerelle.
+</p>
 
-Dialoguez avec un robot X2 dans Unity à l’aide d’un agent vocal Python et déclenchez des gestes, des déplacements et des expressions. Ce dépôt contient un simulateur Windows portable, des scripts Python d’exemple et la documentation du protocole de la passerelle.
+<p align="center">
+  <a href="https://unity.com/releases/editor/archive"><img src="https://img.shields.io/badge/Unity-2022.3-222222?style=flat-square&amp;logo=unity&amp;logoColor=white" alt="Unity 2022.3"></a>
+  <a href="https://learn.microsoft.com/dotnet/csharp/"><img src="https://img.shields.io/badge/C%23-512BD4?style=flat-square&amp;logo=dotnet&amp;logoColor=white" alt="C#"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white" alt="Python 3.10+"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/AgiBot-Community"><img src="https://img.shields.io/badge/Community-AgiBot-181717?style=flat-square&amp;logo=github&amp;logoColor=white" alt="AgiBot Community"></a>
+  <a href="https://github.com/AgiBot-Community/Unity-Agent-Playground/issues"><img src="https://img.shields.io/badge/Feedback-GitHub_Issues-238636?style=flat-square&amp;logo=github&amp;logoColor=white" alt="GitHub Issues"></a>
+</p>
 
 ## Contenu du dépôt
 
@@ -20,13 +36,20 @@ Dialoguez avec un robot X2 dans Unity à l’aide d’un agent vocal Python et d
 | [example/](../example/docs/README.fr.md) | Scripts Python de l’agent, modèle de configuration et tests locaux |
 | [docs/](index.fr.md) | Index, protocole et guide de développement en trois langues |
 
-Unity joue le rôle de serveur WebSocket. L’agent Python reçoit le son du microphone, appelle les services ASR, LLM et TTS, puis renvoie texte, audio et commandes au robot. Le simulateur et l’agent se lancent séparément.
+Unity capture le microphone, affiche le robot et exécute les actions en tant que serveur WebSocket. L’agent Python reçoit l’audio, appelle la reconnaissance vocale (ASR), un grand modèle de langage (LLM) et la synthèse vocale (TTS), puis renvoie texte, audio et commandes. Démarrez d’abord le simulateur, puis connectez un seul agent.
 
-Ces guides s’appuient sur les exécutables, sources, modèles de configuration et documents gérés dans Git. La version de l’éditeur est indiquée dans [ProjectVersion.txt](../unity-agent-playground/ProjectSettings/ProjectVersion.txt), actuellement `2022.3.62f3c1`.
+Le développement utilise Unity **2022.3.62f3c1**, indiqué dans [ProjectVersion.txt](../unity-agent-playground/ProjectSettings/ProjectVersion.txt). Si Hub ne propose pas cette ancienne version, suivez le [guide Unity](unity.fr.md) pour la télécharger depuis le site officiel et l’ajouter au Hub.
 
 ## Démarrage rapide
 
-Choisissez une méthode pour démarrer le robot. L’EXE ne nécessite ni Unity ni Python ; l’agent d’exemple nécessite Python 3.10+. L’interaction vocale demande un microphone et des haut-parleurs. Les conversations réelles nécessitent des clés API Volcengine Speech et Ark.
+Choisissez un parcours selon votre objectif, puis connectez un agent :
+
+| Objectif | Parcours | Prérequis |
+|---|---|---|
+| Essayer le robot et ses actions | Parcours A : EXE portable | Windows 10/11 x64 |
+| Modifier les scènes, actions ou la passerelle et recompiler | Parcours B : projet Unity | Unity Hub et l’éditeur indiqué |
+| Vérifier la connexion Agent et la lecture audio | Lancer `demo.py` après le robot | Python 3.10+, microphone et haut-parleurs |
+| Dialoguer et demander des actions à la voix | Arrêter la démo, puis lancer `agent.py` | Clés API Volcengine Speech et Ark |
 
 ### Parcours A : démarrer depuis l’EXE
 
@@ -81,7 +104,7 @@ cd example
 python -B -m unittest discover -s tests -v
 ```
 
-Consultez le [guide de développement](development.fr.md). Les [règles Git](../.gitignore) et celles du projet définissent les fichiers concernés. Les modèles de configuration et l’EXE sont des livrables du dépôt ; les clés personnelles ne doivent pas être versionnées.
+Les tests utilisent des services simulés locaux, sans Unity ni clés API. Le [guide de développement](development.fr.md) décrit les responsabilités des modules, la validation manuelle et les publications.
 
 ## Documentation
 

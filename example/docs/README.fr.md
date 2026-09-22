@@ -2,7 +2,9 @@
 
 [中文](../README.md) | [English](README.en.md) | **Français**
 
-Utilisez `python agent.py` pour les conversations Doubao et les commandes du robot. Commencez par `python demo.py` pour vérifier la passerelle sans clé cloud : cette démo renvoie du texte fixe et lit les enregistrements fournis, sans reconnaissance ni synthèse en temps réel. Un enregistrement absent ou invalide est remplacé par un signal sinusoïdal.
+Ce dossier fournit des clients Python pour la passerelle du robot Unity. Commencez par `python demo.py` pour vérifier la connexion et l’audio sans clé cloud. La démo renvoie du texte fixe et des enregistrements, remplacés par un signal sinusoïdal si un fichier est absent ou invalide. Configurez ensuite `python agent.py` pour les conversations Doubao et les commandes du robot.
+
+Les commandes ci-dessous s’exécutent dans le dossier `example/` du dépôt, avec Windows PowerShell. Sous Linux/macOS, utilisez `python3` si nécessaire ; le simulateur portable fourni fonctionne sous Windows.
 
 ## Organisation
 
@@ -39,24 +41,33 @@ Les deux méthodes utilisent le port local `9002` ; ne lancez qu’une instance 
 
 ```powershell
 python demo.py
-# Arrêter la démo avec Ctrl+C avant de lancer un autre client
+```
+
+Attendez `state=online` et la fin de l’accueil, puis parlez pour vérifier la réponse fixe et la lecture audio. Arrêtez la démo avec **Ctrl+C** avant de configurer les conversations réelles :
+
+```powershell
+# Conserver un éventuel .env existant
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-# Renseigner les deux clés API dans .env
+# Renseigner DOUBAO_SPEECH_API_KEY et ARK_API_KEY dans .env
 python agent.py
 ```
 
-Exécutez directement les scripts avec Python 3.10+ et conservez le dossier interne `x2_agent/` à côté. Si les dépendances sont déjà disponibles, lancez les scripts immédiatement. Depuis la racine du dépôt, utilisez `python example/agent.py` ; la configuration par défaut reste `example/.env`. Sous Linux/macOS, utilisez `python3` si nécessaire ; le simulateur Unity fourni nécessite Windows. Une connexion distante demande une passerelle accessible qui écoute sur le réseau, en plus de `--host <adresse> --port 9002`.
+Conservez `x2_agent/` à côté des scripts et utilisez le même environnement Python pour installer les dépendances et les exécuter. Depuis la racine du dépôt, utilisez `python example/agent.py` ; la configuration par défaut reste `example/.env`.
+
+Pour une connexion distante, utilisez `--host <adresse> --port 9002` et vérifiez que la passerelle écoute sur une adresse réseau accessible. Ces options ne modifient pas l’écoute locale par défaut de Unity.
 
 Le journal `agent 会话就绪 state=online` confirme la connexion. Attendez la fin de l’accueil avant de parler. Le fonctionnement est semi-duplex. Le prompt et la voix par défaut ciblent le chinois ; ces traductions ne modifient pas les langues prises en charge par les services vocaux ou l’interface Unity.
 
 ## Commandes du robot
 
+Les phrases ci-dessous nécessitent `agent.py` ; le modèle choisit les actions selon la demande. La démo ne reconnaît pas les commandes vocales. Sans service cloud, utilisez les boutons F1 ou l’option `--skill` de la démo.
+
 - « 挥挥手 », « 张开双臂 » : saluer et ouvrir les bras (`wave_hands`, `open_arms`).
-- « 往前走一米 », « 向左转 », « 停 » : avancer, tourner et s’arrêter.
+- « 往前走一米 », « 向左转 », « 停 » : avancer, tourner et s’arrêter après reconnaissance et envoi de la commande. Pendant la lecture, utilisez le bouton d’arrêt ou une interruption explicite.
 - Les demandes d’expressions heureuses, tristes ou surprises changent le visage. Le protocole prévoit aussi une expression neutre.
 - **F1** ouvre le panneau Unity, dont les boutons fonctionnent sans clé cloud.
 
-La liste correspond aux sources Unity actuelles. L’EXE portable a été reconstruit à partir du projet actuel le 2026-09-23.
+La bouche suit la lecture vocale. Consultez le [tableau des actions du protocole](../../docs/interface.fr.md) pour les noms et paramètres.
 
 Les options `--reply` et `--greeting` changent les sous-titres, pas les enregistrements. Les fichiers `x2_agent/greeting.wav` et `x2_agent/tts.wav` sont envoyés par tranches de 200 ms.
 
@@ -98,7 +109,7 @@ Par défaut, l’audio ASR est envoyé pendant l’enregistrement, les connexion
 
 | Symptôme | Vérification |
 |---|---|
-| Connexion refusée | Lancer Unity ; vérifier hôte, port et adresse d’écoute |
+| Connexion refusée | Lancer l’EXE ou passer en mode Play ; vérifier hôte et port. À distance, la passerelle doit aussi écouter sur une adresse réseau accessible |
 | HTTP 401 | Identifiants, signature et horodatage si l’authentification stricte est activée |
 | HTTP 503 | Un autre agent occupe l’unique session |
 | Aucune transcription | Microphone coupé, volume d’entrée et durée de l’enregistrement |
@@ -108,6 +119,8 @@ Par défaut, l’audio ASR est envoyé pendant l’enregistrement, les connexion
 | Réponse inaudible | Périphérique et volume de sortie Windows ; journaux TTS et fichier `--save-audio` |
 
 ## Tests et développement
+
+Depuis `example/`, utilisez le même environnement Python que pour l’installation des dépendances :
 
 ```powershell
 python -B -m unittest discover -s tests -v

@@ -2,11 +2,12 @@
 
 **中文** | [English](index.en.md) | [Français](index.fr.md)
 
-文档围绕需要 Git 管理的源码、配置模板和交付文件展开。
+从首次运行到自定义 Agent，可按下面的顺序阅读。尚未确定启动方式时，先看[项目首页与快速开始](../README.md)。
 
 - **从 EXE 开始**：阅读 [模拟器运行说明](simulator.md)，直接运行 Windows 便携程序。
-- **从 Unity 工程开始**：阅读 [Unity 工程指南](unity.md)，导入工程、打开场景并运行或构建。
+- **修改 Unity 工程**：阅读 [Unity 工程指南](unity.md)，下载指定旧版编辑器、导入工程、运行场景并构建。
 - 两条路径启动机器人后，都可以按照 [示例 Agent 指南](../example/README.md) 先运行离线 demo，再配置语音对话。
+- **编写自己的客户端**：先阅读[网关协议](interface.md)，再按[开发指南](development.md)进行测试和维护。
 
 | 内容 | 中文 | English | Français |
 |---|---|---|---|

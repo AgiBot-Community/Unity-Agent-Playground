@@ -2,7 +2,7 @@
 
 [中文](simulator.md) | **English** | [Français](simulator.fr.md)
 
-Open [x2模拟器.exe](../exe/x2模拟器.exe) to start Unity and its robot gateway. **F1** toggles the debug panel. Start the [Python agent](../example/docs/README.en.md) separately; the agent supplies the greeting.
+Use this guide to run the portable Windows simulator. Open [x2模拟器.exe](../exe/x2模拟器.exe): the robot appears and its gateway waits on `127.0.0.1:9002`. Press **F1** to test skills with the debug buttons. Voice conversations require the separate [Python agent](../example/docs/README.en.md), which sends the greeting after connecting.
 
 The file is **58,287,104 bytes (58.29 MB)**. Distribute this EXE alone: no Data folder, Python, credentials or Playground checkout is needed to run the simulator. Real voice conversations still require the separate agent. See the [SHA-256 checksum](../exe/x2模拟器.sha256).
 
@@ -11,7 +11,7 @@ The file is **58,287,104 bytes (58.29 MB)**. Distribute this EXE alone: no Data 
 | Item | Value |
 |---|---|
 | OS | Windows 10/11 x64, system .NET Framework 4.x |
-| Audio | Microphone and speakers |
+| Voice devices | Microphone and speakers; skill buttons do not require a microphone |
 | Local endpoint | `ws://127.0.0.1:9002/api/V1/open-portal/app/wss/agent-sdk` |
 | Authentication | Clients send HMAC signatures; enforcement depends on the Unity build configuration |
 | Sessions | One agent at a time |
@@ -49,9 +49,9 @@ Every view frames the robot's full bounds and reserves space for the HUD. Orbit 
 
 Use the repository's [Unity project](../unity-agent-playground/) to change scenes, cameras, skills or the gateway:
 
-1. Install Unity Hub and **2022.3.62f3c1**, then add `unity-agent-playground/` with **Add project from disk**.
+1. Follow the [Unity guide](unity.en.md) to download Unity Hub and the older **2022.3.62f3c1** Editor, then add `unity-agent-playground/` with **Add project from disk**.
 2. After import, open `Assets/X02Competition/Scenes/scene.unity`, press **Play** and focus the Game window.
 3. Use the same shortcuts and Agent commands above. Close the EXE before Play to avoid a port 9002 conflict.
 4. Follow the [Unity build guide](unity.en.md) using **File → Build Settings** to generate a Windows application; keep its complete output directory.
 
-The single-file EXE in Git is a ready-to-run release. A normal Unity Build produces an application directory with resources; it does not automatically repackage or overwrite that EXE. This guide uses the repository's project and deliverables as its starting points.
+The supplied single-file EXE is ready to run and distribute. A normal Unity Build creates a directory containing the application and its resources; keep that entire directory when distributing your build. Building does not automatically replace the repository EXE.

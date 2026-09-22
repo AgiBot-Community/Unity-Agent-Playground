@@ -1,8 +1,8 @@
-# X02 机器人 Agent 网关接口文档
+# X2 机器人 Agent 网关协议
 
 **中文** | [English](interface.en.md) | [Français](interface.fr.md)
 
-版本：v1.0（对应 LinkSoul AgentSDK v1.4.0 线上协议）
+协议参考版本：v1.0，与 LinkSoul AgentSDK v1.4.0 对齐。本页说明仓库中 Unity 网关的消息格式和行为，供自定义 Agent 客户端接入使用。真机接入时还需确认设备侧支持的能力。
 
 开始联调前，先按 [EXE 运行说明](simulator.md) 或 [Unity 工程指南](unity.md) 启动机器人，再按 [示例 Agent 指南](../example/README.md) 连接；两种启动方式使用相同的网关协议。
 
@@ -10,9 +10,9 @@
 
 机器人本体（网关侧，Unity / 真机）作为 **WebSocket 服务端**，Agent（大模型应用侧）作为 **客户端** 接入。网关负责：
 
-- 采集机器人麦克风音频，经 VAD 切分后推送给你（Agent）
-- 接收你回传的 ASR 文本 / LLM 增量文本 / TTS 音频，并驱动机器人扬声器播放
-- 维护机器人上下线状态与技能指令通道
+- 采集麦克风音频，使用语音活动检测（VAD）划分对话轮次并发送给 Agent。
+- 接收语音识别（ASR）文本、大语言模型（LLM）增量文本和语音合成（TTS）音频，更新字幕并播放音频。
+- 同步机器人连接状态，接收技能指令并报告执行结果。
 
 ```
 ┌──────────────┐  WebSocket (JSON 文本帧)  ┌──────────────┐
@@ -33,9 +33,11 @@
 
 > 路径参与签名校验，必须与上面完全一致（含大小写）。
 
+本机连接使用 `127.0.0.1`。跨机接入前，需修改 Unity 网关的监听地址并确保端口可达，详见 [Unity 配置说明](unity.md)。自定义客户端应禁用 WebSocket 压缩；Python `websockets` 使用 `compression=None`。
+
 ### 2.2 鉴权（HTTP Upgrade 阶段）
 
-握手即认证，无连接后 auth 应答消息。请求头：
+鉴权在 HTTP Upgrade 握手阶段完成，连接后不会再发送单独的 `auth` 应答。示例默认凭据为 `demo-app` / `demo-key` / `demo-secret`，分别对应应用 ID、Key 和签名密钥。请求头如下：
 
 | Header | 说明 |
 |---|---|
@@ -91,7 +93,7 @@ signature = hmac.new(app_secret.encode(), payload.encode(),
 }
 ```
 
-**核心约定：回传时 `agentId` / `robotCid` / `eventId` / `itemId` 必须原样使用网关下发值**，网关按这些字段路由与关联。
+**回复录音事件时，保留收到的 `agentId`、`robotCid` / `cid`、`eventId`，以及存在时的 `itemId`。** 网关使用这些字段关联机器人、对话轮次和条目。开场白是连接同步后由 Agent 主动发起的独立轮次。
 
 ## 4. 网关 → Agent（机器人下发）
 
@@ -110,7 +112,7 @@ signature = hmac.new(app_secret.encode(), payload.encode(),
 
 ### 4.2 音频流开始 `agentsdk.audio_request.start`
 
-VAD 检测到用户开始说话（ Rising energy）。`audio2tts` 模式携带 `itemId`。
+VAD 检测到用户开始说话时发送此消息。`audio2tts` 模式携带 `itemId`。
 
 ```json
 { "type": "agentsdk.audio_request.start", "agentId": "...",
@@ -125,6 +127,8 @@ VAD 检测到用户开始说话（ Rising energy）。`audio2tts` 模式携带 `
   "audio": "<base64 PCM>",
   "audioLen": 3200 }
 ```
+
+`append` 中的 `audioLen` 是 base64 解码后的 PCM 字节数，不是 base64 字符串长度。
 
 ### 4.4 音频流结束 `agentsdk.audio_request.commit`
 
@@ -187,7 +191,7 @@ VAD 检测到用户开始说话（ Rising energy）。`audio2tts` 模式携带 `
 
 仿真技能表（`skillType` / `skillName` / `skillParam`）：
 
-下表对应当前 Unity 源码默认技能表；便携 EXE 已于 2026-09-23 根据当前工程重新构建。
+下表对应 Unity 源码的默认技能表。修改技能后，应重新构建并验证目标程序；具体配置位置见 [Unity 工程指南](unity.md)。
 
 | skillType | skillName | skillParam | 说明 |
 |---|---|---|---|
@@ -202,7 +206,7 @@ VAD 检测到用户开始说话（ Rising energy）。`audio2tts` 模式携带 `
 - 运动指令在步态支撑相位切换、结束在支撑相位归零，动作完成即回报
 - 表情屏同时联动 TTS 播放能量做口型张合
 - 未知 `skillName` 回报 `failed`，不影响语音链路
-- LLM function calling 绑定：示例项目把上表注册为 `robot_skill` 工具（见 example），模型对"挥挥手/做个开心的表情/往前走一米"类意图自动调用
+- 示例 `agent.py` 将上表注册为 LLM 的 `robot_skill` 工具，模型根据“挥挥手”“做个开心的表情”“往前走一米”等请求选择技能。离线 demo 不进行语音意图识别。
 
 ### 5.5 技能状态回报 `agentsdk.skill_response.state`（网关 → Agent，v1 仿真扩展）
 
@@ -219,7 +223,7 @@ VAD 检测到用户开始说话（ Rising energy）。`audio2tts` 模式携带 `
 | `done` | 执行完成（手势播完 / 运动站稳 / 表情已设置） |
 | `failed` | 未知技能名 / 无对应执行器（如无步态机器人时下 `walk`） |
 
-技能下发是 fire-and-forget；状态回报为仿真扩展帧，Agent 可据此感知动作完成时机（如"走到跟前再说话"场景）。真机对接时可忽略。
+技能异步执行，发送完成不代表动作已经完成。需要衔接后续动作时，Agent 应等待对应的 `done` 或 `failed` 状态。状态回报属于仿真扩展，真机接入时需先确认设备是否支持。
 
 ### 5.6 打断指令 `agentsdk.xlm_response.interrupt`
 
@@ -229,7 +233,7 @@ VAD 检测到用户开始说话（ Rising energy）。`audio2tts` 模式携带 `
   "interruptTips": "好的，请说" }
 ```
 
-打断后网关会停播 TTS 并中止当前运动/手势。
+网关收到显式打断指令后，会停止 TTS 播放及当前运动、手势。半双工模式下，播报期间说话不会自动触发此指令。
 
 ### 5.7 错误上报 `agentsdk.error`
 
@@ -273,7 +277,7 @@ VAD 检测到用户开始说话（ Rising energy）。`audio2tts` 模式携带 `
 
 ## 7. 音频与 VAD 约定
 
-下表为原构建的参考参数；当前交付二进制没有暴露全部可配置项，实际录音时序以运行日志为准。
+下表为 `Assets/X02Competition/Robot/Audio/VadGate.cs` 等音频组件的源码默认值。便携程序未提供所有参数的界面配置，实际录音时序以运行日志为准。
 
 | 项 | 值 |
 |---|---|
@@ -296,5 +300,5 @@ VAD 检测到用户开始说话（ Rising energy）。`audio2tts` 模式携带 `
 
 - **调试面板**：默认隐藏，**F1** 呼出/隐藏（录屏时画面干净，收起态左上角保留状态与视角切换入口）。面板含连接状态、ASR/LLM 字幕、技能触发记录；按钮可手动触发技能（不经过 Agent，直接路由到 Unity 执行器），方便在无云端 Key 时验证动作
 - **技能按钮**：2 个基本动作（挥手/张臂）/ 5 种表情（开心/难过/惊讶/生气/爱心）/ 前进 1m / 右转 90° / 停止，与协议技能表一一对应
-- **开场播报**：Agent 收到 `robot_state.sync` 后主动下发一轮 `llm_response` + `tts_response`（"你好，我是灵犀，有什么可以帮您？"，示例项目 `--greeting` 可改），网关直接播放，不依赖对话轮次
+- **开场播报**：Agent 收到 `robot_state.sync` 后主动发送一轮 LLM 文本和 TTS 音频，网关直接播放。`agent.py --greeting` 同时修改文本与合成语音；demo 的同名参数只修改字幕，保留内置录音。传入空值可禁用开场白。
 - **打断验证**：机器人播报中开口说话 → VAD 冻结到播完（半双工），Agent 下发 `interrupt` 则立即停播停动作

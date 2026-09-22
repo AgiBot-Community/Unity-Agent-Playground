@@ -2,7 +2,7 @@
 
 [中文](unity.md) | **English** | [Français](unity.fr.md)
 
-This is the complete path for starting from the Unity project. To try the ready-made application, use [Start from the EXE](simulator.en.md). Both paths connect to the same [Agent example](../example/docs/README.en.md).
+Follow this guide to install the required Editor, import the project, run the robot scene and build a Windows application. To try the robot immediately, use the [portable simulator](simulator.en.md). Both routes support the same [example agent](../example/docs/README.en.md).
 
 [unity-agent-playground/](../unity-agent-playground/) contains the X2 robot models, Agent gateway, gestures, expressions and locomotion sources. The recorded editor version is **2022.3.62f3c1**. Use the project configuration and bundled local packages for URP, Sentis, ML-Agents and URDF Importer dependencies.
 
@@ -11,9 +11,32 @@ This is the complete path for starting from the Unity project. To try the ready-
 The supplied `exe/x2模拟器.exe` runs without Unity Hub or the Editor. Install them to edit scenes, change sources or rebuild:
 
 1. Download Unity Hub for your operating system from the [official download page](https://unity.com/download), install it and sign in. Activate an appropriate license under Settings → Licenses; eligible individuals can use Unity Personal.
-2. Install **2022.3.62f3c1**, the exact version in `ProjectSettings/ProjectVersion.txt`. Check Installs → Install Editor, or find this release on the [Unity China releases page](https://unity.cn/releases). The `c1` release may not appear in the [global Editor archive](https://unity.com/releases/editor/archive). Do not substitute the latest Unity 6 or edit the version file to bypass the check.
+2. Install **2022.3.62f3c1**, matching `ProjectSettings/ProjectVersion.txt`. Hub's recommended list does not include every historical release; use “Download an older Editor” below if the version is missing.
 3. For an Editor installed separately, use Installs → Locate and select its executable (`Editor/Unity.exe` on Windows). Installing Hub alone does not install the required Editor.
-4. On Windows, the Editor includes support for running scenes and Windows Mono builds. IL2CPP builds need the corresponding Windows Build Support and C++ tools. For Linux builds, add **Linux Build Support** for the chosen scripting backend through Add modules. The repository retains Linux toolchain dependencies; these do not replace the Editor build module.
+4. Choose modules for your build target as described below. Running this project's scene on Windows does not require Android, iOS or WebGL modules.
+
+### Download an older Editor
+
+**Use the China release from the Unity China website for this project.** The `c1` suffix is part of `2022.3.62f3c1`; the global `2022.3.62f3` release is a different installer.
+
+1. Open the [Unity China releases page](https://unity.cn/releases), select the **2022** series and find `2022.3.62f3`. The listing title may omit `c1`, so also check its China download option. The required revision is `1623fc0bbb97`.
+2. If the entry offers installation through Hub, select it, allow the browser to open Unity Hub, and confirm the version and modules. If that route is unavailable, Windows users can use the official [2022.3.62f3c1 Editor installer](https://download.unitychina.cn/download_unity/1623fc0bbb97/Windows64EditorInstaller/UnitySetup64.exe). On macOS or Linux, select the appropriate OS and architecture on the same releases page.
+3. Run the standalone installer and note the installation directory. In Hub, choose **Installs → Locate** and select `Editor/Unity.exe` in that directory on Windows. Locate registers an existing Editor without downloading it again.
+4. Confirm the full version **2022.3.62f3c1** in Hub before adding the project. Other Editor versions can remain installed alongside it.
+
+**For other older global releases:** use **Installs → Install Editor → Archive → Download archive**, or open the [global Editor archive](https://unity.com/releases/editor/archive) directly. Filter for the release, select its **Install / Unity Hub** link and allow the browser to open Hub. Alternatively, choose a standalone installer for your OS from the download menu and register it with Locate. The global archive does not make the `c1` suffix optional for this project. Treat an Editor upgrade as a separate migration to validate; do not edit the version file to bypass version selection.
+
+### Choose build modules
+
+| Task | Required support |
+|---|---|
+| Run scenes on Windows or build Windows Mono applications | Included with the Windows Editor |
+| Build Windows IL2CPP applications | Windows Build Support (IL2CPP) and the required C++ toolchain |
+| Build for Linux | Linux Build Support matching the Mono / IL2CPP backend |
+
+For Editors installed through Hub, use **Installs → Manage → Add modules**. Editors installed separately and registered with Locate usually lack this option; Locate does not convert them into Hub-managed installations. To manage modules through Hub, follow Unity's instructions to reinstall the required Editor through Hub. The project's Linux toolchain packages do not replace platform build modules.
+
+Official sources checked online on 2026-09-23: [China releases](https://unity.cn/releases), [global archive](https://unity.com/releases/editor/archive), [archived installation and Locate](https://docs.unity.com/en-us/hub/add-editor), and [module management](https://docs.unity.com/en-us/hub/add-modules). The Windows installer URL was reachable; the installer was not downloaded or run for this documentation update.
 
 ## Add the standalone project
 
@@ -79,7 +102,10 @@ The demo needs no cloud credentials. For voice conversations, follow the [Agent 
 
 Configure the port and `StrictAuth` on the scene's `CompetitionLauncher` component, implemented in `Assets/X02Competition/Bootstrap/CompetitionLauncher.cs`. The listen address is defined in `Assets/X02Competition/Gateway/LinkskyGatewayServer.cs` and defaults to loopback. Skills use the scene's `SkillCatalog.asset`; defaults are in `Assets/X02Competition/Robot/Skills/SkillCatalog.cs`. Rebuild the application after changes.
 
-Stop Play, open `File → Build Settings`, use Add Open Scenes to add and enable the main scene, and remove scenes that should not ship. Select PC, Mac & Linux Standalone → Windows → x86_64 and use Switch Platform if necessary. Enable `Run In Background` in Player Settings, click Build and choose a dedicated empty output directory outside `Assets/`.
+1. Stop Play and open **File → Build Settings**. Use **Add Open Scenes** to add and enable the main scene, and remove scenes that should not start with the application.
+2. Select **PC, Mac & Linux Standalone → Windows → x86_64**, then **Switch Platform** if necessary.
+3. Enable `Run In Background` in Player Settings so the application can process Agent messages while unfocused.
+4. Select **Build**, choose a dedicated empty output directory outside `Assets/`, and wait for completion.
 
 Run the EXE in the completed output directory and verify connections using the Agent commands above. Keep all output files for running and distribution. A normal Unity Build does not automatically create or replace the repository's single-file [EXE](../exe/x2模拟器.exe). For Linux, install the module above, switch the target and use a separate output directory.
 

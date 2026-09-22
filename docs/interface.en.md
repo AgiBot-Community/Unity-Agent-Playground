@@ -2,13 +2,15 @@
 
 [中文](interface.md) | **English** | [Français](interface.fr.md)
 
-Protocol reference v1.0, aligned with LinkSoul AgentSDK v1.4.0. Unity/the robot is the WebSocket server; the agent is the client. The gateway captures microphone audio, plays returned PCM, displays text and executes robot skills.
+Protocol reference v1.0, aligned with LinkSoul AgentSDK v1.4.0. Use this page to implement a client for the repository's Unity gateway. Unity is the WebSocket server and the agent is the client. The gateway captures microphone audio, plays returned PCM, displays text and executes skills. Confirm device capabilities separately when integrating real hardware.
 
 Before integration, start the robot using the [EXE guide](simulator.en.md) or [Unity project guide](unity.en.md), then connect using the [Agent guide](../example/docs/README.en.md). Both routes use the same gateway protocol.
 
 ## Connection and authentication
 
 Endpoint: `ws://<robot-host>:9002/api/V1/open-portal/app/wss/agent-sdk`. Messages are JSON text frames; audio is base64 PCM. One client may connect at a time. Disable WebSocket compression (`compression=None` in the Python client).
+
+Use `127.0.0.1` for local connections. Remote access requires changing the gateway's listen address and making its port reachable; see the [Unity configuration guide](unity.en.md).
 
 | Header | Value |
 |---|---|
@@ -66,7 +68,7 @@ Preserve incoming `agentId`, `robotCid`/`cid`, `eventId` and, when supplied, `it
 | `agentsdk.state_request.meta` | `stateName`, `stateValue`, e.g. `power`, `ok` |
 | `agentsdk.skill_response.state` | Simulator extension: `skillName`, `state`, `detail` |
 
-The default agent starts ASR upload at `start`, streams `append` data during recording and waits for the final recognition result after `commit`.
+The default agent starts speech recognition (ASR) upload at `start`, streams `append` data during recording and waits for the final result after `commit`. `audioLen` counts decoded PCM bytes, not base64 characters.
 
 ## Agent → gateway
 
@@ -90,7 +92,7 @@ PCM playback starts as chunks arrive. LLM text and TTS audio may interleave: do 
 
 ## Skills and interrupts
 
-This table matches the current Unity source catalog. The portable EXE was rebuilt from the current project on 2026-09-23.
+This table describes the default Unity skill catalog. After changing skills, rebuild and validate the target application; see the [Unity guide](unity.en.md) for configuration locations.
 
 | `skillType` | `skillName` | `skillParam` |
 |---|---|---|
@@ -100,9 +102,9 @@ This table matches the current Unity source catalog. The portable EXE was rebuil
 | `movement` | `stop` | `{}` |
 | `emotion` | `happy`, `sad`, `surprised`, `angry`, `love`, `neutral` | `{"durationMs": 3000}` |
 
-The example exposes these through the `robot_skill` LLM tool. Gestures use joint trajectories, expressions drive the face, and TTS energy animates the mouth. Movement completion is reported after the robot settles. Unknown skills report failure without terminating speech.
+The voice client `agent.py` exposes these skills through the `robot_skill` LLM tool; the offline demo does not recognize spoken requests. Gestures use joint trajectories, expressions drive the face, and TTS energy animates the mouth. Movement completion is reported after the robot settles. Unknown skills report failure without terminating speech.
 
-The simulator reports `running`, `done` or `failed` through `agentsdk.skill_response.state`. Skill dispatch is asynchronous; clients may use the status to coordinate later actions. Hardware integrations may ignore this simulation extension.
+The simulator reports `running`, `done` or `failed` through `agentsdk.skill_response.state`. Dispatch is asynchronous: sending a command does not mean its action has finished. Wait for `done` or `failed` before a dependent action. Confirm support for this simulation extension when integrating hardware.
 
 An explicit interrupt stops TTS and current movement/gestures. Speaking during playback does not trigger an interrupt in the current half-duplex build.
 
@@ -114,7 +116,7 @@ An explicit interrupt stops TTS and current movement/gestures. Speaking during p
 
 ## Audio and timing
 
-Audio is 16,000 Hz, signed 16-bit mono PCM, base64-encoded in JSON. Typical upstream chunks are 100 ms = 1,600 samples = 3,200 bytes. The original build's reference VAD settings are RMS start 0.02, stop 0.008, silence 600 ms and maximum turn 15,000 ms. Not all settings are exposed in the supplied binary; use runtime logs for actual timing. VAD pauses during TTS to avoid recording the robot's own voice.
+Audio is 16,000 Hz, signed 16-bit mono PCM, base64-encoded in JSON. Typical upstream chunks are 100 ms = 1,600 samples = 3,200 bytes. Voice activity detection (VAD) defaults in `Assets/X02Competition/Robot/Audio/VadGate.cs` are RMS start 0.02, stop 0.008, silence 600 ms and maximum turn 15,000 ms. The portable application does not expose every setting; use runtime logs for actual timing. VAD pauses during TTS to avoid recording the robot's own voice.
 
 A normal turn is `start → append × N → commit → ASR final`, followed by interleaved LLM deltas and TTS chunks, completion messages and optional skill status. Distinguish recording/silence time, post-commit ASR wait, first LLM token and first audio latency. There is no fixed end-to-end latency guarantee.
 
@@ -122,4 +124,4 @@ A normal turn is `start → append × N → commit → ASR final`, followed by i
 
 Unknown message types are ignored. Some types, including `llm_response.item.done`, `vlm_*`, `greet_*` and `xlm_response.control`, may be logged but not acted upon in this gateway version. Keep completion messages for protocol compatibility.
 
-**F1** toggles the Unity panel showing connection state, ASR/LLM text and skill events. Buttons execute skills locally. On synchronization, the example sends a greeting as LLM text plus TTS audio; use `--greeting` to change it or an empty value to disable it. See the [example guide](../example/docs/README.en.md).
+**F1** toggles the Unity panel showing connection state, ASR/LLM text and skill events. Buttons execute skills locally. After synchronization, the agent sends a greeting as LLM text and TTS audio. In `agent.py`, `--greeting` changes text and synthesized speech; in the demo it changes captions only and retains the recording. An empty value disables the greeting. See the [example guide](../example/docs/README.en.md).

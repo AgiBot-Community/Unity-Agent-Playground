@@ -1,17 +1,17 @@
-# 示例 Agent：让机器人开口说话、会做动作
+# 示例 Agent：语音对话与机器人技能
 
 **中文** | [English](docs/README.en.md) | [Français](docs/README.fr.md)
 
-`example/` 目录是一个能直接跑的 Agent 参考实现。跑起来之后，你可以对着机器人说话，它会用语音回答你；说"挥挥手""做个开心的表情""往前走一米"，机器人真的会做。
+`example/` 提供可直接运行的 Python 客户端，用于连接 Unity 机器人网关。先通过离线 demo 检查连接与音频，再配置豆包客户端，体验语音回复、表情和行走等技能。
 
-两个客户端，用途不同：
+按测试目标选择客户端：
 
-| 文件 | 什么时候用 |
+| 命令 | 用途 |
 |---|---|
-| `python agent.py` | **正式体验/演示**。ASR 边录边传、Mini 模型流式输出、双向 TTS 增量合成，LLM/TTS 并行 |
+| `python agent.py` | **语音对话与技能调用**。需要云服务密钥；录音期间上传 ASR，接收 LLM 流式回复并同步进行 TTS 合成 |
 | `python demo.py` | **先跑通网关**。不依赖云服务，收到语音后回固定文字并播放内置录音，不进行真实识别或实时语音合成；录音不可用时退回正弦提示音 |
 
-建议路径：先用 demo 跑通 → 再配 Key 切 doubao 全链路。
+下文命令均在仓库的 `example/` 目录运行，使用 Windows PowerShell。Linux/macOS 可按本机环境将 `python` 改为 `python3`；仓库提供的便携模拟器仅适用于 Windows。
 
 ## 工程结构
 
@@ -31,7 +31,7 @@
 | `tests/` | ASR 上传、流式语音管线的离线回归测试 |
 | `.env.example` | 可提交的配置模板；复制为 `.env` 后填写自己的 Key |
 
-配置模板由 Git 管理，见 [`.env.example`](.env.example)；填写密钥后的 `.env` 不提交。文件纳入范围以仓库 [`.gitignore`](../.gitignore) 为准。
+配置项见 [`.env.example`](.env.example)。将它复制为 `.env` 后填写自己的密钥，保留模板供其他用户参考，并避免提交含密钥的 `.env`。
 
 ## 第一步：准备依赖（一次性）
 
@@ -46,7 +46,7 @@
 python -m pip install -r requirements.txt
 ```
 
-下文以 Windows PowerShell 启动命令为例。使用 Python 3.10+；Linux/macOS 可按本机命令使用 `python3`。已有所需依赖时可直接启动脚本。
+使用同一个 Python 环境安装依赖和运行脚本，避免出现已安装依赖但启动时找不到模块的问题。
 
 ## 第二步：连上机器人
 
@@ -60,14 +60,18 @@ python -m pip install -r requirements.txt
 ```powershell
 # 先验证连通（无需 Key，机器人会回固定台词）
 python demo.py
+```
 
-# 用 Ctrl+C 退出 demo 后，配置 Key 跑全链路；已有 .env 时保留原配置
+看到 `state=online` 后，等待开场白结束，再说一句话检查固定回复和音频播放。完成后按 **Ctrl+C** 退出 demo，再配置真实对话：
+
+```powershell
+# 已有 .env 时保留原配置
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-# 编辑 .env，填入两个 API Key
+# 编辑 .env，填写 DOUBAO_SPEECH_API_KEY 和 ARK_API_KEY
 python agent.py
 ```
 
-看到 `agent 会话就绪 state=online` 即连接成功。对机器人说话试试。
+再次看到 `agent 会话就绪 state=online` 表示豆包客户端已连接。等待开场白结束后开始对话；每次只运行一个客户端。
 
 直接运行 `agent.py` 或 `demo.py`。`x2_agent/` 存放内部实现，保留在入口脚本旁即可；只需安装 `requirements.txt` 中的第三方依赖。
 
@@ -75,16 +79,16 @@ python agent.py
 
 ## 第三步：体验技能
 
-连上后机器人先播开场白"你好，我是灵犀，有什么可以帮您？"（doubao 客户端为合成语音；demo 客户端播放内置开场白录音），随后就可以对机器人说：
+使用 `agent.py` 连接后，机器人先播放默认开场白“你好，我是灵犀，有什么可以帮您？”。等待播报结束，再尝试下表中的语句；具体技能由模型根据请求选择。`demo.py` 不识别这些语句，测试技能时请使用 F1 按钮或 `--skill` 参数。
 
 | 你说 | 机器人做 |
 |---|---|
 | "挥挥手" / "张开双臂" | 挥手 / 张开双臂（2 个基本动作） |
 | "你开心吗" / "给我比个爱心" / "我有点难过" / "你生气啦" | 头部表情屏切换（5 种经典表情：开心/难过/惊讶/生气/爱心，另支持 neutral 复位） |
 | "往前走一米" / "向左转" | 步态前进 / 原地转向 |
-| "停" | 立即停止 |
+| "停" | 识别请求并下发 `stop` 技能后停止；播报期间请使用面板停止按钮或显式打断指令 |
 
-回答时嘴巴随语音张合。技能列表对应当前 Unity 源码；仓库中的便携 EXE 已于 2026-09-23 从当前工程重新构建。
+回答时嘴巴随语音张合。技能名称和参数见[网关协议的技能表](../docs/interface.md)。
 
 当前语音流程是半双工，播报期间 VAD 暂停；等待播报结束后再说话。默认音色和提示词面向中文，文档翻译不改变语音服务或界面语言。
 
@@ -136,11 +140,11 @@ python demo.py --interrupt chat
 | `DOUBAO_TTS_SPEAKER` | 否 | 默认 `zh_female_wanqudashu_moon_bigtts`（1.0 音色，勿混用 2.0 音色） |
 | `DOUBAO_ASR_RESOURCE_ID` | 否 | 默认 `volc.bigasr.sauc.duration` |
 
-## 出问题了？
+## 常见问题
 
-| 现象 | 怎么办 |
+| 现象 | 排查方法 |
 |---|---|
-| 连不上（Connection refused） | 机器人侧没启动，或不在本机 → 加 `--host` |
+| 连不上（Connection refused） | 确认 EXE 已运行或 Editor 正在 Play，再核对地址与端口。跨机连接还需修改网关监听地址并确保端口可达，单独添加 `--host` 不够 |
 | 握手 401 | 签名错（严格模式下）；核对 appSecret 与签名串格式 |
 | 握手 503 | 已有一个会话没退出（单会话限制）；关掉旧的客户端再连 |
 | 没有识别结果 | 音频太短/太轻；确认麦克风没被系统静音 |
@@ -155,7 +159,7 @@ TTS 会话，接收文字和合成音频并行。开场白也走同一条双向�
 Mini 优先语音交互速度，复杂推理能力与原 Turbo 模型可能不同；动作工具调用保留。
 首包日志分别记录 ASR 提交后等待、LLM 首 token、首文字到首音频，避免混淆计时范围。
 
-依赖统一维护在 `requirements.txt`，更新后请在`example/` 目录执行 `python -m pip install -r requirements.txt`。
+依赖更新后，在 `example/` 目录重新执行 `python -m pip install -r requirements.txt`。
 
 ## 运行回归测试
 

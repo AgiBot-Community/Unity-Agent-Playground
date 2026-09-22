@@ -1,15 +1,31 @@
-# X2 Agent Playground
+<p align="center">
+  <a href="https://github.com/AgiBot-Community">
+    <img src="https://github.com/AgiBot-Community.png?size=304" alt="AgiBot Community logo" width="152">
+  </a>
+</p>
 
-[![AgiBot Community](https://img.shields.io/badge/Community-AgiBot-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/AgiBot-Community)
-[![GitHub Issues](https://img.shields.io/badge/Feedback-GitHub_Issues-238636?style=flat-square&logo=github&logoColor=white)](https://github.com/AgiBot-Community/Unity-Agent-Playground/issues)
+<h1 align="center">X2 Agent Playground</h1>
 
-![Unity 2022.3](https://img.shields.io/badge/Unity-2022.3-222222?style=flat-square&logo=unity&logoColor=white)
-![C#](https://img.shields.io/badge/C%23-512BD4?style=flat-square&logo=dotnet&logoColor=white)
-![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)
+<p align="center">
+  <a href="README.md"><img src="https://img.shields.io/badge/语言-简体中文-22314E?style=for-the-badge" alt="简体中文"></a>
+  <a href="docs/README.en.md"><img src="https://img.shields.io/badge/Language-English-3776AB?style=for-the-badge" alt="English documentation"></a>
+  <a href="docs/README.fr.md"><img src="https://img.shields.io/badge/Langue-Français-0055A4?style=for-the-badge" alt="Documentation française"></a>
+</p>
 
-🌐 **中文** | [English ↗](docs/README.en.md) | [Français ↗](docs/README.fr.md)
+<p align="center">
+  基于 Unity 的 X2 人形机器人 Agent 开发环境：机器人侧提供网关与动作/表情/步态技能，接入你自己的 Agent 即可实现语音对话驱动机器人。
+</p>
 
-基于 Unity 的 X2 人形机器人 Agent 开发环境：机器人侧提供网关与动作/表情/步态技能，接入你自己的 Agent 即可实现语音对话驱动机器人。
+<p align="center">
+  <a href="https://unity.com/releases/editor/archive"><img src="https://img.shields.io/badge/Unity-2022.3-222222?style=flat-square&amp;logo=unity&amp;logoColor=white" alt="Unity 2022.3"></a>
+  <a href="https://learn.microsoft.com/dotnet/csharp/"><img src="https://img.shields.io/badge/C%23-512BD4?style=flat-square&amp;logo=dotnet&amp;logoColor=white" alt="C#"></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white" alt="Python 3.10+"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/AgiBot-Community"><img src="https://img.shields.io/badge/Community-AgiBot-181717?style=flat-square&amp;logo=github&amp;logoColor=white" alt="AgiBot Community"></a>
+  <a href="https://github.com/AgiBot-Community/Unity-Agent-Playground/issues"><img src="https://img.shields.io/badge/Feedback-GitHub_Issues-238636?style=flat-square&amp;logo=github&amp;logoColor=white" alt="GitHub Issues"></a>
+</p>
 
 ## 仓库结构
 
@@ -20,13 +36,20 @@
 | [example/](example/README.md) | Python Agent 脚本、配置模板及本机回归测试 |
 | [docs/](docs/index.md) | 三语文档索引、接口规范及开发指南 |
 
-Unity 是 WebSocket 服务端；Python Agent 接收麦克风音频，调用 ASR、LLM 和 TTS，再将文字、音频及动作指令发回 Unity。模拟器和 Agent 分别启动。
+Unity 负责采集麦克风音频、显示机器人并执行技能，作为 WebSocket 服务端等待连接。Python Agent 接收音频，依次调用语音识别（ASR）、大语言模型（LLM）和语音合成（TTS），再将文字、音频和动作指令发回 Unity。使用时先启动模拟器，再启动一个 Agent。
 
-本文及配套指南以仓库中纳入 Git 管理的程序、源码、配置模板和文档为入口。Unity 编辑器版本以 [ProjectVersion.txt](unity-agent-playground/ProjectSettings/ProjectVersion.txt) 为准，当前为 `2022.3.62f3c1`。
+开发环境使用 Unity **2022.3.62f3c1**，完整版本见 [ProjectVersion.txt](unity-agent-playground/ProjectSettings/ProjectVersion.txt)。Hub 中找不到该旧版时，请按 [Unity 工程指南](docs/unity.md) 从官方发布页下载并添加编辑器。
 
 ## 快速开始
 
-先选择一种方式启动机器人。仅运行 EXE 不需要 Unity 或 Python；启动示例 Agent 才需要 Python 3.10+。语音交互需要麦克风和扬声器，真实豆包对话还需火山引擎语音与方舟 API Key。
+先根据用途选择启动方式，再连接 Agent：
+
+| 用途 | 启动方式 | 准备内容 |
+|---|---|---|
+| 直接体验机器人、测试技能 | 路径 A：便携 EXE | Windows 10/11 x64 |
+| 修改场景、技能或网关并重新构建 | 路径 B：Unity 工程 | Unity Hub 和指定版本的编辑器 |
+| 验证 Agent 连接与音频播放 | 启动机器人后运行 `demo.py` | Python 3.10+、麦克风和扬声器 |
+| 进行语音对话并通过语言调用技能 | 退出 demo 后运行 `agent.py` | 火山引擎语音与方舟 API Key |
 
 ### 路径 A：从 EXE 开始
 
@@ -81,7 +104,7 @@ cd example
 python -B -m unittest discover -s tests -v
 ```
 
-详见[开发指南](docs/development.md)。文件纳入范围以 [.gitignore](.gitignore) 和工程内的忽略规则为准；配置模板及模拟器 EXE 属于仓库交付内容，个人密钥不提交。
+测试使用本机模拟服务，无需启动 Unity 或配置 API Key。模块职责、手动验收和发布流程见[开发指南](docs/development.md)。
 
 ## 文档
 

@@ -2,11 +2,12 @@
 
 [中文](index.md) | [English](index.en.md) | **Français**
 
-Ces guides décrivent les sources, modèles de configuration et livrables destinés à être versionnés avec Git.
+Ces guides vous accompagnent du premier lancement à la création d’un agent. Si vous hésitez entre les parcours, commencez par la [présentation et le démarrage rapide](README.fr.md).
 
 - **Depuis l’EXE :** suivez le [guide du simulateur](simulator.fr.md) pour lancer l’application Windows portable.
-- **Depuis le projet Unity :** suivez le [guide Unity](unity.fr.md) pour importer le projet, ouvrir la scène, puis l’exécuter ou le compiler.
+- **Modifier le projet Unity :** suivez le [guide Unity](unity.fr.md) pour télécharger l’ancien éditeur requis, importer le projet, exécuter la scène et compiler.
 - Après le lancement du robot par l’une de ces méthodes, suivez le [guide de l’Agent](../example/docs/README.fr.md) pour la démo hors ligne, puis les conversations vocales.
+- **Créer votre client :** consultez le [protocole](interface.fr.md), puis le [guide de développement](development.fr.md) pour les tests et la maintenance.
 
 | Sujet | 中文 | English | Français |
 |---|---|---|---|

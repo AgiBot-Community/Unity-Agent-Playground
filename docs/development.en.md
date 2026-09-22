@@ -2,13 +2,15 @@
 
 [中文](development.md) | **English** | [Français](development.fr.md)
 
+Use this guide when changing the Python client, Unity gateway or release files. For a first run, start with the [quick start](README.en.md); this page covers code responsibilities, validation and delivery.
+
 ## Environment and entry points
 
 Start the robot using either the [repository EXE](simulator.en.md) or the main scene in the [Unity project](unity.en.md) in Play mode. Both use the same Agent interface; run one at a time.
 
 Use Python 3.10+. In `example/`, install third-party dependencies with `python -m pip install -r requirements.txt`, then run `python agent.py` or `python demo.py`. See the [agent guide](../example/docs/README.en.md).
 
-Declare dependencies only in `requirements.txt`. Configuration precedence is CLI, existing environment, `.env`, then defaults. Imports do not load credentials. Use `--env-file` for an explicit configuration path.
+Declare Python dependencies in `example/requirements.txt`. Configuration precedence is CLI arguments > existing environment variables > `example/.env` > defaults. Imports do not load credentials. Pass `--env-file <path>` to use another configuration file.
 
 ## Module boundaries
 
@@ -27,7 +29,12 @@ python -B -m unittest discover -s tests -v
 
 Tests use local mock services, with no Unity or API keys.
 
-Manual end-to-end validation: start Unity → connect one agent → wait for the greeting → speak → confirm ASR text, LLM text and audio → trigger a skill → disconnect and reconnect. Record model, speech resources and per-stage timings; do not turn a single measurement into a guarantee.
+Validate manually in two stages:
+
+1. **Local integration:** start one simulator, connect `demo.py`, confirm `state=online`, captions and audio playback, then test skills through the F1 panel.
+2. **Cloud voice:** stop the demo, configure credentials and start `agent.py`. Wait for the greeting, speak, verify ASR text, the LLM reply and TTS playback, then request a skill. Finally, disconnect and reconnect.
+
+Record the model, speech resources, results and per-stage timings. Separate recording and silence detection from cloud processing; a single measurement is not a performance guarantee.
 
 ## Changes and documentation
 

@@ -2,13 +2,15 @@
 
 [中文](interface.md) | [English](interface.en.md) | **Français**
 
-Référence v1.0, alignée sur LinkSoul AgentSDK v1.4.0. Unity/le robot est le serveur WebSocket ; l’agent est le client. La passerelle capture le microphone, lit le PCM reçu, affiche le texte et exécute les commandes.
+Référence v1.0, alignée sur LinkSoul AgentSDK v1.4.0. Cette page permet de développer un client pour la passerelle Unity du dépôt. Unity est le serveur WebSocket ; l’agent est le client. La passerelle capture le microphone, lit le PCM reçu, affiche le texte et exécute les actions. Vérifiez séparément les capacités de l’appareil lors d’une intégration matérielle.
 
 Avant l’intégration, lancez le robot avec le [guide EXE](simulator.fr.md) ou le [guide du projet Unity](unity.fr.md), puis connectez-le selon le [guide de l’Agent](../example/docs/README.fr.md). Les deux méthodes utilisent le même protocole.
 
 ## Connexion et authentification
 
 Adresse : `ws://<robot-host>:9002/api/V1/open-portal/app/wss/agent-sdk`. Les messages sont des trames texte JSON ; l’audio est du PCM en base64. Un seul client peut se connecter. Désactivez la compression WebSocket (`compression=None` en Python).
+
+Utilisez `127.0.0.1` pour une connexion locale. Un accès distant nécessite de modifier l’adresse d’écoute de la passerelle et de rendre son port accessible ; consultez la [configuration Unity](unity.fr.md).
 
 | En-tête | Valeur |
 |---|---|
@@ -66,7 +68,7 @@ Conservez les valeurs reçues de `agentId`, `robotCid`/`cid`, `eventId` et, s’
 | `agentsdk.state_request.meta` | `stateName`, `stateValue`, par exemple `power`, `ok` |
 | `agentsdk.skill_response.state` | Extension du simulateur : `skillName`, `state`, `detail` |
 
-Par défaut, l’agent ouvre l’envoi ASR à `start`, transmet les données `append` pendant l’enregistrement et attend le résultat final après `commit`.
+Par défaut, l’agent commence l’envoi vers la reconnaissance vocale (ASR) à `start`, transmet les données `append` pendant l’enregistrement et attend le résultat final après `commit`. `audioLen` compte les octets PCM décodés, pas les caractères base64.
 
 ## Agent → passerelle
 
@@ -90,7 +92,7 @@ La lecture commence à l’arrivée des fragments PCM. Le texte LLM et l’audio
 
 ## Actions et interruptions
 
-Ce tableau correspond aux sources Unity actuelles. L’EXE portable a été reconstruit à partir du projet actuel le 2026-09-23.
+Ce tableau décrit les actions Unity par défaut. Après toute modification, recompilez et vérifiez l’application cible ; le [guide Unity](unity.fr.md) indique où se trouvent les configurations.
 
 | `skillType` | `skillName` | `skillParam` |
 |---|---|---|
@@ -100,9 +102,9 @@ Ce tableau correspond aux sources Unity actuelles. L’EXE portable a été reco
 | `movement` | `stop` | `{}` |
 | `emotion` | `happy`, `sad`, `surprised`, `angry`, `love`, `neutral` | `{"durationMs": 3000}` |
 
-L’exemple expose ces actions via l’outil LLM `robot_skill`. Les gestes suivent des trajectoires articulaires, les expressions pilotent le visage et l’énergie TTS anime la bouche. La fin d’un déplacement est signalée une fois le robot stabilisé. Une action inconnue échoue sans couper la chaîne vocale.
+Le client vocal `agent.py` expose ces actions via l’outil LLM `robot_skill` ; la démo hors ligne ne reconnaît pas les demandes vocales. Les gestes suivent des trajectoires articulaires, les expressions pilotent le visage et l’énergie TTS anime la bouche. La fin d’un déplacement est signalée une fois le robot stabilisé. Une action inconnue échoue sans couper la chaîne vocale.
 
-Le simulateur renvoie `running`, `done` ou `failed` par `agentsdk.skill_response.state`. L’exécution est asynchrone ; le client peut utiliser ces états pour coordonner la suite. Une intégration matérielle peut ignorer cette extension de simulation.
+Le simulateur renvoie `running`, `done` ou `failed` par `agentsdk.skill_response.state`. L’envoi est asynchrone : une commande envoyée n’est pas une action terminée. Attendez `done` ou `failed` avant une action dépendante. Vérifiez la prise en charge de cette extension lors d’une intégration matérielle.
 
 Une interruption explicite arrête le TTS et les mouvements/gestes en cours. Parler pendant la lecture ne déclenche pas d’interruption dans le build semi-duplex actuel.
 
@@ -114,7 +116,7 @@ Une interruption explicite arrête le TTS et les mouvements/gestes en cours. Par
 
 ## Audio et délais
 
-Audio PCM mono signé 16 bits à 16 000 Hz, encodé en base64 dans JSON. Un fragment montant fait généralement 100 ms, soit 1 600 échantillons ou 3 200 octets. Paramètres VAD de référence du build initial : seuil RMS de départ 0,02, arrêt 0,008, silence 600 ms, tour maximal 15 000 ms. Tous les paramètres ne sont pas exposés dans le binaire ; consultez les journaux pour les délais réels. Le VAD s’arrête pendant le TTS pour éviter de capter la voix du robot.
+Audio PCM mono signé 16 bits à 16 000 Hz, encodé en base64 dans JSON. Un fragment montant fait généralement 100 ms, soit 1 600 échantillons ou 3 200 octets. Les valeurs de détection d’activité vocale (VAD) dans `Assets/X02Competition/Robot/Audio/VadGate.cs` sont : seuil RMS de départ 0,02, arrêt 0,008, silence 600 ms et tour maximal 15 000 ms. L’application portable n’expose pas tous les paramètres ; consultez les journaux pour les délais réels. Le VAD s’arrête pendant le TTS pour éviter de capter la voix du robot.
 
 Un tour suit `start → append × N → commit → ASR final`, puis les deltas LLM et fragments TTS entrelacés, les fins de flux et éventuellement les états d’action. Distinguez temps d’enregistrement/silence, attente ASR après commit, premier jeton LLM et premier audio. Aucun délai global fixe n’est garanti.
 
@@ -122,4 +124,4 @@ Un tour suit `start → append × N → commit → ASR final`, puis les deltas L
 
 Les types inconnus sont ignorés. Certains types, dont `llm_response.item.done`, `vlm_*`, `greet_*` et `xlm_response.control`, peuvent être journalisés sans action dans cette version. Conservez les messages de fin pour la compatibilité du protocole.
 
-**F1** affiche le panneau Unity : connexion, texte ASR/LLM et actions. Les boutons exécutent les actions localement. Après synchronisation, l’exemple envoie l’accueil sous forme de texte LLM et d’audio TTS. `--greeting` le modifie ; une valeur vide le désactive. Voir le [guide de l’exemple](../example/docs/README.fr.md).
+**F1** affiche le panneau Unity : connexion, texte ASR/LLM et actions. Les boutons exécutent les actions localement. Après synchronisation, l’agent envoie l’accueil sous forme de texte LLM et d’audio TTS. Dans `agent.py`, `--greeting` modifie le texte et la synthèse vocale ; dans la démo, il modifie uniquement les sous-titres et conserve l’enregistrement. Une valeur vide désactive l’accueil. Voir le [guide de l’exemple](../example/docs/README.fr.md).

@@ -2,7 +2,7 @@
 
 [中文](simulator.md) | [English](simulator.en.md) | **Français**
 
-Ouvrez [x2模拟器.exe](../exe/x2模拟器.exe) pour lancer Unity et la passerelle du robot. **F1** affiche ou masque le panneau de débogage. Lancez [l’agent Python](../example/docs/README.fr.md) séparément ; c’est lui qui envoie l’accueil.
+Ce guide explique comment exécuter le simulateur Windows portable. Ouvrez [x2模拟器.exe](../exe/x2模拟器.exe) : le robot apparaît et la passerelle attend sur `127.0.0.1:9002`. Appuyez sur **F1** pour tester les actions avec les boutons de débogage. Les conversations vocales nécessitent [l’agent Python](../example/docs/README.fr.md), lancé séparément, qui envoie l’accueil après connexion.
 
 Le fichier fait **58 287 104 octets (58,29 Mo)**. Cet EXE suffit pour distribuer le simulateur, sans dossier Data, Python, clés ou dépôt Playground. Les conversations réelles nécessitent toujours l’agent séparé. Voir l’[empreinte SHA-256](../exe/x2模拟器.sha256).
 
@@ -11,7 +11,7 @@ Le fichier fait **58 287 104 octets (58,29 Mo)**. Cet EXE suffit pour distribuer
 | Élément | Valeur |
 |---|---|
 | Système | Windows 10/11 x64, .NET Framework 4.x du système |
-| Audio | Microphone et haut-parleurs |
+| Équipement vocal | Microphone et haut-parleurs ; les boutons d’action ne nécessitent pas de microphone |
 | Adresse locale | `ws://127.0.0.1:9002/api/V1/open-portal/app/wss/agent-sdk` |
 | Authentification | Les clients envoient une signature HMAC ; son contrôle dépend du build Unity |
 | Sessions | Un agent à la fois |
@@ -49,9 +49,9 @@ Chaque vue cadre le corps entier et réserve de la place au panneau. Le zoom orb
 
 Utilisez le [projet Unity](../unity-agent-playground/) du dépôt pour modifier les scènes, caméras, actions ou la passerelle :
 
-1. Installez Unity Hub et **2022.3.62f3c1**, puis ajoutez `unity-agent-playground/` avec **Add project from disk**.
+1. Suivez le [guide Unity](unity.fr.md) pour télécharger Unity Hub et l’ancien éditeur **2022.3.62f3c1**, puis ajoutez `unity-agent-playground/` avec **Add project from disk**.
 2. Après l’import, ouvrez `Assets/X02Competition/Scenes/scene.unity`, cliquez sur **Play** et activez la fenêtre Game.
 3. Les raccourcis et commandes Agent ci-dessus restent les mêmes. Fermez l’EXE avant Play pour éviter un conflit sur le port 9002.
 4. Suivez le [guide de compilation Unity](unity.fr.md) avec **File → Build Settings** pour produire une application Windows ; conservez tout le dossier obtenu.
 
-L’EXE unique dans Git est un livrable prêt à l’emploi. Un Build Unity normal produit un dossier avec l’application et ses ressources, sans réempaqueter ni remplacer automatiquement cet EXE. Ce guide prend comme points de départ le projet et les livrables du dépôt.
+L’EXE unique fourni est prêt à être exécuté et distribué. Une compilation Unity standard produit un dossier contenant l’application et ses ressources : conservez-le entièrement pour distribuer votre version. La compilation ne remplace pas automatiquement l’EXE du dépôt.

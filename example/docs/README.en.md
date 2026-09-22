@@ -2,7 +2,9 @@
 
 [中文](../README.md) | **English** | [Français](README.fr.md)
 
-Use `python agent.py` for real Doubao conversations and skill calls. Use `python demo.py` first to validate the gateway without cloud credentials: it returns fixed text and plays bundled recordings without speech recognition or real-time synthesis. Missing or invalid recordings fall back to a sine-wave tone.
+This directory provides Python clients for the Unity robot gateway. Start with `python demo.py` to check the connection and audio without cloud credentials. It returns fixed text and bundled recordings, with a sine-wave fallback if a recording is missing or invalid. Then configure `python agent.py` for Doubao voice conversations and skill calls.
+
+Commands below run in the repository's `example/` directory using Windows PowerShell. On Linux/macOS, use `python3` if required by your environment; the supplied portable simulator runs on Windows.
 
 ## Project layout
 
@@ -39,24 +41,33 @@ Both use local port `9002`; run only one robot instance. Then start one Agent fr
 
 ```powershell
 python demo.py
-# Stop the demo with Ctrl+C before starting another client
+```
+
+Wait for `state=online` and the end of the greeting, then speak to check the fixed reply and audio playback. Stop the demo with **Ctrl+C** before configuring real conversations:
+
+```powershell
+# Preserve an existing .env
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-# Set both API keys in .env
+# Set DOUBAO_SPEECH_API_KEY and ARK_API_KEY in .env
 python agent.py
 ```
 
-Run the entry scripts directly with Python 3.10+; keep the internal `x2_agent/` directory beside them. If dependencies are already available, start the scripts immediately. From the repository root, use `python example/agent.py`; the default configuration remains `example/.env`. On Linux/macOS, use `python3` if needed; the supplied Unity simulator is for Windows. Remote connections require a reachable gateway that listens externally, in addition to `--host <address> --port 9002`.
+Keep `x2_agent/` beside the entry scripts and run them with the same Python environment used to install dependencies. From the repository root, use `python example/agent.py`; the default configuration remains `example/.env`.
+
+For a remote connection, set `--host <address> --port 9002` and ensure the gateway listens on a reachable network address. Client options alone do not change Unity's default loopback listener.
 
 The log `agent 会话就绪 state=online` confirms the connection. Wait for the greeting to finish before speaking. The current flow is half-duplex. The default prompt and voice target Chinese; translating these documents does not change language support in the speech services or Unity UI.
 
 ## Skills
 
+The phrases below require `agent.py`; the model selects skills from the request. The demo does not recognize speech commands. To test skills without cloud services, use F1 buttons or the demo's `--skill` option.
+
 - “挥挥手”, “张开双臂”: wave and open arms (`wave_hands`, `open_arms`).
-- “往前走一米”, “向左转”, “停”: walk, turn and stop.
+- “往前走一米”, “向左转”, “停”: walk, turn and stop after recognition and skill dispatch. During playback, use the panel's stop button or an explicit interrupt.
 - Requests for happy, sad, surprised or other expressions change the robot face. The protocol also includes a neutral expression.
 - **F1** opens the Unity debug panel; its skill buttons work without a cloud key.
 
-The skill list matches the current Unity sources. The portable EXE was rebuilt from the current project on 2026-09-23.
+The mouth follows speech playback. See the [protocol skill table](../../docs/interface.en.md) for skill names and parameters.
 
 The demo’s `--reply` and `--greeting` change captions, not the bundled voice recordings. Audio comes from `x2_agent/greeting.wav` and `x2_agent/tts.wav`, sent in 200 ms chunks.
 
@@ -98,7 +109,7 @@ The default uploads ASR audio while recording, reuses LLM connections and passes
 
 | Symptom | Check |
 |---|---|
-| Connection refused | Start Unity; verify host, port and listen address |
+| Connection refused | Start the EXE or enter Editor Play mode; verify host and port. Remote access also requires a reachable network listener on the gateway |
 | HTTP 401 | Credentials, signature and timestamp when strict authentication is enabled |
 | HTTP 503 | Another agent occupies the only session |
 | No transcription | Microphone mute state, input level and recording length |
@@ -108,6 +119,8 @@ The default uploads ASR audio while recording, reuses LLM connections and passes
 | No audible reply | Check the Windows output device and volume; compare TTS logs and `--save-audio` output |
 
 ## Tests and development
+
+Run from `example/` with the same Python environment used to install dependencies:
 
 ```powershell
 python -B -m unittest discover -s tests -v

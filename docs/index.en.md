@@ -2,11 +2,12 @@
 
 [中文](index.md) | **English** | [Français](index.fr.md)
 
-These guides cover source files, configuration templates and deliverables intended for Git.
+Follow these guides from your first run to a custom agent. If you have not chosen a startup route, begin with the [overview and quick start](README.en.md).
 
 - **Start from the EXE:** follow the [simulator guide](simulator.en.md) to run the portable Windows application.
-- **Start from the Unity project:** follow the [Unity guide](unity.en.md) to import the project, open the scene, and run or build it.
+- **Modify the Unity project:** follow the [Unity guide](unity.en.md) to download the specified older Editor, import the project, run the scene and build.
 - After either route starts the robot, follow the [Agent guide](../example/docs/README.en.md) for the offline demo and then voice conversations.
+- **Write your own client:** read the [gateway protocol](interface.en.md), then use the [development guide](development.en.md) for testing and maintenance.
 
 | Topic | 中文 | English | Français |
 |---|---|---|---|

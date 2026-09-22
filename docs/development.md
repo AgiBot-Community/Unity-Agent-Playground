@@ -2,13 +2,15 @@
 
 **中文** | [English](development.en.md) | [Français](development.fr.md)
 
+本指南面向修改 Python 客户端、Unity 网关或发布文件的开发者。首次运行请先阅读[快速开始](../README.md)；这里重点说明代码职责、验证步骤和交付要求。
+
 ## 环境与入口
 
 先启动机器人侧：直接运行 [仓库 EXE](simulator.md)，或通过 [Unity 工程](unity.md) 打开主场景并进入 Play。两者使用相同的 Agent 接口，不同时启动。
 
 使用 Python 3.10+，在 `example/` 中执行 `python -m pip install -r requirements.txt` 安装第三方依赖，再运行 `python agent.py` 或 `python demo.py`。完整步骤见 [Agent 指南](../example/README.md)。
 
-`requirements.txt` 是依赖的唯一声明位置。配置优先级为命令行、现有环境变量、`.env`、默认值；导入模块不会加载密钥。显式配置使用 `--env-file`。
+Python 第三方依赖统一声明在 `example/requirements.txt`。配置优先级为命令行参数 > 已有环境变量 > `example/.env` > 默认值；导入模块不会加载密钥。需要使用其他配置文件时，传入 `--env-file <路径>`。
 
 ## 模块边界
 
@@ -27,7 +29,12 @@ python -B -m unittest discover -s tests -v
 
 请使用已安装本项目依赖的 Python。测试使用本机模拟服务，不需要 Unity 或 API Key。
 
-手动全链路验收：启动模拟器 → 启动一个 Agent → 等开场白结束 → 说一句话 → 确认 ASR、LLM 和音频 → 测一个技能 → 退出并重连。记录模型、语音资源和各阶段耗时，不将单次测量写成保证。
+手动验收分两步进行：
+
+1. **本机联调：** 启动一个模拟器，连接 `demo.py`，确认 `state=online`、字幕和音频播放，再测试 F1 面板中的技能按钮。
+2. **云端语音：** 停止 demo，配置密钥并启动 `agent.py`。等开场白结束后说一句话，核对 ASR 识别、LLM 回复与 TTS 播放，再请求一个技能，最后退出并重新连接。
+
+记录所用模型、语音资源、测试结果和各阶段耗时。区分录音时间、静音检测和云端处理时间，避免把一次测量当作固定性能。
 
 ## 提交与文档
 

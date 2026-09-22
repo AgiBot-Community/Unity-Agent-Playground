@@ -2,7 +2,7 @@
 
 **中文** | [English](simulator.en.md) | [Français](simulator.fr.md)
 
-双击运行 [x2模拟器.exe](../exe/x2模拟器.exe) 即可启动机器人网关：机器人出现在窗口中（调试面板默认隐藏，按 **F1** 呼出），开始监听 `127.0.0.1:9002` 等 Agent 接入（接入方式见 [Agent 说明](../example/README.md)）。示例 Agent 连上后会下发开场白。
+本指南适用于直接运行 Windows 便携模拟器的用户。双击 [x2模拟器.exe](../exe/x2模拟器.exe) 后，窗口显示机器人，网关在 `127.0.0.1:9002` 等待连接。按 **F1** 打开调试面板即可手动测试技能；语音对话需要另行启动[示例 Agent](../example/README.md)，连接成功后由 Agent 发送开场白。
 
 文件大小为 **58,287,104 字节（58.29 MB）**，可以只分发这一个 EXE，无需附带 Data 文件夹、Playground 或 Python。需要语音对话时，Python Agent 仍需单独启动；此 EXE 不包含其 API Key 或配置。校验文件见 [SHA-256](../exe/x2模拟器.sha256)。
 
@@ -10,11 +10,12 @@
 
 | 项 | 值 |
 |---|---|
-| 系统 | Windows 10/11 x64 |
-| 硬件 | 麦克风（说话）+ 扬声器（播放） |
+| 系统 | Windows 10/11 x64，系统提供 .NET Framework 4.x |
+| 语音交互设备 | 麦克风（输入）和扬声器（播放）；仅测试技能按钮时无需麦克风 |
 | 监听 | `127.0.0.1:9002`（仅本机；修改方式见 Unity 工程指南） |
 | 路径 | `/api/V1/open-portal/app/wss/agent-sdk` |
 | 鉴权 | 示例客户端发送 HMAC 签名；网关是否强制校验由其构建配置决定 |
+| 会话 | 同一时间连接一个 Agent |
 
 - 测试语音时保持窗口打开；若最小化后出现音频或网络异常，先恢复窗口再排查
 - **F1** 呼出/隐藏调试面板（默认隐藏，录屏时画面干净）
@@ -52,9 +53,9 @@ python example/demo.py
 
 需要修改场景、相机、技能或网关时，使用仓库的 [Unity 工程](../unity-agent-playground/)：
 
-1. 安装 Unity Hub 和 **2022.3.62f3c1**，通过 **Add project from disk** 添加 `unity-agent-playground/`。
+1. 按 [Unity 指南](unity.md) 下载并安装 Unity Hub 和旧版编辑器 **2022.3.62f3c1**，通过 **Add project from disk** 添加 `unity-agent-playground/`。
 2. 导入完成后打开 `Assets/X02Competition/Scenes/scene.unity`，点击 **Play** 并聚焦 Game 窗口。
 3. 使用上面相同的快捷键与 Agent 命令。进入 Play 前关闭 EXE，避免争用 9002 端口。
 4. 修改后按 [Unity 构建步骤](unity.md) 使用 **File → Build Settings** 生成 Windows 程序，并保留完整输出目录。
 
-仓库提供的单文件 EXE 是现成发布产物；Unity 的普通 Build 会生成包含程序和资源的目录，不会自动重封装或覆盖该 EXE。本指南只使用仓库内的工程与交付文件作为操作入口。
+仓库中的单文件 EXE 可直接运行和分发。自行使用 Unity Build 构建时，输出的是包含程序和资源的目录，分发时应保留整个目录；该操作不会自动替换仓库 EXE。
