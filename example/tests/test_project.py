@@ -1,4 +1,4 @@
-"""Project boundaries introduced by package extraction."""
+"""Script entry points and configuration boundaries."""
 import os
 from pathlib import Path
 import subprocess
@@ -8,10 +8,30 @@ import unittest
 from unittest.mock import patch
 
 from x2_agent.config import load_env
-from x2_agent import agent, demo, gateway
+from x2_agent import agent, demo, gateway, config
 
 
 class ProjectTests(unittest.TestCase):
+    def test_scripts_run_outside_example_directory_without_installation(self):
+        example = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as folder:
+            for entry in ('agent.py', 'demo.py'):
+                with self.subTest(entry=entry):
+                    result = subprocess.run(
+                        [sys.executable, '-B', str(example / entry), '--help'],
+                        cwd=folder, capture_output=True, timeout=20)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertIn(b'usage:', result.stdout.lower())
+
+    def test_default_config_is_relative_to_scripts_without_project_metadata(self):
+        with tempfile.TemporaryDirectory() as folder:
+            example = Path(folder)
+            (example / '.env').write_text('SCRIPT_CONFIG=loaded\n', encoding='utf-8')
+            with patch.object(config, '__file__', str(example / 'x2_agent' / 'config.py')):
+                with patch.dict(os.environ, {}, clear=True):
+                    load_env()
+                    self.assertEqual(os.environ['SCRIPT_CONFIG'], 'loaded')
+
     def test_explicit_config_preserves_environment_and_handles_bom(self):
         with tempfile.TemporaryDirectory() as folder:
             config = Path(folder) / 'settings.env'

@@ -6,15 +6,12 @@ from pathlib import Path
 def load_env(path=None):
     """Existing environment variables win; explicit paths must exist.
 
-    Source checkouts use their project-root .env regardless of working directory.
-    Installed distributions use the current directory, unless --env-file is set.
+    Default to example/.env beside the entry scripts, regardless of working directory.
     """
     if path is not None:
         env_path = Path(path).expanduser().resolve(strict=True)
     else:
-        project = Path(__file__).resolve().parent.parent
-        base = project if (project / 'pyproject.toml').is_file() else Path.cwd()
-        env_path = base / '.env'
+        env_path = Path(__file__).resolve().parent.parent / '.env'
         if not env_path.is_file():
             return
     for line in env_path.read_text(encoding='utf-8-sig').splitlines():
