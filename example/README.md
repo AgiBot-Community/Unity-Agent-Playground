@@ -8,8 +8,8 @@
 
 | 文件 | 什么时候用 |
 |---|---|
-| `python -m x2_agent` | **正式体验/演示**。ASR 边录边传、Mini 模型流式输出、双向 TTS 增量合成，LLM/TTS 并行 |
-| `python -m x2_agent.demo` | **先跑通网关**。不依赖云服务，收到语音后回固定文字并播放内置录音，不进行真实识别或实时语音合成；录音不可用时退回正弦提示音 |
+| `python agent.py` | **正式体验/演示**。ASR 边录边传、Mini 模型流式输出、双向 TTS 增量合成，LLM/TTS 并行 |
+| `python demo.py` | **先跑通网关**。不依赖云服务，收到语音后回固定文字并播放内置录音，不进行真实识别或实时语音合成；录音不可用时退回正弦提示音 |
 
 建议路径：先用 demo 跑通 → 再配 Key 切 doubao 全链路。
 
@@ -17,7 +17,8 @@
 
 | 路径 | 用途 |
 |---|---|
-| `pyproject.toml` | 项目元数据、Python 版本与依赖的统一声明 |
+| `agent.py` / `demo.py` | 正式 Agent 与离线 demo 的脚本入口 |
+| `requirements.txt` | 第三方依赖列表 |
 | `x2_agent/agent.py` | 对话调度、历史管理、技能调用与豆包 CLI |
 | `x2_agent/asr.py` | 录音期间上传、识别结果接收与取消清理 |
 | `x2_agent/llm.py` | LLM 流式请求与连接复用 |
@@ -30,9 +31,9 @@
 | `tests/` | ASR 上传、流式语音管线的离线回归测试 |
 | `.env.example` | 可提交的配置模板；复制为 `.env` 后填写自己的 Key |
 
-本地 `.env`、虚拟环境、Python 缓存和录音输出不提交到 Git。仓库的 `.diagnostics/` 是本地排查资料，不随示例工程分发。
+配置模板由 Git 管理，见 [`.env.example`](.env.example)；填写密钥后的 `.env` 不提交。文件纳入范围以仓库 [`.gitignore`](../.gitignore) 为准。
 
-## 第一步：安装（一次性）
+## 第一步：准备依赖（一次性）
 
 - Python 3.10+
 - 火山引擎账号（仅 doubao 客户端需要），开通：
@@ -42,30 +43,33 @@
 在 `example/` 目录打开 PowerShell：
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e .
+python -m pip install -r requirements.txt
 ```
 
-下文以 Windows PowerShell 启动命令为例；Linux/macOS 的 Python 路径为 `.venv/bin/python`。
+下文以 Windows PowerShell 启动命令为例。使用 Python 3.10+；Linux/macOS 可按本机命令使用 `python3`。已有所需依赖时可直接启动脚本。
 
 ## 第二步：连上机器人
 
-1. **先启动机器人侧**：双击 [`../exe/x2模拟器.exe`](../exe/x2模拟器.exe)
-2. **再启动 Agent**：
+先选择一种方式启动机器人侧：
+
+- **从 EXE 开始**：在 Windows 上双击 [`../exe/x2模拟器.exe`](../exe/x2模拟器.exe)，详见 [EXE 运行说明](../docs/simulator.md)。
+- **从 Unity 工程开始**：用 Unity **2022.3.62f3c1** 打开 `unity-agent-playground/`，打开 `Assets/X02Competition/Scenes/scene.unity` 并点击 Play，详见 [Unity 工程指南](../docs/unity.md)。
+
+两种方式使用同一个本机网关端口 `9002`，只启动其中一种。然后在 `example/` 目录启动一个 Agent：
 
 ```powershell
 # 先验证连通（无需 Key，机器人会回固定台词）
-.\.venv\Scripts\python.exe -m x2_agent.demo
+python demo.py
 
-# 退出 demo 后，配置 Key 跑全链路；已有 .env 时保留原配置
+# 用 Ctrl+C 退出 demo 后，配置 Key 跑全链路；已有 .env 时保留原配置
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 # 编辑 .env，填入两个 API Key
-.\.venv\Scripts\python.exe -m x2_agent
+python agent.py
 ```
 
 看到 `agent 会话就绪 state=online` 即连接成功。对机器人说话试试。
 
-客户端统一使用 Python 模块启动，不生成 EXE 启动入口。项目采用包结构，依赖通过 `pip install -e .` 安装。
+直接运行 `agent.py` 或 `demo.py`。`x2_agent/` 存放内部实现，保留在入口脚本旁即可；只需安装 `requirements.txt` 中的第三方依赖。
 
 机器人不在本机时可指定 `--host 192.168.x.x --port 9002`，前提是网关确实对外监听、端口可达；仅修改客户端参数不会改变 Unity 的监听范围。
 
@@ -80,7 +84,7 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 | "往前走一米" / "向左转" | 步态前进 / 原地转向 |
 | "停" | 立即停止 |
 
-回答时嘴巴随语音张合。技能列表对应当前 Unity 源码；仓库中的便携 EXE 尚未按该源码重新构建，旧版本可能不支持张臂。
+回答时嘴巴随语音张合。技能列表对应当前 Unity 源码；仓库中的便携 EXE 已于 2026-09-23 从当前工程重新构建。
 
 当前语音流程是半双工，播报期间 VAD 暂停；等待播报结束后再说话。默认音色和提示词面向中文，文档翻译不改变语音服务或界面语言。
 
@@ -92,37 +96,37 @@ demo 的 `--reply` 和 `--greeting` 修改字幕，不会重新合成内置录�
 
 ```powershell
 # 自定义机器人人设
-.\.venv\Scripts\python.exe -m x2_agent --system-prompt "你是导览机器人小X"
+python agent.py --system-prompt "你是导览机器人小X"
 
 # 保存一轮音频（排查"听不清/说不清"用）
-.\.venv\Scripts\python.exe -m x2_agent --save-audio reply.wav --save-input input.wav
+python agent.py --save-audio reply.wav --save-input input.wav
 
 # ASR 默认收到录音 start 就建连，录音期间上传，减少说完后的等待。
 # 需要对照排查时，切换为收到 commit 后才开始上传：
-.\.venv\Scripts\python.exe -m x2_agent --asr-after-commit
+python agent.py --asr-after-commit
 
 # 默认优先速度：Mini 模型 + 双向 TTS + 自动预连接/连接复用
 # 如需切回原来的 Turbo 模型（.env 的 DOUBAO_LLM_MODEL 也可覆盖默认值）
-.\.venv\Scripts\python.exe -m x2_agent --llm-model doubao-seed-2-1-turbo-260628
+python agent.py --llm-model doubao-seed-2-1-turbo-260628
 
 # 当前语音资源不支持双向合成时，使用逐句合成兼容模式
-.\.venv\Scripts\python.exe -m x2_agent --tts-mode sentence
+python agent.py --tts-mode sentence
 
 # 开场白自定义 / 禁用
-.\.venv\Scripts\python.exe -m x2_agent --greeting "大家好，我是导览机器人"
-.\.venv\Scripts\python.exe -m x2_agent --greeting=
+python agent.py --greeting "大家好，我是导览机器人"
+python agent.py --greeting=
 
 # demo 客户端：自定义回环台词 / 主动下发技能 / 测打断
-.\.venv\Scripts\python.exe -m x2_agent.demo --reply "你好，我是灵犀"
-.\.venv\Scripts\python.exe -m x2_agent.demo --skill gesture/wave_hands
-.\.venv\Scripts\python.exe -m x2_agent.demo --interrupt chat
+python demo.py --reply "你好，我是灵犀"
+python demo.py --skill gesture/wave_hands
+python demo.py --interrupt chat
 ```
 
 ## .env 变量
 
 配置在启动时加载，导入模块不会自动读取密钥。优先级为：命令行参数 > 已有环境变量 > `.env` > 内置默认值。
-本地可编辑安装默认读取 `example/` 项目根目录的 `.env`。
-跨目录启动时可显式指定配置，例如 `python -m x2_agent --env-file D:\config\x2.env`，指定的文件不存在会报错。
+脚本默认读取 `example/` 项目根目录的 `.env`。
+从仓库根目录可直接执行 `python example/agent.py`，默认仍读取 `example/.env`。也可通过 `--env-file` 参数指定自己的配置文件路径；指定的文件不存在会报错。
 
 | 变量 | 必填 | 说明 |
 |---|---|---|
@@ -151,25 +155,25 @@ TTS 会话，接收文字和合成音频并行。开场白也走同一条双向�
 Mini 优先语音交互速度，复杂推理能力与原 Turbo 模型可能不同；动作工具调用保留。
 首包日志分别记录 ASR 提交后等待、LLM 首 token、首文字到首音频，避免混淆计时范围。
 
-依赖统一维护在 `pyproject.toml`，更新后请在`example/` 目录执行 `python -m pip install -e .`。
+依赖统一维护在 `requirements.txt`，更新后请在`example/` 目录执行 `python -m pip install -r requirements.txt`。
 
 ## 运行回归测试
 
 在 `example` 目录执行：
 
 ```powershell
-.\.venv\Scripts\python.exe -B -m unittest discover -s tests -v
+python -B -m unittest discover -s tests -v
 ```
 
 测试使用本机模拟服务，不需要启动 Unity 或调用豆包云服务。`-B` 避免生成新的 Python 字节码缓存。
 
 ## 开发约定
 
-在 `example/` 目录执行 `python -m pip install -e .` 安装依赖，再使用 `python -m x2_agent` 或 `python -m x2_agent.demo` 启动。
+在 `example/` 目录执行 `python -m pip install -r requirements.txt` 安装依赖，再使用 `python agent.py` 或 `python demo.py` 启动。
 
-- 业务变更写入 `x2_agent/`，`example/` 根目录仅保留项目配置和本地密钥配置。
+- 业务变更写入 `x2_agent/`，`example/` 根目录提供入口脚本、依赖列表、配置模板和使用说明。
 - 云端传输分别维护在 ASR、LLM 和 TTS 模块；Unity 消息结构统一维护在 `gateway.py`。
 - 添加或修改行为时，在 `tests/` 中补充相应的本机模拟测试。
-- `build/`、`dist/`、`*.egg-info/` 和 Python 缓存为可再生成产物，不提交到 Git。
+- 新增文件遵循仓库 [`.gitignore`](../.gitignore)，文档中的工程结构只列出需要版本管理的文件。
 
 协议细节见 [接口文档](../docs/interface.md)，维护流程见 [开发指南](../docs/development.md)。
