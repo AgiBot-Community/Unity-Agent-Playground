@@ -34,6 +34,7 @@
 | [exe/](docs/simulator.md) | `x2模拟器.exe` 单文件便携程序及 SHA-256 校验文件 |
 | [unity-agent-playground/](docs/unity.md) | Unity 工程源码、机器人模型、技能与网关实现 |
 | [example/](example/README.md) | Python Agent 脚本、配置模板及本机回归测试 |
+| [tools/unity-packager/](tools/unity-packager/README.md) | 将已有的 Windows Unity 构建打包为单文件便携 EXE |
 | [docs/](docs/index.md) | 三语文档索引、接口规范及开发指南 |
 
 Unity 负责采集麦克风音频、显示机器人并执行技能，作为 WebSocket 服务端等待连接。Python Agent 接收音频，依次调用语音识别（ASR）、大语言模型（LLM）和语音合成（TTS），再将文字、音频和动作指令发回 Unity。使用时先启动模拟器，再启动一个 Agent。
