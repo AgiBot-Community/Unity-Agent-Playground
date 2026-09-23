@@ -4,7 +4,7 @@
 
 Use this guide to run the portable Windows simulator. Open [x2模拟器.exe](../exe/x2模拟器.exe): the robot appears and its gateway waits on `127.0.0.1:9002`. Press **F1** to test skills with the debug buttons. Voice conversations require the separate [Python agent](../example/docs/README.en.md), which sends the greeting after connecting.
 
-The file is **58,287,104 bytes (58.29 MB)**. Distribute this EXE alone: no Data folder, Python, credentials or Playground checkout is needed to run the simulator. Real voice conversations still require the separate agent. See the [SHA-256 checksum](../exe/x2模拟器.sha256).
+The file is **107,235,328 bytes (107.24 MB)**. Distribute this EXE alone: no Data folder, Python, credentials or Playground checkout is needed to run the simulator. On first launch it extracts the Unity resources in the background under `%LOCALAPPDATA%\UnityPortable`. Real voice conversations still require the separate agent. See the [SHA-256 checksum](../exe/x2模拟器.sha256).
 
 ## Runtime
 

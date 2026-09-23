@@ -4,7 +4,7 @@
 
 本指南适用于直接运行 Windows 便携模拟器的用户。双击 [x2模拟器.exe](../exe/x2模拟器.exe) 后，窗口显示机器人，网关在 `127.0.0.1:9002` 等待连接。按 **F1** 打开调试面板即可手动测试技能；语音对话需要另行启动[示例 Agent](../example/README.md)，连接成功后由 Agent 发送开场白。
 
-文件大小为 **58,287,104 字节（58.29 MB）**，可以只分发这一个 EXE，无需附带 Data 文件夹、Playground 或 Python。需要语音对话时，Python Agent 仍需单独启动；此 EXE 不包含其 API Key 或配置。校验文件见 [SHA-256](../exe/x2模拟器.sha256)。
+文件大小为 **107,235,328 字节（107.24 MB）**，可以只分发这一个 EXE，无需附带 Data 文件夹、Playground 或 Python。首次启动会在 `%LOCALAPPDATA%\UnityPortable` 后台释放 Unity 资源。需要语音对话时，Python Agent 仍需单独启动；此 EXE 不包含其 API Key 或配置。校验文件见 [SHA-256](../exe/x2模拟器.sha256)。
 
 ## 运行须知
 

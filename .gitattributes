@@ -8,3 +8,4 @@
 *.dll binary
 *.7z binary
 *.wav binary
+exe/x2模拟器.exe filter=lfs diff=lfs merge=lfs -text

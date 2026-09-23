@@ -4,7 +4,7 @@
 
 Ce guide explique comment exécuter le simulateur Windows portable. Ouvrez [x2模拟器.exe](../exe/x2模拟器.exe) : le robot apparaît et la passerelle attend sur `127.0.0.1:9002`. Appuyez sur **F1** pour tester les actions avec les boutons de débogage. Les conversations vocales nécessitent [l’agent Python](../example/docs/README.fr.md), lancé séparément, qui envoie l’accueil après connexion.
 
-Le fichier fait **58 287 104 octets (58,29 Mo)**. Cet EXE suffit pour distribuer le simulateur, sans dossier Data, Python, clés ou dépôt Playground. Les conversations réelles nécessitent toujours l’agent séparé. Voir l’[empreinte SHA-256](../exe/x2模拟器.sha256).
+Le fichier fait **107 235 328 octets (107,24 Mo)**. Cet EXE suffit pour distribuer le simulateur, sans dossier Data, Python, clés ou dépôt Playground. Au premier lancement, les ressources Unity sont extraites en arrière-plan sous `%LOCALAPPDATA%\UnityPortable`. Les conversations réelles nécessitent toujours l’agent séparé. Voir l’[empreinte SHA-256](../exe/x2模拟器.sha256).
 
 ## Exécution
 
