@@ -6,7 +6,7 @@ from pathlib import Path
 def load_env(path=None):
     """Existing environment variables win; explicit paths must exist.
 
-    Default to example/.env beside the entry scripts, regardless of working directory.
+    Default to this Agent project's .env beside the entry scripts, regardless of working directory.
     """
     if path is not None:
         env_path = Path(path).expanduser().resolve(strict=True)

@@ -11,8 +11,8 @@ venv/
 .coverage.*
 htmlcov/
 *.egg-info/
-/example/build/
-/example/dist/
+/example/*/build/
+/example/*/dist/
 
 # Local credentials (keep distributable templates)
 .env
@@ -24,10 +24,10 @@ htmlcov/
 /.diagnostics/
 *.log
 *.wav
-!example/x2_agent/greeting.wav
-!example/x2_agent/tts.wav
-/example/recordings/
-/example/output/
+!example/x2_agent/x2_agent/greeting.wav
+!example/x2_agent/x2_agent/tts.wav
+/example/*/recordings/
+/example/*/output/
 
 # Editor and operating-system artifacts
 .idea/

@@ -4,9 +4,17 @@
 
 This directory provides Python clients for the Unity robot gateway. Start with `python demo.py` to check the connection and audio without cloud credentials. It returns fixed text and bundled recordings, with a sine-wave fallback if a recording is missing or invalid. Then configure `python agent.py` for Doubao voice conversations and skill calls.
 
-Commands below run in the repository's `example/` directory using Windows PowerShell. On Linux/macOS, use `python3` if required by your environment; the supplied portable simulator runs on Windows.
+Commands below run in the repository's `example/x2_agent/` directory using Windows PowerShell. On Linux/macOS, use `python3` if required by your environment; the supplied portable simulator runs on Windows.
 
 ## Project layout
+
+This is a self-contained Agent project. It can run without the console and reads its own `.env`.
+The GUI is a separate project; see the [console guide](../../../docs/console.en.md).
+
+Unity runtime logs arrive as `agentsdk.runtime.log` on the same connection.
+Both clients display Info, Warning, Error and exception stacks, including during greetings
+and voice rounds. Buffer drops and truncation are reported. See the
+[protocol reference](../../../docs/interface.en.md) for fields and delivery limits.
 
 | Path | Responsibility |
 |---|---|
@@ -26,7 +34,7 @@ Commands below run in the repository's `example/` directory using Windows PowerS
 
 ## Install and run
 
-Python 3.10+ is required. For real conversations, enable Volcengine Speech (ASR/TTS) and Ark (LLM). In PowerShell, from the repository’s `example/` directory:
+Python 3.10+ is required. For real conversations, enable Volcengine Speech (ASR/TTS) and Ark (LLM). In PowerShell, from the repository’s `example/x2_agent/` directory:
 
 ```powershell
 python -m pip install -r requirements.txt
@@ -34,10 +42,10 @@ python -m pip install -r requirements.txt
 
 Start the robot using one of these routes:
 
-- **From the EXE:** on Windows, launch `exe/x2模拟器.exe` from the repository; follow the [EXE guide](../../docs/simulator.en.md).
-- **From the Unity project:** open `unity-agent-playground/` with Unity **2022.3.62f3c1**, open `Assets/X02Competition/Scenes/scene.unity` and press Play; follow the [Unity guide](../../docs/unity.en.md).
+- **From the EXE:** on Windows, launch `exe/x2模拟器.exe` from the repository; follow the [EXE guide](../../../docs/simulator.en.md).
+- **From the Unity project:** open `unity-agent-playground/` with Unity **2022.3.62f3c1**, open `Assets/X02Competition/Scenes/scene.unity` and press Play; follow the [Unity guide](../../../docs/unity.en.md).
 
-Both use local port `9002`; run only one robot instance. Then start one Agent from `example/`:
+Both use local port `9002`; run only one robot instance. Then start one Agent from `example/x2_agent/`:
 
 ```powershell
 python demo.py
@@ -52,7 +60,7 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 python agent.py
 ```
 
-Keep `x2_agent/` beside the entry scripts and run them with the same Python environment used to install dependencies. From the repository root, use `python example/agent.py`; the default configuration remains `example/.env`.
+Keep `x2_agent/` beside the entry scripts and run them with the same Python environment used to install dependencies. From the repository root, use `python example/x2_agent/agent.py`; the default configuration remains `example/x2_agent/.env`.
 
 For a remote connection, set `--host <address> --port 9002` and ensure the gateway listens on a reachable network address. Client options alone do not change Unity's default loopback listener.
 
@@ -67,13 +75,13 @@ The phrases below require `agent.py`; the model selects skills from the request.
 - Requests for happy, sad, surprised or other expressions change the robot face. The protocol also includes a neutral expression.
 - **F1** opens the Unity debug panel; its skill buttons work without a cloud key.
 
-The mouth follows speech playback. See the [protocol skill table](../../docs/interface.en.md) for skill names and parameters.
+The mouth follows speech playback. See the [protocol skill table](../../../docs/interface.en.md) for skill names and parameters.
 
 The demo’s `--reply` and `--greeting` change captions, not the bundled voice recordings. Audio comes from `x2_agent/greeting.wav` and `x2_agent/tts.wav`, sent in 200 ms chunks.
 
 ## Configuration
 
-Configuration loads at CLI startup, not on import. Precedence: CLI arguments > existing environment variables > `.env` > defaults. Scripts load `.env` from the `example/` project root by default. Use `--env-file` with your configuration file path to override it; a missing file is an error.
+Configuration loads at CLI startup, not on import. Precedence: CLI arguments > existing environment variables > `.env` > defaults. Scripts load `.env` from the `example/x2_agent/` project root by default. Use `--env-file` with your configuration file path to override it; a missing file is an error.
 
 | Variable | Required for Doubao | Default / meaning |
 |---|---|---|
@@ -83,11 +91,11 @@ Configuration loads at CLI startup, not on import. Precedence: CLI arguments > e
 | `DOUBAO_TTS_SPEAKER` | No | `zh_female_wanqudashu_moon_bigtts`; compatible with `seed-tts-1.0` |
 | `DOUBAO_ASR_RESOURCE_ID` | No | `volc.bigasr.sauc.duration` |
 
-The versioned configuration template is [`.env.example`](../.env.example). Keep the `.env` containing your keys private; follow the repository [`.gitignore`](../../.gitignore) when adding files.
+The versioned configuration template is [`.env.example`](../.env.example). Keep the `.env` containing your keys private; follow the repository [`.gitignore`](../../../.gitignore) when adding files.
 
 ## Useful options
 
-Run these from the repository’s `example/` directory with your virtual environment's Python:
+Run these from the repository’s `example/x2_agent/` directory with your virtual environment's Python:
 
 ```powershell
 python agent.py --help
@@ -111,7 +119,8 @@ The default uploads ASR audio while recording, reuses LLM connections and passes
 |---|---|
 | Connection refused | Start the EXE or enter Editor Play mode; verify host and port. Remote access also requires a reachable network listener on the gateway |
 | HTTP 401 | Credentials, signature and timestamp when strict authentication is enabled |
-| HTTP 503 | Another agent occupies the only session |
+| HTTP 503 | The gateway connection limit has been reached (eight by default) |
+| Speech promises a gesture but no action / `4091` | If a manual console is connected, release its action takeover in the sessions tab. Its priority stays 1000. Confirm the Agent owns actions and the skill reports `running` / `done` |
 | No transcription | Microphone mute state, input level and recording length |
 | Long wait after speech | Separate recording start→commit, post-commit ASR, first LLM token and first TTS audio timings; silence detection is not ASR processing time |
 | LLM 404 | Full dated model ID or your `ep-...` endpoint ID |
@@ -120,7 +129,7 @@ The default uploads ASR audio while recording, reuses LLM connections and passes
 
 ## Tests and development
 
-Run from `example/` with the same Python environment used to install dependencies:
+Run from `example/x2_agent/` with the same Python environment used to install dependencies:
 
 ```powershell
 python -B -m unittest discover -s tests -v
@@ -128,4 +137,4 @@ python -B -m unittest discover -s tests -v
 
 Tests use local mock services, not Unity or cloud APIs. Dependencies belong in `requirements.txt`; update them with `python -m pip install -r requirements.txt`. Run the scripts with `python agent.py` or `python demo.py`.
 
-See the [protocol](../../docs/interface.en.md) and [development guide](../../docs/development.en.md).
+See the [protocol](../../../docs/interface.en.md) and [development guide](../../../docs/development.en.md).

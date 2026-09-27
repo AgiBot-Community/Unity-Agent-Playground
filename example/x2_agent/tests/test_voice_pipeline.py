@@ -43,6 +43,68 @@ class PipelineTests(unittest.IsolatedAsyncioTestCase):
         await asyncio.wait_for(self.agent.agent_round(
             self.socket, {'eventId': 'test-event', 'itemId': 'test-item'}, b'', Recognized()), 2)
 
+    async def test_blocked_wave_explains_authority_without_calling_llm(self):
+        self.agent.control_active = False
+        class WaveRequest:
+            async def finish(self):
+                return "你好，向我挥挥手。"
+        async def speech(texts):
+            async for _ in texts:
+                yield b"\x00\x00" * 1600
+        def forbidden_llm(*args, **kwargs):
+            raise AssertionError("A blocked direct gesture must not ask the model to promise an action")
+        with patch.object(self.agent.llm, "stream", forbidden_llm), patch.object(self.agent, "speech_stream", speech):
+            await self.agent.agent_round(self.socket, {"eventId": "blocked"}, b"", WaveRequest())
+        self.assertFalse(any(f["type"] == agent.T["skill"] for f in self.socket.frames))
+        self.assertEqual(self.agent.history[-1]["content"], agent.NO_CONTROL_REPLY)
+
+    async def test_authority_lost_during_llm_prevents_late_wave_command(self):
+        self.agent.robot_cid = "agent"
+        async def llm(*args, **kwargs):
+            self.agent._on_gateway_state({"type": agent.T["session_state"], "revision": 2,
+                                          "controlOwnerCid": "console", "audioOwnerCid": "agent"})
+            yield "tool_calls", [{"name": "robot_skill", "arguments":
+                                 '{"skillType":"gesture","skillName":"wave_hands"}'}]
+        async def speech(texts):
+            async for _ in texts:
+                yield b"\x00\x00" * 1600
+        with patch.object(self.agent.llm, "stream", llm), patch.object(self.agent, "speech_stream", speech):
+            await self.run_round()
+        self.assertFalse(any(f["type"] == agent.T["skill"] for f in self.socket.frames))
+        self.assertIn(agent.NO_CONTROL_REPLY, self.agent.history[-1]["content"])
+
+    async def test_permission_updates_during_busy_round_and_ignores_old_revision(self):
+        self.agent.args.asr_after_commit = True
+        entered, observed = asyncio.Event(), asyncio.Event()
+        async def busy_round(*args):
+            entered.set()
+            while self.agent.control_active:
+                await asyncio.sleep(0)
+            observed.set()
+        class Socket:
+            async def __aiter__(self):
+                yield json.dumps({"type": agent.T["sync"], "state": "online", "robotCid": "agent",
+                                  "controlActive": True, "audioActive": True})
+                yield json.dumps({"type": agent.T["a_start"], "eventId": "event"})
+                yield json.dumps({"type": agent.T["a_commit"], "eventId": "event"})
+                await entered.wait()
+                yield json.dumps({"type": agent.T["session_state"], "revision": 2,
+                                  "controlOwnerCid": "console", "audioOwnerCid": "agent"})
+                yield json.dumps({"type": agent.T["session_state"], "revision": 1,
+                                  "controlOwnerCid": "agent", "audioOwnerCid": "agent"})
+                await observed.wait()
+        with patch.object(self.agent, "agent_round", busy_round), \
+                patch.object(self.agent, "warm_connections", lambda: None):
+            await asyncio.wait_for(self.agent.session(Socket()), 2)
+        self.assertTrue(observed.is_set())
+        self.assertFalse(self.agent.control_active)
+
+    def test_direct_gesture_feedback_does_not_match_negation_or_discussion(self):
+        for text in ("嗯，挥挥手吧。", "你好，向我挥手。", "请张开你的双臂"):
+            self.assertTrue(agent.is_direct_gesture_request(text), text)
+        for text in ("不要挥手", "挥手是什么意思", "先挥手再坐下", "请说挥手两个字"):
+            self.assertFalse(agent.is_direct_gesture_request(text), text)
+
     async def test_audio_before_llm_finishes_and_remaining_text_keeps_flowing(self):
         llm_finished = asyncio.Event()
         observed = []
@@ -107,6 +169,59 @@ class PipelineTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(spoken)
         self.assertTrue(any(f.get('skillName') == 'wave_hands' for f in self.socket.frames))
         self.assertEqual(self.agent.history[-1]['content'], ''.join(spoken))
+
+    async def test_partial_greeting_failure_reports_error_and_closes_round(self):
+        self.agent.args.greeting = 'hello'
+        closed = asyncio.Event()
+
+        async def speech(texts):
+            try:
+                yield b'\x00\x01' * 1600
+                raise RuntimeError('partial greeting failed')
+            finally:
+                closed.set()
+
+        with patch.object(self.agent, 'speech_stream', speech):
+            await self.agent.greet(self.socket)
+        self.assertTrue(closed.is_set())
+        self.assertTrue(any(f['type'] == agent.T['tts_delta'] for f in self.socket.frames))
+        self.assertTrue(any(f.get('errorCode') == 3301 for f in self.socket.frames))
+        self.assertEqual([f['type'] for f in self.socket.frames[-2:]],
+                         [agent.T['tts_done_item'], agent.T['tts_done']])
+        self.assertEqual(len({f['eventId'] for f in self.socket.frames}), 1)
+
+    async def test_cancelled_greeting_closes_generator_and_audio_round(self):
+        self.agent.args.greeting = 'hello'
+        closed = asyncio.Event()
+
+        async def speech(texts):
+            try:
+                yield b'\x00\x01' * 1600
+                await asyncio.Event().wait()
+            finally:
+                closed.set()
+
+        with patch.object(self.agent, 'speech_stream', speech):
+            task = asyncio.create_task(self.agent.greet(self.socket))
+            await asyncio.wait_for(self.socket.audio.wait(), 1)
+            task.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+        self.assertTrue(closed.is_set())
+        self.assertEqual(self.socket.frames[-1]['type'], agent.T['tts_done'])
+
+    async def test_standby_agent_does_not_greet_or_warm_cloud_connections(self):
+        from unittest.mock import AsyncMock, Mock
+        class Socket:
+            async def __aiter__(self):
+                yield json.dumps({'type': agent.T['sync'], 'state': 'online', 'robotCid': 'standby',
+                                  'audioActive': False, 'controlActive': False})
+        with patch.object(self.agent, 'greet', new_callable=AsyncMock) as greet, \
+                patch.object(self.agent, 'warm_connections', new_callable=Mock) as warm:
+            await self.agent.session(Socket())
+            greet.assert_not_called()
+            warm.assert_not_called()
+            self.assertFalse(self.agent.control_active)
 
 
 class TransportTests(unittest.IsolatedAsyncioTestCase):

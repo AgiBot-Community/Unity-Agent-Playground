@@ -2,7 +2,7 @@
 
 **中文** | [English](docs/README.en.md) | [Français](docs/README.fr.md)
 
-`example/` 提供可直接运行的 Python 客户端，用于连接 Unity 机器人网关。先通过离线 demo 检查连接与音频，再配置豆包客户端，体验语音回复、表情和行走等技能。
+`example/x2_agent/` 提供可直接运行的 Python 客户端，用于连接 Unity 机器人网关。先通过离线 demo 检查连接与音频，再配置豆包客户端，体验语音回复、表情和行走等技能。
 
 按测试目标选择客户端：
 
@@ -11,9 +11,12 @@
 | `python agent.py` | **语音对话与技能调用**。需要云服务密钥；录音期间上传 ASR，接收 LLM 流式回复并同步进行 TTS 合成 |
 | `python demo.py` | **先跑通网关**。不依赖云服务，收到语音后回固定文字并播放内置录音，不进行真实识别或实时语音合成；录音不可用时退回正弦提示音 |
 
-下文命令均在仓库的 `example/` 目录运行，使用 Windows PowerShell。Linux/macOS 可按本机环境将 `python` 改为 `python3`；仓库提供的便携模拟器仅适用于 Windows。
+下文命令均在仓库的 `example/x2_agent/` 目录运行，使用 Windows PowerShell。Linux/macOS 可按本机环境将 `python` 改为 `python3`；仓库提供的便携模拟器仅适用于 Windows。
 
 ## 工程结构
+
+本目录是独立 Agent 项目，可单独复制运行，配置读取本目录的 `.env`。
+图形控制台是另一个独立项目，见[控制台指南](../../docs/console.md)。
 
 | 路径 | 用途 |
 |---|---|
@@ -40,7 +43,7 @@
   - 语音技术（ASR + TTS）→ `DOUBAO_SPEECH_API_KEY`
   - 火山方舟（LLM）→ `ARK_API_KEY`
 
-在 `example/` 目录打开 PowerShell：
+在 `example/x2_agent/` 目录打开 PowerShell：
 
 ```powershell
 python -m pip install -r requirements.txt
@@ -52,10 +55,10 @@ python -m pip install -r requirements.txt
 
 先选择一种方式启动机器人侧：
 
-- **从 EXE 开始**：在 Windows 上双击 [`../exe/x2模拟器.exe`](../exe/x2模拟器.exe)，详见 [EXE 运行说明](../docs/simulator.md)。
-- **从 Unity 工程开始**：用 Unity **2022.3.62f3c1** 打开 `unity-agent-playground/`，打开 `Assets/X02Competition/Scenes/scene.unity` 并点击 Play，详见 [Unity 工程指南](../docs/unity.md)。
+- **从 EXE 开始**：在 Windows 上双击 [`../../exe/x2模拟器.exe`](../../exe/x2模拟器.exe)，详见 [EXE 运行说明](../../docs/simulator.md)。
+- **从 Unity 工程开始**：用 Unity **2022.3.62f3c1** 打开 `unity-agent-playground/`，打开 `Assets/X02Competition/Scenes/scene.unity` 并点击 Play，详见 [Unity 工程指南](../../docs/unity.md)。
 
-两种方式使用同一个本机网关端口 `9002`，只启动其中一种。然后在 `example/` 目录启动一个 Agent：
+两种方式使用同一个本机网关端口 `9002`，只启动其中一种。然后在 `example/x2_agent/` 目录启动一个 Agent：
 
 ```powershell
 # 先验证连通（无需 Key，机器人会回固定台词）
@@ -71,7 +74,7 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 python agent.py
 ```
 
-再次看到 `agent 会话就绪 state=online` 表示豆包客户端已连接。等待开场白结束后开始对话；每次只运行一个客户端。
+再次看到 `agent 会话就绪 state=online` 表示豆包客户端已连接。等待开场白结束后开始对话；可同时连接控制台或其它 Agent，麦克风只发送给选中的语音接收端。
 
 直接运行 `agent.py` 或 `demo.py`。`x2_agent/` 存放内部实现，保留在入口脚本旁即可；只需安装 `requirements.txt` 中的第三方依赖。
 
@@ -88,7 +91,7 @@ python agent.py
 | "往前走一米" / "向左转" | 步态前进 / 原地转向 |
 | "停" | 识别请求并下发 `stop` 技能后停止；播报期间请使用面板停止按钮或显式打断指令 |
 
-回答时嘴巴随语音张合。技能名称和参数见[网关协议的技能表](../docs/interface.md)。
+回答时嘴巴随语音张合。技能名称和参数见[网关协议的技能表](../../docs/interface.md)。
 
 当前语音流程是半双工，播报期间 VAD 暂停；等待播报结束后再说话。默认音色和提示词面向中文，文档翻译不改变语音服务或界面语言。
 
@@ -129,8 +132,8 @@ python demo.py --interrupt chat
 ## .env 变量
 
 配置在启动时加载，导入模块不会自动读取密钥。优先级为：命令行参数 > 已有环境变量 > `.env` > 内置默认值。
-脚本默认读取 `example/` 项目根目录的 `.env`。
-从仓库根目录可直接执行 `python example/agent.py`，默认仍读取 `example/.env`。也可通过 `--env-file` 参数指定自己的配置文件路径；指定的文件不存在会报错。
+脚本默认读取 `example/x2_agent/` 项目根目录的 `.env`。
+从仓库根目录可直接执行 `python example/x2_agent/agent.py`，默认仍读取 `example/x2_agent/.env`。也可通过 `--env-file` 参数指定自己的配置文件路径；指定的文件不存在会报错。
 
 | 变量 | 必填 | 说明 |
 |---|---|---|
@@ -146,7 +149,8 @@ python demo.py --interrupt chat
 |---|---|
 | 连不上（Connection refused） | 确认 EXE 已运行或 Editor 正在 Play，再核对地址与端口。跨机连接还需修改网关监听地址并确保端口可达，单独添加 `--host` 不够 |
 | 握手 401 | 签名错（严格模式下）；核对 appSecret 与签名串格式 |
-| 握手 503 | 已有一个会话没退出（单会话限制）；关掉旧的客户端再连 |
+| 握手 503 | 已达到网关连接数上限（默认 8 路）；关闭不用的连接或调整 Unity 的 MaxConnections |
+| 语音说要挥手但没动作 / `4091` | 若手动控制台同时在线，在“会话 / 优先级”中取消“控制台接管动作”。控制台优先级仍为 1000，但会将动作资格交还 Agent；查看技能的 `running/done` 状态确认执行 |
 | 没有识别结果 | 音频太短/太轻；确认麦克风没被系统静音 |
 | 说完后等待很久 | 对比 `[录音 start→commit]`、`[ASR …ms（commit 后）]`、`[LLM 首 token]`；ASR 建连应与录音重叠。start→commit 包含说话时长及 Unity 的静音检测等待，不等于 ASR 耗时 |
 | LLM 404 | 模型 ID 不完整；须用带日期后缀的完整 ID（如 `doubao-seed-2-0-mini-260428`）或接入点 `ep-xxx` |
@@ -159,11 +163,11 @@ TTS 会话，接收文字和合成音频并行。开场白也走同一条双向�
 Mini 优先语音交互速度，复杂推理能力与原 Turbo 模型可能不同；动作工具调用保留。
 首包日志分别记录 ASR 提交后等待、LLM 首 token、首文字到首音频，避免混淆计时范围。
 
-依赖更新后，在 `example/` 目录重新执行 `python -m pip install -r requirements.txt`。
+依赖更新后，在 `example/x2_agent/` 目录重新执行 `python -m pip install -r requirements.txt`。
 
 ## 运行回归测试
 
-在 `example` 目录执行：
+在 `example/x2_agent` 目录执行：
 
 ```powershell
 python -B -m unittest discover -s tests -v
@@ -173,11 +177,15 @@ python -B -m unittest discover -s tests -v
 
 ## 开发约定
 
-在 `example/` 目录执行 `python -m pip install -r requirements.txt` 安装依赖，再使用 `python agent.py` 或 `python demo.py` 启动。
+在 `example/x2_agent/` 目录执行 `python -m pip install -r requirements.txt` 安装依赖，再使用 `python agent.py` 或 `python demo.py` 启动。
 
-- 业务变更写入 `x2_agent/`，`example/` 根目录提供入口脚本、依赖列表、配置模板和使用说明。
+- 本项目业务变更写入 `x2_agent/`，回归测试位于 `tests/`；控制台在独立的 `example/x2_console/` 项目中维护。
 - 云端传输分别维护在 ASR、LLM 和 TTS 模块；Unity 消息结构统一维护在 `gateway.py`。
 - 添加或修改行为时，在 `tests/` 中补充相应的本机模拟测试。
-- 新增文件遵循仓库 [`.gitignore`](../.gitignore)，文档中的工程结构只列出需要版本管理的文件。
+- 新增文件遵循仓库 [`.gitignore`](../../.gitignore)，文档中的工程结构只列出需要版本管理的文件。
 
-协议细节见 [接口文档](../docs/interface.md)，维护流程见 [开发指南](../docs/development.md)。
+协议细节见 [接口文档](../../docs/interface.md)，维护流程见 [开发指南](../../docs/development.md)。
+
+Unity 运行时日志会通过同一连接以 `agentsdk.runtime.log` 外发。
+两个客户端均显示 Info、Warning、Error，以及异常堆栈；开场白和对话期间也继续接收。
+日志缓存溢出或内容过长时会显示丢弃计数、截断提示。字段和交付边界见接口文档 §4.6。

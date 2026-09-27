@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import sys
 import tempfile
 import unittest
@@ -63,3 +64,29 @@ class ProjectTests(unittest.TestCase):
         self.assertIs(demo.build_headers, gateway.build_headers)
         self.assertIs(agent.envelope, demo.envelope)
         self.assertIs(agent.T, demo.T)
+
+    def test_agent_runs_without_console_project(self):
+        project = Path(__file__).resolve().parents[1]
+        def ignore(_folder, names):
+            return [name for name in names if name == "__pycache__" or
+                    (name.startswith(".env") and name != ".env.example")]
+        with tempfile.TemporaryDirectory() as folder:
+            isolated = Path(folder) / "standalone-agent"
+            shutil.copytree(project, isolated, ignore=ignore)
+            (isolated / ".env").write_text("X2_AGENT_TEST_MARKER=local\n", encoding="utf-8")
+            environment = dict(os.environ)
+            environment.pop("PYTHONPATH", None)
+            for entry in ("agent.py", "demo.py"):
+                result = subprocess.run(
+                    [sys.executable, "-B", str(isolated / entry), "--help"],
+                    cwd=folder, env=environment, capture_output=True, timeout=20)
+                self.assertEqual(result.returncode, 0, result.stderr)
+            script = (
+                "import os,sys; from x2_agent import config,demo; "
+                "config.load_env(); "
+                "assert os.environ['X2_AGENT_TEST_MARKER']=='local'; "
+                "assert 'x2_console' not in sys.modules; "
+                "assert len(demo.load_pcm(demo.GREETING_WAV,100,440))>6400"
+            )
+            subprocess.run([sys.executable, "-B", "-c", script],
+                           cwd=isolated, env=environment, check=True, timeout=20)
