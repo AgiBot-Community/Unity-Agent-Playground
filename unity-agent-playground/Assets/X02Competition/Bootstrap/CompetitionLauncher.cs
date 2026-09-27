@@ -25,6 +25,7 @@ namespace X02Competition.Bootstrap
         public string AppId = "demo-app";
         public string AppKey = "demo-key";
         public string AppSecret = "demo-secret";
+        [Min(1)] public int MaxConnections = 8;
 
         [Header("机器人")]
         public AgentMetaProfile MetaProfile;
@@ -57,6 +58,8 @@ namespace X02Competition.Bootstrap
         [HideInInspector] public RobotCameraRig Cameras;
 
         const string RobotTag = "robot";
+        System.Collections.Generic.Dictionary<string, object> _agentMeta;
+        GatewaySession _controlOwner, _audioOwner;
 
         void Awake()
         {
@@ -121,14 +124,18 @@ namespace X02Competition.Bootstrap
                 AppId = AppId,
                 AppKey = AppKey,
                 AppSecret = AppSecret,
+                MaxSessions = Mathf.Max(1, MaxConnections),
             };
             if (MetaProfile != null) Server.AgentId = MetaProfile.AgentId;
+            _agentMeta = MetaProfile != null ? MetaProfile.ToMeta() : null;
 
             Server.SessionOpened += OnSessionOpened;
             Server.SessionClosed += OnSessionClosed;
+            Server.RoutingChanged += () => Pump.Post(ReconcileSessions);
             Server.FrameLoggedDefault();
 
             Pump.Server = Server;
+            gameObject.AddComponent<UnityLogForwarder>().Server = Server;
         }
 
         void Start()
@@ -139,27 +146,51 @@ namespace X02Competition.Bootstrap
 
         void OnSessionOpened(GatewaySession session)
         {
-            // 监听线程上下文：双向装配缺一不可
-            //   session.Runtime = Runtime：入站方向（Dispatch → IRobotRuntime 回调）
-            //   Runtime.Bind(session)：出站方向（IGatewayPort 上行）
+            // Runtime and audio input state are changed only by the main thread.
             session.Runtime = Runtime;
-            Runtime.Bind(session);
-            session.SendRobotOnline(MetaProfile != null ? MetaProfile.ToMeta() : null,
-                session.CallbackType);
-            Pump.Post(() => Debug.Log("[Launcher] Agent 会话已建立: " + session.RobotCid +
-                " callbackType=" + session.CallbackType));
+            session.DispatchEnabled = false;
+            session.SendRobotOnline(_agentMeta, session.CallbackType);
+            Pump.Post(() =>
+            {
+                if (!session.IsOpen || Runtime == null) return;
+                Debug.Log("[Launcher] Agent 会话已建立: " + session.RobotCid +
+                    " callbackType=" + session.CallbackType);
+            });
         }
 
         void OnSessionClosed(GatewaySession session)
         {
             Pump.Post(() =>
             {
-                // Closed sessions leave the server before their disconnect queue is pumped.
-                // Ignore a delayed close if a newer session has already connected.
-                if (Runtime == null || !ReferenceEquals(Runtime.Port, session)) return;
-                Runtime.OnAgentDisconnected();
-                Debug.Log("[Launcher] Agent 会话已断开，等待重连（SDK 将于 3s 后自动重连）");
+                Debug.Log("[Launcher] 会话已断开: " + session.RobotCid);
             });
+        }
+
+        void ReconcileSessions()
+        {
+            if (Runtime == null) return;
+            var control = Server.ControlOwner;
+            var audio = Server.AudioOwner;
+            var connected = Server.Sessions.Count > 0;
+            if (!connected)
+            {
+                if (Runtime.Port != null) Runtime.OnAgentDisconnected();
+            }
+            else if (Runtime.Port == null)
+            {
+                Runtime.Bind(Server);
+                Runtime.OnAgentConnected(Server.AgentId, audio?.CallbackType ?? "monitor");
+            }
+            if (!ReferenceEquals(_controlOwner, control) && _controlOwner != null)
+                Runtime.Router?.Abort();
+            if (!ReferenceEquals(_audioOwner, audio))
+            {
+                Server.ResetAudioRouting();
+                Runtime.ResetSpeechSession();
+            }
+            _controlOwner = control;
+            _audioOwner = audio;
+            foreach (var session in Server.Sessions) session.DispatchEnabled = true;
         }
 
         /// <summary>找步态机器人根（x2t2.5 场景 tag=robot；X02RobotBridge 桥接步态）。</summary>

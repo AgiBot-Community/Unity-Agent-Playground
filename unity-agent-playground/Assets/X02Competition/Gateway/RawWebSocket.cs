@@ -157,7 +157,7 @@ namespace X02Competition.Gateway
     /// </summary>
     public sealed class ServerWsConnection : IDisposable
     {
-        const long MaxMessageBytes = 16 * 1024 * 1024;
+        public const int MaxMessageBytes = 16 * 1024 * 1024;
         static readonly Task DoneTask = Task.FromResult<object>(null);
 
         readonly TcpClient _tcp;
@@ -175,6 +175,7 @@ namespace X02Competition.Gateway
         bool _frameFin;
         WebSocketMessageType _msgType;
         bool _inMessage;
+        long _messageBytes;
         volatile bool _closeSent;
         volatile bool _disposed;
 
@@ -183,6 +184,7 @@ namespace X02Competition.Gateway
         {
             _tcp = tcp;
             _io = io;
+            _io.WriteTimeout = 1000;
             if (seedCount > 0)
             {
                 Array.Copy(seed, 0, _buf, 0, seedCount);
@@ -238,6 +240,8 @@ namespace X02Competition.Gateway
                 bool isControl = (opcode & 0x8) != 0;
                 if (isControl && (!fin || len > 125))
                     return Fail(WebSocketCloseStatus.ProtocolError, "bad control frame");
+                if (!masked)
+                    return Fail(WebSocketCloseStatus.ProtocolError, "unmasked client frame");
 
                 if (masked)
                 {
@@ -247,8 +251,14 @@ namespace X02Competition.Gateway
 
                 switch (opcode)
                 {
-                    case 0x1: _msgType = WebSocketMessageType.Text; _inMessage = true; break;
-                    case 0x2: _msgType = WebSocketMessageType.Binary; _inMessage = true; break;
+                    case 0x1:
+                    case 0x2:
+                        if (_inMessage)
+                            return Fail(WebSocketCloseStatus.ProtocolError, "unfinished message");
+                        _msgType = opcode == 0x1 ? WebSocketMessageType.Text : WebSocketMessageType.Binary;
+                        _inMessage = true;
+                        _messageBytes = 0;
+                        break;
                     case 0x0:
                         if (!_inMessage)
                             return Fail(WebSocketCloseStatus.ProtocolError,
@@ -270,12 +280,17 @@ namespace X02Competition.Gateway
                         return Fail(WebSocketCloseStatus.ProtocolError, "bad opcode " + opcode);
                 }
 
-                // 客户端→服务端数据帧必须掩码（RFC6455 §5.1）
-                if (!masked && len > 0)
-                    return Fail(WebSocketCloseStatus.ProtocolError, "unmasked client frame");
+                if (len > MaxMessageBytes - _messageBytes)
+                    return Fail(WebSocketCloseStatus.MessageTooBig, "message too large");
+                _messageBytes += len;
                 _maskedFrame = masked;
                 _remain = (int)len;
                 _frameFin = fin;
+                if (len == 0)
+                {
+                    if (fin) _inMessage = false;
+                    return Task.FromResult(new WebSocketReceiveResult(0, _msgType, fin));
+                }
             }
         }
 
@@ -338,8 +353,12 @@ namespace X02Competition.Gateway
 
         public Task CloseAsync(WebSocketCloseStatus status, string reason, CancellationToken ct)
         {
-            if (!_disposed) TrySendClose(status, reason);
-            return DoneTask;
+            // Return before any socket I/O, so the caller's deadline really bounds shutdown.
+            return Task.Run(() =>
+            {
+                try { if (!_disposed) TrySendClose(status, reason); }
+                finally { Dispose(); }
+            });
         }
 
         void SendControl(int opcode, byte[] payload, int count)
@@ -358,10 +377,17 @@ namespace X02Competition.Gateway
         void TrySendClose(WebSocketCloseStatus status, string reason)
         {
             if (_closeSent || _disposed) return;
-            lock (_sendLock)
+            // A stalled sender must never prevent disposal from another thread.
+            if (!Monitor.TryEnter(_sendLock))
+            {
+                Dispose();
+                return;
+            }
+            try
             {
                 if (_closeSent || _disposed) return;
                 _closeSent = true;
+                _io.WriteTimeout = 250;
                 int code = (int)status;
                 var reasonBytes = string.IsNullOrEmpty(reason)
                     ? new byte[0]
@@ -376,6 +402,7 @@ namespace X02Competition.Gateway
                 _io.Write(header, 0, hl);
                 _io.Write(payload, 0, payload.Length);
             }
+            finally { Monitor.Exit(_sendLock); }
         }
 
         /// <summary>服务端→客户端帧头：不掩码。返回写入长度。</summary>

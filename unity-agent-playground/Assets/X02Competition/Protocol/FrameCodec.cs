@@ -37,6 +37,9 @@ namespace X02Competition.Protocol
         // agentsdk.error
         public int ErrorCode;
         public string ErrorMsg;
+        public string TargetRobotCid;
+        public int Priority = -1;
+        public bool? ControlEnabled;
     }
 
     /// <summary>
@@ -63,7 +66,9 @@ namespace X02Competition.Protocol
 
         /// <summary>机器人上下线同步（agentsdk.robot_state.sync）。agentMeta 为 AgentMeta 字典。</summary>
         public static string BuildRobotStateSync(string agentId, string robotCid, string state,
-            string callbackType, IReadOnlyDictionary<string, object> agentMeta)
+            string callbackType, IReadOnlyDictionary<string, object> agentMeta,
+            string role = null, int priority = 0, bool controlActive = true, bool audioActive = true,
+            bool controlEnabled = true, bool canManage = false)
         {
             var o = new JObject
             {
@@ -71,6 +76,14 @@ namespace X02Competition.Protocol
                 ["agentId"] = agentId ?? "",
                 ["state"] = state,
                 ["callbackType"] = callbackType ?? CallbackTypes.Audio2Tts,
+                ["robotCid"] = robotCid ?? "",
+                ["cid"] = robotCid ?? "",
+                ["clientRole"] = role ?? "agent",
+                ["priority"] = priority,
+                ["controlActive"] = controlActive,
+                ["audioActive"] = audioActive,
+                ["controlEnabled"] = controlEnabled,
+                ["canManage"] = canManage,
             };
             if (agentMeta != null)
             {
@@ -131,6 +144,45 @@ namespace X02Competition.Protocol
             return o.ToString(Newtonsoft.Json.Formatting.None);
         }
 
+        public static string BuildRuntimeLog(string agentId, string robotCid, string level,
+            string logType, string message, string stackTrace, long timestampMs, long sequence,
+            int threadId, long droppedCount, bool truncated, long sessionDroppedCount = 0)
+        {
+            var o = Envelope(LinkskyTypes.RuntimeLog, agentId, robotCid, Ids.NewEventId());
+            o["source"] = "unity";
+            o["level"] = level;
+            o["logType"] = logType;
+            o["message"] = message ?? "";
+            o["stackTrace"] = stackTrace ?? "";
+            o["timestampMs"] = timestampMs;
+            o["sequence"] = sequence;
+            o["threadId"] = threadId;
+            o["droppedCount"] = droppedCount;
+            o["sessionDroppedCount"] = sessionDroppedCount;
+            o["truncated"] = truncated;
+            return o.ToString(Newtonsoft.Json.Formatting.None);
+        }
+
+        public static string BuildSessionState(string agentId, string cid, long revision,
+            List<Dictionary<string, object>> sessions, string controlCid, string audioCid, string managementCid)
+        {
+            var o = Envelope(LinkskyTypes.SessionState, agentId, cid, Ids.NewEventId());
+            o["revision"] = revision;
+            o["sessions"] = JArray.FromObject(sessions);
+            o["controlOwnerCid"] = controlCid;
+            o["audioOwnerCid"] = audioCid;
+            o["managementOwnerCid"] = managementCid;
+            return o.ToString(Newtonsoft.Json.Formatting.None);
+        }
+
+        public static string BuildError(string agentId, string cid, string eventId, int code, string message)
+        {
+            var o = Envelope(LinkskyTypes.Error, agentId, cid, eventId);
+            o["errorCode"] = code;
+            o["errorMsg"] = message;
+            return o.ToString(Newtonsoft.Json.Formatting.None);
+        }
+
         // ---------------------------------------------------------------
         // 入站帧解析（Agent → 网关）
         // ---------------------------------------------------------------
@@ -164,7 +216,13 @@ namespace X02Competition.Protocol
                 InterruptTips = Str(o, "interruptTips"),
                 SkillType = Str(o, "skillType"),
                 SkillName = Str(o, "skillName"),
+                TargetRobotCid = Str(o, "targetRobotCid"),
             };
+            if (o.TryGetValue("priority", out var priority) && priority.Type == JTokenType.Integer &&
+                long.TryParse(priority.ToString(), out var number) && number >= 0 && number <= 999)
+                f.Priority = (int)number;
+            if (o.TryGetValue("enabled", out var enabled) && enabled.Type == JTokenType.Boolean)
+                f.ControlEnabled = (bool)enabled;
 
             if (o.TryGetValue("skillParam", out var sp) && sp is JObject spObj)
             {

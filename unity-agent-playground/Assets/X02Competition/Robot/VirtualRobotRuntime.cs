@@ -50,11 +50,11 @@ namespace X02Competition.Robot
         // ---------------- 生命周期 ----------------
 
         /// <summary>会话建立（SessionOpened）时由装配层调用。
-        /// 注意：本方法可能在网关监听线程调用 —— 只允许线程安全操作（赋值/纯 C# 重置）；
-        /// TTS 清场等 Unity API 在 OnAgentConnected（主线程泵）执行。</summary>
+        /// 由主线程泵调用；清掉会话建立前的录音，避免上传历史音频。</summary>
         public void Bind(IGatewayPort port)
         {
             Port = port;
+            Input?.DiscardPending();
             Vad.Reset();
         }
 
@@ -62,6 +62,15 @@ namespace X02Competition.Robot
         public void Unbind()
         {
             Port = null;
+            Vad.Reset();
+            Input?.DiscardPending();
+            Tts?.Stop();
+            Router?.Abort();
+        }
+
+        public void ResetSpeechSession()
+        {
+            Input?.DiscardPending();
             Vad.Reset();
             Tts?.Stop();
         }
@@ -72,11 +81,19 @@ namespace X02Competition.Robot
             var ttsActive = Tts != null && Tts.IsStreamingActive;
             Vad.Enabled = !ttsActive;
 
-            if (Input != null && Input.IsRunning && Port != null)
+            if (Input != null)
             {
-                while (Input.TryReadFrame(out var frame))
+                if (Port == null || (Port is LinkskyGatewayServer gateway && gateway.AudioOwner == null))
+                    Input.DiscardPending();
+                else
                 {
-                    HandleFrame(frame);
+                    // A finished clip can still have its final frame in the queue.
+                    while (Input.TryReadFrame(out var frame)) HandleFrame(frame);
+                    if (!Input.IsRunning && Vad.InSpeech)
+                    {
+                        Port.SendAudioCommit(_activeEventId, _activeItemId);
+                        Vad.Reset();
+                    }
                 }
             }
 

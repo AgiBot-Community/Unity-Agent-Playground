@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using UnityEngine;
 using X02Competition.Gateway;
 
@@ -27,10 +28,11 @@ namespace X02Competition.Bootstrap
             }
 
             if (Server == null) return;
-            var sessions = Server.Sessions;
+            var sessions = new List<GatewaySession>(Server.Sessions);
+            sessions.Sort((a, b) => b.Priority.CompareTo(a.Priority));
             for (int i = 0; i < sessions.Count; i++)
             {
-                sessions[i].ExecutePendingActions();
+                sessions[i].ExecutePendingActions(64);
             }
         }
     }

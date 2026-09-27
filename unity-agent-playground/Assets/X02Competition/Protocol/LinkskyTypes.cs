@@ -24,6 +24,11 @@ namespace X02Competition.Protocol
 
         /// <summary>技能执行状态回报（v1 仿真扩展：Agent 可感知动作何时完成）。</summary>
         public const string SkillResponseState = "agentsdk.skill_response.state";
+        /// <summary>Unity runtime log forwarding (simulator extension).</summary>
+        public const string RuntimeLog = "agentsdk.runtime.log";
+        public const string SessionState = "agentsdk.session.state";
+        public const string SessionPrioritySet = "agentsdk.session.priority.set";
+        public const string SessionControlSet = "agentsdk.session.control.set";
 
         // ---- Agent → 网关（Mock 网关解析处理） ----
         public const string AsrResponseMiddle = "agentsdk.asr_response.middle";

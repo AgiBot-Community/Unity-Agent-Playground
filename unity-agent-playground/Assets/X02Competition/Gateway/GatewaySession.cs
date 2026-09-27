@@ -20,6 +20,11 @@ namespace X02Competition.Gateway
         readonly ServerWsConnection _ws;
         readonly ConcurrentQueue<Action> _toMain = new ConcurrentQueue<Action>();
         readonly ConcurrentQueue<string> _toSend = new ConcurrentQueue<string>();
+        // Diagnostics use a separate bounded queue and never log their own sends.
+        readonly ConcurrentQueue<string> _logsToSend = new ConcurrentQueue<string>();
+        const int MaxQueuedLogs = 128;
+        int _queuedLogs;
+        long _droppedLogs;
         readonly AutoResetEvent _sendSignal = new AutoResetEvent(false);
 
         Thread _recvThread;
@@ -27,12 +32,19 @@ namespace X02Competition.Gateway
         // 构造即置位：SessionOpened（装配层 SendRobotOnline）发生在 StartThreads 之前，
         // 否则首帧会被 EnqueueFrame 的 _open 门静默丢弃
         volatile bool _open = true;
-        volatile bool _closedRaised;
+        int _closeStarted;
         readonly object _runtimeLock = new object();
 
         public string RobotCid { get; }
         public string CallbackType { get; }
         public bool IsOpen => _open;
+        public volatile bool DispatchEnabled = true;
+        public string Role { get; }
+        public string ClientName { get; }
+        public bool AudioEnabled { get; }
+        public bool ControlEnabled { get; internal set; } = true;
+        public int Priority { get; internal set; }
+        readonly HashSet<string> _rejectedEvents = new HashSet<string>();
 
         /// <summary>由装配层（Launcher / 测试）在 SessionOpened 时立即绑定。线程安全。</summary>
         public IRobotRuntime Runtime
@@ -47,24 +59,23 @@ namespace X02Competition.Gateway
         /// <summary>全帧收发日志（含方向前缀），调试与争议仲裁用。</summary>
         public event Action<string> FrameLogged;
 
-        internal GatewaySession(LinkskyGatewayServer server, ServerWsConnection ws, string callbackType)
+        internal GatewaySession(LinkskyGatewayServer server, ServerWsConnection ws, string callbackType,
+            string role = "agent", bool audioEnabled = true, string clientName = "Agent", bool controlEnabled = true)
         {
             _server = server;
             _ws = ws;
             RobotCid = Ids.NewRobotCid();
             CallbackType = callbackType;
+            Role = role;
+            ControlEnabled = role != "observer" && controlEnabled;
+            AudioEnabled = audioEnabled;
+            ClientName = clientName;
+            Priority = role == "controller" ? LinkskyGatewayServer.ControllerPriority :
+                role == "agent" ? LinkskyGatewayServer.DefaultAgentPriority : 0;
         }
 
         internal void StartThreads()
         {
-            // 会话建立通知（主线程回调；SessionOpened 已先绑定 Runtime，时序安全）
-            var agentId = _server.AgentId;
-            var callbackType = CallbackType;
-            EnqueueToMain(() =>
-            {
-                var rt = Runtime;
-                if (rt != null) rt.OnAgentConnected(agentId, callbackType);
-            });
             _sendThread = new Thread(SendLoop) { IsBackground = true, Name = "gw-send-" + RobotCid };
             _recvThread = new Thread(RecvLoop) { IsBackground = true, Name = "gw-recv-" + RobotCid };
             _sendThread.Start();
@@ -94,6 +105,11 @@ namespace X02Competition.Gateway
                             return;
                         }
                         // 字节先累积，EndOfMessage 后统一解码：多字节 UTF-8 字符跨分片安全
+                        if (result.Count > ServerWsConnection.MaxMessageBytes - ms.Length)
+                        {
+                            Close(WebSocketCloseStatus.MessageTooBig, "message too large");
+                            return;
+                        }
                         if (result.Count > 0) ms.Write(buffer, 0, result.Count);
                     } while (!result.EndOfMessage);
 
@@ -106,6 +122,7 @@ namespace X02Competition.Gateway
             {
                 Close(WebSocketCloseStatus.InternalServerError, "recv error");
             }
+            finally { ms.Dispose(); }
         }
 
         void HandleMessage(string text)
@@ -122,6 +139,32 @@ namespace X02Competition.Gateway
 
         void Dispatch(InboundFrame f)
         {
+            if (f.Type == LinkskyTypes.SessionControlSet)
+            {
+                if (!_server.SetControlEnabled(this, f.ControlEnabled, out var error))
+                    EnqueueFrame(FrameCodec.BuildError(_server.AgentId, RobotCid, f.EventId, 4093, error));
+                return;
+            }
+            if (f.Type == LinkskyTypes.SessionPrioritySet)
+            {
+                if (!_server.SetPriority(this, f.TargetRobotCid, f.Priority, out var error))
+                    EnqueueFrame(FrameCodec.BuildError(_server.AgentId, RobotCid, f.EventId, 4093, error));
+                return;
+            }
+            if (!_server.CanDispatch(this, f))
+            {
+                var key = f.EventId ?? f.Type ?? "";
+                if (_rejectedEvents.Count >= 128) _rejectedEvents.Clear();
+                if (_rejectedEvents.Add(key))
+                {
+                    var reason = _server.RejectionReason(this, f);
+                    EnqueueFrame(FrameCodec.BuildError(_server.AgentId, RobotCid, f.EventId, 4091,
+                        reason));
+                    Log("gw reject " + f.Type + " " + f.SkillType + "/" + f.SkillName +
+                        " event=" + f.EventId + ": " + reason);
+                }
+                return;
+            }
             IRobotRuntime rt;
             lock (_runtimeLock) rt = _runtime;
             if (rt == null)
@@ -152,6 +195,8 @@ namespace X02Competition.Gateway
                     rt.OnAgentRoundDone(f.EventId);
                     break;
                 case LinkskyTypes.XlmResponseSkill:
+                    Log("gw skill " + f.SkillType + "/" + f.SkillName + " event=" + f.EventId +
+                        " from=" + ClientName);
                     rt.OnAgentSkill(f.EventId, f.ItemId, f.SkillType, f.SkillName, f.SkillParam);
                     break;
                 case LinkskyTypes.XlmResponseInterrupt:
@@ -172,7 +217,9 @@ namespace X02Competition.Gateway
         public void SendRobotOnline(Dictionary<string, object> agentMeta, string callbackType)
         {
             EnqueueFrame(FrameCodec.BuildRobotStateSync(_server.AgentId, RobotCid, "online",
-                callbackType, agentMeta));
+                callbackType, agentMeta, Role, Priority,
+                ReferenceEquals(this, _server.ControlOwner), ReferenceEquals(this, _server.AudioOwner),
+                ControlEnabled, ReferenceEquals(this, _server.ManagementOwner)));
         }
 
         public void SendRobotOffline()
@@ -211,6 +258,39 @@ namespace X02Competition.Gateway
                 Ids.NewEventId(), skillName, state, detail));
         }
 
+        public void SendSessionState(long revision, List<Dictionary<string, object>> sessions,
+            string controlCid, string audioCid, string managementCid)
+        {
+            EnqueueFrame(FrameCodec.BuildSessionState(_server.AgentId, RobotCid, revision,
+                sessions, controlCid, audioCid, managementCid));
+        }
+
+        /// <summary>Best-effort diagnostics: false means the caller must retain/drop with accounting.</summary>
+        public bool TrySendRuntimeLog(string level, string logType, string message, string stackTrace,
+            long timestampMs, long sequence, int threadId, long droppedCount, bool truncated)
+        {
+            if (!_open) return false;
+            if (Interlocked.Increment(ref _queuedLogs) > MaxQueuedLogs)
+            {
+                Interlocked.Decrement(ref _queuedLogs);
+                Interlocked.Increment(ref _droppedLogs);
+                return false;
+            }
+            try
+            {
+                _logsToSend.Enqueue(FrameCodec.BuildRuntimeLog(_server.AgentId, RobotCid,
+                    level, logType, message, stackTrace, timestampMs, sequence, threadId,
+                    droppedCount, truncated, Interlocked.Read(ref _droppedLogs)));
+                _sendSignal.Set();
+                return true;
+            }
+            catch
+            {
+                Interlocked.Decrement(ref _queuedLogs);
+                throw;
+            }
+        }
+
         void EnqueueFrame(string json)
         {
             if (!_open) return;
@@ -224,12 +304,23 @@ namespace X02Competition.Gateway
             {
                 while (_open)
                 {
-                    _sendSignal.WaitOne(1000);
+                    if (_toSend.IsEmpty && _logsToSend.IsEmpty) _sendSignal.WaitOne(1000);
+                    var sent = 0;
                     while (_toSend.TryDequeue(out var json))
                     {
                         if (!_open) return;
                         var bytes = Encoding.UTF8.GetBytes(json);
                         Log("gw  -> agent  " + Trunc(json));
+                        _ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text,
+                            true, CancellationToken.None).GetAwaiter().GetResult();
+                        if (++sent >= 64) break;
+                    }
+                    for (var i = 0; i < 16 && _logsToSend.TryDequeue(out var logJson); i++)
+                    {
+                        Interlocked.Decrement(ref _queuedLogs);
+                        if (!_open) return;
+                        var bytes = Encoding.UTF8.GetBytes(logJson);
+                        // Do not raise FrameLogged: Unity's log callback would capture it again.
                         _ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text,
                             true, CancellationToken.None).GetAwaiter().GetResult();
                     }
@@ -246,6 +337,7 @@ namespace X02Competition.Gateway
         /// <summary>主线程泵：执行入站业务回调。返回执行条数。</summary>
         public int ExecutePendingActions(int max = 256)
         {
+            if (!DispatchEnabled) return 0;
             var n = 0;
             while (n < max && _toMain.TryDequeue(out var action))
             {
@@ -261,19 +353,11 @@ namespace X02Competition.Gateway
         /// <summary>主动关闭会话（服务停止 / 单客户端策略抢占）。</summary>
         public void Close(WebSocketCloseStatus status, string reason)
         {
-            if (!_open) return;
+            if (Interlocked.Exchange(ref _closeStarted, 1) != 0) return;
             _open = false;
             try { _ws.CloseAsync(status, reason, CancellationToken.None).Wait(500); } catch { }
             try { _ws.Dispose(); } catch { }
 
-            EnqueueToMain(() =>
-            {
-                var rt = Runtime;
-                if (rt != null) rt.OnAgentDisconnected();
-            });
-
-            if (_closedRaised) return;
-            _closedRaised = true;
             Log("gw  session closed");
             Closed?.Invoke(this);
         }
