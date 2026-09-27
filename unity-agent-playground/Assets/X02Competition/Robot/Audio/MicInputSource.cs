@@ -12,13 +12,14 @@ namespace X02Competition.Robot
         public const int SampleRate = 16000;
         const int BufferSeconds = 1;
         const int FrameSize = SampleRate / 10; // 100ms
+        const int MaxQueuedFrames = 10; // 最多缓存 1s，消费者停顿时保留最新音频
 
         public string DeviceName; // 空 = 默认设备
 
         AudioClip _clip;
         int _lastPos;
         readonly float[] _secBuffer = new float[SampleRate * BufferSeconds];
-        readonly Queue<float[]> _frames = new Queue<float[]>();
+        readonly AudioFrameQueue _frames = new AudioFrameQueue(MaxQueuedFrames);
         readonly List<float> _pending = new List<float>(FrameSize * 2);
         bool _running;
 
@@ -40,9 +41,22 @@ namespace X02Competition.Robot
             _running = false;
             var dev = string.IsNullOrEmpty(DeviceName) ? null : DeviceName;
             Microphone.End(dev);
+            if (_clip != null) Destroy(_clip);
+            _clip = null;
             _frames.Clear();
             _pending.Clear();
         }
+
+        public void DiscardPending()
+        {
+            _frames.Clear();
+            _pending.Clear();
+            if (!_running) return;
+            var pos = Microphone.GetPosition(string.IsNullOrEmpty(DeviceName) ? null : DeviceName);
+            if (pos >= 0) _lastPos = pos;
+        }
+
+        void OnDisable() => End();
 
         void Update()
         {
@@ -73,15 +87,6 @@ namespace X02Competition.Robot
             }
         }
 
-        public bool TryReadFrame(out float[] frame)
-        {
-            if (_frames.Count > 0)
-            {
-                frame = _frames.Dequeue();
-                return true;
-            }
-            frame = null;
-            return false;
-        }
+        public bool TryReadFrame(out float[] frame) => _frames.TryRead(out frame);
     }
 }

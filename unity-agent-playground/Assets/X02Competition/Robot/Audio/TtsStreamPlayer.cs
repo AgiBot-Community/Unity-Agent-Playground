@@ -25,19 +25,22 @@ namespace X02Competition.Robot
         int _write;           // 绝对写指针（采样数，不回绕，上限 clip 长度）
         bool _roundActive;    // 本轮 TTS 是否活动
         bool _roundClosed;    // tts_response.done 已到
+        bool _started;
+        bool _paused;
+        int _read;
         readonly float[] _energyBuf = new float[800]; // 50ms 播放头窗口
 
         int ClipSamples => (int)(ClipSeconds * SampleRate);
 
         /// <summary>本轮 TTS 是否仍在活动（已写入未播完，或仍在接收）。</summary>
-        public bool IsStreamingActive => _roundActive && PendingSamples > (int)(CatchUpSec * SampleRate);
+        public bool IsStreamingActive => _roundActive;
 
         int PendingSamples
         {
             get
             {
                 if (_clip == null || Source == null) return 0;
-                return _write - Source.timeSamples;
+                return _write - Mathf.Max(_read, Source.timeSamples);
             }
         }
 
@@ -97,6 +100,10 @@ namespace X02Competition.Robot
             _write = 0;
             _roundActive = false;
             _roundClosed = false;
+            _started = false;
+            _paused = false;
+            _read = 0;
+            PlaybackEnergy?.Invoke(0f);
         }
 
         void EnsureClip()
@@ -116,25 +123,40 @@ namespace X02Competition.Robot
 
             if (Source.isPlaying)
             {
+                _read = Source.timeSamples;
                 EmitPlaybackEnergy();
-                if (PendingSamples < (int)(CatchUpSec * SampleRate))
+                if (_roundClosed && PendingSamples <= 0)
+                {
+                    FinishRound();
+                }
+                else if (!_roundClosed && PendingSamples < (int)(CatchUpSec * SampleRate))
                 {
                     Source.Pause();
-                    if (_roundClosed) FinishRound();
+                    _paused = true;
+                    PlaybackEnergy?.Invoke(0f);
                 }
                 return;
             }
 
-            if (PendingSamples >= (int)(PreBufferSec * SampleRate))
-            {
-                Source.timeSamples = Mathf.Min(Source.timeSamples, ClipSamples - 1);
-                Source.Play();
-                Debug.Log("[TtsPlayer] Play 开始播放, pending=" + PendingSamples +
-                          " samples (" + (PendingSamples / (float)SampleRate).ToString("F2") + "s)");
-            }
-            else if (_roundClosed && PendingSamples <= 0)
+            // A source reaching the end of the full 60s clip resets timeSamples to zero.
+            if (_started && !_paused) _read = ClipSamples;
+            if (_roundClosed && PendingSamples <= 0)
             {
                 FinishRound();
+            }
+            else if (PendingSamples >= (int)(PreBufferSec * SampleRate) ||
+                     (_roundClosed && PendingSamples > 0))
+            {
+                if (_paused) Source.UnPause();
+                else
+                {
+                    Source.timeSamples = Mathf.Min(_read, ClipSamples - 1);
+                    Source.Play();
+                }
+                _started = true;
+                _paused = false;
+                Debug.Log("[TtsPlayer] Play 开始播放, pending=" + PendingSamples +
+                          " samples (" + (PendingSamples / (float)SampleRate).ToString("F2") + "s)");
             }
         }
 
@@ -142,7 +164,6 @@ namespace X02Competition.Robot
         {
             // 本轮播完：复位，下一轮 Append 重建 clip
             Stop();
-            PlaybackEnergy?.Invoke(0f);
         }
 
         /// <summary>取播放头后 50ms 窗口 RMS 归一化（口型驱动）。</summary>

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace X02Competition.Robot
@@ -12,6 +11,7 @@ namespace X02Competition.Robot
     {
         public const int SampleRate = 16000;
         const int FrameSize = SampleRate / 10;
+        const int MaxQueuedFrames = 10;
 
         public AudioClip Clip;
         public bool Loop;
@@ -21,7 +21,7 @@ namespace X02Competition.Robot
         double _clockSec;   // 实时 pacing 时钟
         bool _running;
 
-        readonly Queue<float[]> _frames = new Queue<float[]>();
+        readonly AudioFrameQueue _frames = new AudioFrameQueue(MaxQueuedFrames);
 
         public bool IsRunning => _running;
 
@@ -29,9 +29,10 @@ namespace X02Competition.Robot
         {
             if (_running || Clip == null) return;
             LoadClip();
+            _frames.Clear();
             _cursor = 0;
             _clockSec = 0;
-            _running = _samples != null;
+            _running = _samples != null && _samples.Length > 0;
         }
 
         public void End()
@@ -44,11 +45,13 @@ namespace X02Competition.Robot
         public void Replay()
         {
             if (Clip == null) return;
-            LoadClip();
-            _cursor = 0;
-            _clockSec = 0;
-            _running = _samples != null;
+            End();
+            Begin();
         }
+
+        public void DiscardPending() => _frames.Clear();
+
+        void OnDisable() => End();
 
         void LoadClip()
         {
@@ -82,6 +85,9 @@ namespace X02Competition.Robot
                 }
                 data = resampled;
             }
+            // Pad the final partial frame with silence, including for looping clips.
+            var paddedLength = ((data.Length + FrameSize - 1) / FrameSize) * FrameSize;
+            if (paddedLength != data.Length) System.Array.Resize(ref data, paddedLength);
             _samples = data;
         }
 
@@ -114,15 +120,6 @@ namespace X02Competition.Robot
             }
         }
 
-        public bool TryReadFrame(out float[] frame)
-        {
-            if (_frames.Count > 0)
-            {
-                frame = _frames.Dequeue();
-                return true;
-            }
-            frame = null;
-            return false;
-        }
+        public bool TryReadFrame(out float[] frame) => _frames.TryRead(out frame);
     }
 }

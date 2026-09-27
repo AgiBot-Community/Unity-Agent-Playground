@@ -13,6 +13,9 @@ namespace X02Competition.Robot
         /// <summary>停止采集。</summary>
         void End();
 
+        /// <summary>丢弃会话外的缓存音频；仅在 Unity 主线程调用。</summary>
+        void DiscardPending();
+
         bool IsRunning { get; }
 
         /// <summary>非阻塞读取已就绪的帧（一帧 Update 可能产出多帧）。返回 false 表示暂无数据。</summary>

@@ -94,6 +94,7 @@ namespace X02Competition.Robot
 
         void StartCmd(Cmd cmd, float amount, DoneCallback onDone)
         {
+            var replaced = _onDone;
             _cmd = cmd;
             _remain = amount;
             _onDone = onDone;
@@ -104,6 +105,8 @@ namespace X02Competition.Robot
             _lastPos = agent.Root.position;
             _lastYaw = agent.Root.eulerAngles.y;
             if (Verbose) Debug.Log("[Loco] 指令: " + cmd + " amount=" + amount.ToString("F2"));
+            // Commit the replacement first, so a callback can safely issue another command.
+            replaced?.Invoke(false);
         }
 
         void Finish(bool completed)
