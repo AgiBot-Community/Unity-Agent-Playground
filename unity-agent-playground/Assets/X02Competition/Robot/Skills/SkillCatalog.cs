@@ -62,8 +62,8 @@ namespace X02Competition.Robot
             c.Entries = new List<SkillEntry>
             {
                 // 手势（程序化关节）
-                new SkillEntry { SkillType = "gesture", SkillName = "wave_hands", Executor = SkillExecutor.Gesture, NominalDurationSec = 2.5f },
-                new SkillEntry { SkillType = "gesture", SkillName = "open_arms", Executor = SkillExecutor.Gesture, NominalDurationSec = 3f },
+                new SkillEntry { SkillType = "gesture", SkillName = "wave_hands", Executor = SkillExecutor.Gesture, NominalDurationSec = GestureMotion.DefaultWaveDuration },
+                new SkillEntry { SkillType = "gesture", SkillName = "open_arms", Executor = SkillExecutor.Gesture, NominalDurationSec = GestureMotion.DefaultOpenDuration },
                 // 运动（步态）
                 new SkillEntry { SkillType = "movement", SkillName = "walk", Executor = SkillExecutor.Locomotion },
                 new SkillEntry { SkillType = "movement", SkillName = "turn", Executor = SkillExecutor.Locomotion },

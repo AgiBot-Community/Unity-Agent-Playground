@@ -140,6 +140,8 @@ public class X02newAgent : Agent
 
     public override void OnEpisodeBegin()
     {
+        // A teleported episode must not resume an upper-body trajectory from the previous pose.
+        GetComponentInChildren<X02Competition.Robot.GesturePlayer>()?.ResetToRest();
         _automaticReverseHeld = false;
         tp = 0;
         tt = 0;

@@ -17,12 +17,12 @@ MonoBehaviour:
     SkillName: wave_hands
     Executor: 1
     AnimatorTrigger:
-    NominalDurationSec: 2.5
+    NominalDurationSec: 6
   - SkillType: gesture
     SkillName: open_arms
     Executor: 1
     AnimatorTrigger:
-    NominalDurationSec: 3
+    NominalDurationSec: 6.5
   - SkillType: movement
     SkillName: walk
     Executor: 0
