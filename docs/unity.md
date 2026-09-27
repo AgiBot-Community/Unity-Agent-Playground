@@ -2,7 +2,7 @@
 
 **中文** | [English](unity.en.md) | [Français](unity.fr.md)
 
-本指南带你安装指定版本的编辑器、导入工程、运行机器人场景并构建 Windows 程序。只想体验机器人时，可直接使用[便携模拟器](simulator.md)。两种方式启动后，都可连接[示例 Agent](../example/README.md)。
+本指南带你安装指定版本的编辑器、导入工程、运行机器人场景并构建 Windows 程序。只想体验机器人时，可直接使用[便携模拟器](simulator.md)。两种方式启动后，都可连接[示例 Agent](../example/x2_agent/README.md)。
 
 [unity-agent-playground/](../unity-agent-playground/) 提供 X2 机器人模型、Agent 网关、动作、表情和步态源码。工程记录的编辑器版本是 **2022.3.62f3c1**，URP、Sentis、ML-Agents、URDF Importer 等依赖以工程配置和随附本地包为准。
 
@@ -65,11 +65,11 @@ Unity-Agent-Playground/          仓库目录
 3. 如需验证 Agent 连接，在仓库根目录打开另一个终端，运行：
 
 ```powershell
-python -m pip install -r example/requirements.txt
-python example/demo.py
+python -m pip install -r example/x2_agent/requirements.txt
+python example/x2_agent/demo.py
 ```
 
-demo 不需要云服务密钥。真实语音对话的配置见[示例说明](../example/README.md)；配置完成后，先按 Ctrl+C 退出 demo，再运行 `python example/agent.py`。Python 使用直接启动脚本的方式，无需安装本仓库为 Python 包。单独复制 Unity 工程的用户需另外准备兼容的 Agent 客户端。
+demo 不需要云服务密钥。真实语音对话的配置见[示例说明](../example/x2_agent/README.md)；配置完成后，先按 Ctrl+C 退出 demo，再运行 `python example/x2_agent/agent.py`。Python 使用直接启动脚本的方式，无需安装本仓库为 Python 包。单独复制 Unity 工程的用户需另外准备兼容的 Agent 客户端。
 
 看到 Agent 终端中的 `state=online` 表示连接成功。再次点击 Play 可停止场景，Ctrl+C 停止 Agent。源码修改不会自动更新仓库便携 EXE。
 
@@ -83,7 +83,7 @@ demo 不需要云服务密钥。真实语音对话的配置见[示例说明](../
 | Hub 提示缺少编辑器 | 安装完整版本 `2022.3.62f3c1`；已有安装时使用 Installs → Locate。 |
 | 首次导入卡在依赖解析或出现包错误 | 检查网络及 Console、Window → Package Manager 的具体错误；保留 `Packages/` 中的清单和嵌入式包。 |
 | 打开后没有机器人 | 打开指定的 `scene.unity`，进入 Play 并查看 Game 窗口。 |
-| 网关启动失败或端口 9002 被占用 | 关闭另一个 EXE 或 Editor 中正在运行的场景，再启动；同一时间只运行一个模拟器、连接一个 Agent。 |
+| 网关启动失败或端口 9002 被占用 | 关闭另一个 EXE 或 Editor 中正在运行的场景，再启动；同一时间只运行一个模拟器。该模拟器默认允许 8 路客户端连接。 |
 | Agent 连接失败 | 确认场景正在 Play、网关已启动，再按示例说明检查连接地址；跨机连接不能使用对方的 `127.0.0.1`。 |
 
 ## 代码位置
@@ -109,4 +109,4 @@ demo 不需要云服务密钥。真实语音对话的配置见[示例说明](../
 
 构建完成后运行输出目录内的 EXE，使用上述 Agent 命令验证连接。运行和分发时保留全部输出文件；Unity 的普通 Build 不会自动生成或替换仓库的单文件 [EXE](../exe/x2模拟器.exe)。Linux 构建需先安装上述模块，再切换目标平台并单独输出。
 
-Agent 接入见[示例说明](../example/README.md)，自定义 Agent 见[网关协议](interface.md)。
+Agent 接入见[示例说明](../example/x2_agent/README.md)，自定义 Agent 见[网关协议](interface.md)。

@@ -2,7 +2,7 @@
 
 [中文](unity.md) | [English](unity.en.md) | **Français**
 
-Ce guide explique comment installer l’éditeur requis, importer le projet, exécuter la scène du robot et compiler une application Windows. Pour essayer directement le robot, utilisez le [simulateur portable](simulator.fr.md). Les deux parcours permettent de connecter le même [agent d’exemple](../example/docs/README.fr.md).
+Ce guide explique comment installer l’éditeur requis, importer le projet, exécuter la scène du robot et compiler une application Windows. Pour essayer directement le robot, utilisez le [simulateur portable](simulator.fr.md). Les deux parcours permettent de connecter le même [agent d’exemple](../example/x2_agent/docs/README.fr.md).
 
 [unity-agent-playground/](../unity-agent-playground/) contient les modèles X2, la passerelle Agent et les sources des gestes, expressions et déplacements. La version d’éditeur enregistrée est **2022.3.62f3c1**. Les dépendances URP, Sentis, ML-Agents et URDF Importer suivent la configuration du projet et les paquets locaux fournis.
 
@@ -65,11 +65,11 @@ Unity-Agent-Playground/          Dépôt
 3. Pour tester la connexion, ouvrez un autre terminal à la racine du dépôt :
 
 ```powershell
-python -m pip install -r example/requirements.txt
-python example/demo.py
+python -m pip install -r example/x2_agent/requirements.txt
+python example/x2_agent/demo.py
 ```
 
-La démo ne nécessite aucune clé cloud. Pour les conversations vocales, suivez le [guide de l’Agent](../example/docs/README.fr.md), arrêtez la démo avec Ctrl+C puis lancez `python example/agent.py`. Les scripts Python se lancent directement, sans installer ce dépôt comme paquet Python. Si vous avez copié uniquement le projet Unity, préparez un client Agent compatible séparément.
+La démo ne nécessite aucune clé cloud. Pour les conversations vocales, suivez le [guide de l’Agent](../example/x2_agent/docs/README.fr.md), arrêtez la démo avec Ctrl+C puis lancez `python example/x2_agent/agent.py`. Les scripts Python se lancent directement, sans installer ce dépôt comme paquet Python. Si vous avez copié uniquement le projet Unity, préparez un client Agent compatible séparément.
 
 `state=online` dans le terminal Agent confirme la connexion. Cliquez de nouveau sur Play pour arrêter la scène et utilisez Ctrl+C pour arrêter l’agent. Les modifications des sources ne mettent pas automatiquement à jour l’EXE portable.
 
@@ -83,7 +83,7 @@ La démo ne nécessite aucune clé cloud. Pour les conversations vocales, suivez
 | Éditeur manquant | Installez la version complète `2022.3.62f3c1`, ou ajoutez l’installation existante avec Installs → Locate. |
 | Résolution bloquée ou erreur de paquet | Vérifiez le réseau et les erreurs dans Console / Window → Package Manager. Conservez les manifestes et paquets intégrés de `Packages/`. |
 | Robot absent | Ouvrez la scène indiquée, passez en mode Play et consultez la fenêtre Game. |
-| Échec de la passerelle ou port 9002 occupé | Arrêtez l’autre EXE ou scène en cours. Exécutez un seul simulateur et connectez un seul Agent à la fois. |
+| Échec de la passerelle ou port 9002 occupé | Arrêtez l’autre EXE ou scène en cours. Exécutez un seul simulateur ; il accepte huit connexions clientes par défaut. |
 | Connexion de l’Agent impossible | Vérifiez le mode Play et le démarrage de la passerelle, puis l’adresse selon le guide. `127.0.0.1` ne permet pas de joindre une autre machine. |
 
 ## Organisation des sources
@@ -109,4 +109,4 @@ Configurez le port et `StrictAuth` sur le composant `CompetitionLauncher` de la 
 
 Exécutez l’EXE du dossier produit et vérifiez la connexion avec les commandes Agent ci-dessus. Conservez tous les fichiers pour l’exécution et la distribution. Un Build Unity normal ne crée ni ne remplace automatiquement l’[EXE unique](../exe/x2模拟器.exe) du dépôt. Pour Linux, installez le module ci-dessus, changez de cible et utilisez une sortie distincte.
 
-Voir le [guide de l’Agent](../example/docs/README.fr.md) et le [protocole](interface.fr.md).
+Voir le [guide de l’Agent](../example/x2_agent/docs/README.fr.md) et le [protocole](interface.fr.md).

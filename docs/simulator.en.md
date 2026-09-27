@@ -2,9 +2,9 @@
 
 [中文](simulator.md) | **English** | [Français](simulator.fr.md)
 
-Use this guide to run the portable Windows simulator. Open [x2模拟器.exe](../exe/x2模拟器.exe): the robot appears and its gateway waits on `127.0.0.1:9002`. Press **F1** to test skills with the debug buttons. Voice conversations require the separate [Python agent](../example/docs/README.en.md), which sends the greeting after connecting.
+Use this guide to run the portable Windows simulator. Open [x2模拟器.exe](../exe/x2模拟器.exe): the robot appears and its gateway waits on `127.0.0.1:9002`. Press **F1** to test skills with the debug buttons. Voice conversations require the separate [Python agent](../example/x2_agent/docs/README.en.md), which sends the greeting after connecting.
 
-The file is **107,235,328 bytes (107.24 MB)**. Distribute this EXE alone: no Data folder, Python, credentials or Playground checkout is needed to run the simulator. On first launch it extracts the Unity resources in the background under `%LOCALAPPDATA%\UnityPortable`. Real voice conversations still require the separate agent. See the [SHA-256 checksum](../exe/x2模拟器.sha256).
+Distribute this EXE alone: no Data folder, Python, credentials or Playground checkout is needed to run the simulator. On first launch it extracts the Unity resources in the background under `%LOCALAPPDATA%\UnityPortable`. Real voice conversations still require the separate agent. Verify each build against its [SHA-256 checksum](../exe/x2模拟器.sha256).
 
 ## Runtime
 
@@ -14,7 +14,7 @@ The file is **107,235,328 bytes (107.24 MB)**. Distribute this EXE alone: no Dat
 | Voice devices | Microphone and speakers; skill buttons do not require a microphone |
 | Local endpoint | `ws://127.0.0.1:9002/api/V1/open-portal/app/wss/agent-sdk` |
 | Authentication | Clients send HMAC signatures; enforcement depends on the Unity build configuration |
-| Sessions | One agent at a time |
+| Sessions | Eight by default; console priority is fixed highest, other priorities are adjustable |
 
 Keep the window open during voice tests. If minimizing it causes audio or network problems, restore it before troubleshooting. Debug buttons can trigger skills without an agent. The current voice flow is half-duplex.
 
@@ -26,11 +26,11 @@ Keep the window open during voice tests. If minimizing it causes audio or networ
 4. To connect the example Agent, run from the repository root:
 
 ```powershell
-python -m pip install -r example/requirements.txt
-python example/demo.py
+python -m pip install -r example/x2_agent/requirements.txt
+python example/x2_agent/demo.py
 ```
 
-`state=online` confirms the connection. The demo uses fixed text and supplied audio without cloud services. For real conversations, configure credentials using `.env.example` as described in the [Agent guide](../example/docs/README.en.md), stop the demo, and run `python example/agent.py`. Close the window to stop the simulator; Ctrl+C stops the Agent.
+`state=online` confirms the connection. The demo uses fixed text and supplied audio without cloud services. For real conversations, configure credentials using `.env.example` as described in the [Agent guide](../example/x2_agent/docs/README.en.md), stop the demo, and run `python example/x2_agent/agent.py`. Close the window to stop the simulator; Ctrl+C stops the Agent.
 
 ## Camera views
 

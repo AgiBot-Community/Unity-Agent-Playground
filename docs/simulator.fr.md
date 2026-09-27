@@ -2,9 +2,9 @@
 
 [中文](simulator.md) | [English](simulator.en.md) | **Français**
 
-Ce guide explique comment exécuter le simulateur Windows portable. Ouvrez [x2模拟器.exe](../exe/x2模拟器.exe) : le robot apparaît et la passerelle attend sur `127.0.0.1:9002`. Appuyez sur **F1** pour tester les actions avec les boutons de débogage. Les conversations vocales nécessitent [l’agent Python](../example/docs/README.fr.md), lancé séparément, qui envoie l’accueil après connexion.
+Ce guide explique comment exécuter le simulateur Windows portable. Ouvrez [x2模拟器.exe](../exe/x2模拟器.exe) : le robot apparaît et la passerelle attend sur `127.0.0.1:9002`. Appuyez sur **F1** pour tester les actions avec les boutons de débogage. Les conversations vocales nécessitent [l’agent Python](../example/x2_agent/docs/README.fr.md), lancé séparément, qui envoie l’accueil après connexion.
 
-Le fichier fait **107 235 328 octets (107,24 Mo)**. Cet EXE suffit pour distribuer le simulateur, sans dossier Data, Python, clés ou dépôt Playground. Au premier lancement, les ressources Unity sont extraites en arrière-plan sous `%LOCALAPPDATA%\UnityPortable`. Les conversations réelles nécessitent toujours l’agent séparé. Voir l’[empreinte SHA-256](../exe/x2模拟器.sha256).
+Cet EXE suffit pour distribuer le simulateur, sans dossier Data, Python, clés ou dépôt Playground. Au premier lancement, les ressources Unity sont extraites en arrière-plan sous `%LOCALAPPDATA%\UnityPortable`. Les conversations réelles nécessitent toujours l’agent séparé. Vérifiez chaque build avec son [empreinte SHA-256](../exe/x2模拟器.sha256).
 
 ## Exécution
 
@@ -14,7 +14,7 @@ Le fichier fait **107 235 328 octets (107,24 Mo)**. Cet EXE suffit pour distribu
 | Équipement vocal | Microphone et haut-parleurs ; les boutons d’action ne nécessitent pas de microphone |
 | Adresse locale | `ws://127.0.0.1:9002/api/V1/open-portal/app/wss/agent-sdk` |
 | Authentification | Les clients envoient une signature HMAC ; son contrôle dépend du build Unity |
-| Sessions | Un agent à la fois |
+| Sessions | Huit par défaut ; priorité maximale fixe pour la console, autres priorités réglables |
 
 Gardez la fenêtre ouverte pendant les essais vocaux. Si sa réduction perturbe l’audio ou le réseau, restaurez-la avant de poursuivre le diagnostic. Les boutons de débogage déclenchent des actions sans agent. La chaîne vocale actuelle est semi-duplex.
 
@@ -26,11 +26,11 @@ Gardez la fenêtre ouverte pendant les essais vocaux. Si sa réduction perturbe 
 4. Pour connecter l’agent d’exemple, exécutez depuis la racine du dépôt :
 
 ```powershell
-python -m pip install -r example/requirements.txt
-python example/demo.py
+python -m pip install -r example/x2_agent/requirements.txt
+python example/x2_agent/demo.py
 ```
 
-`state=online` confirme la connexion. La démo utilise du texte fixe et les fichiers audio fournis, sans service cloud. Pour les conversations réelles, configurez les clés à partir de `.env.example` selon le [guide Agent](../example/docs/README.fr.md), arrêtez la démo puis lancez `python example/agent.py`. Fermez la fenêtre pour arrêter le simulateur ; Ctrl+C arrête l’agent.
+`state=online` confirme la connexion. La démo utilise du texte fixe et les fichiers audio fournis, sans service cloud. Pour les conversations réelles, configurez les clés à partir de `.env.example` selon le [guide Agent](../example/x2_agent/docs/README.fr.md), arrêtez la démo puis lancez `python example/x2_agent/agent.py`. Fermez la fenêtre pour arrêter le simulateur ; Ctrl+C arrête l’agent.
 
 ## Points de vue
 

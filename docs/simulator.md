@@ -2,9 +2,9 @@
 
 **中文** | [English](simulator.en.md) | [Français](simulator.fr.md)
 
-本指南适用于直接运行 Windows 便携模拟器的用户。双击 [x2模拟器.exe](../exe/x2模拟器.exe) 后，窗口显示机器人，网关在 `127.0.0.1:9002` 等待连接。按 **F1** 打开调试面板即可手动测试技能；语音对话需要另行启动[示例 Agent](../example/README.md)，连接成功后由 Agent 发送开场白。
+本指南适用于直接运行 Windows 便携模拟器的用户。双击 [x2模拟器.exe](../exe/x2模拟器.exe) 后，窗口显示机器人，网关在 `127.0.0.1:9002` 等待连接。按 **F1** 打开调试面板即可手动测试技能；语音对话需要另行启动[示例 Agent](../example/x2_agent/README.md)，连接成功后由 Agent 发送开场白。
 
-文件大小为 **107,235,328 字节（107.24 MB）**，可以只分发这一个 EXE，无需附带 Data 文件夹、Playground 或 Python。首次启动会在 `%LOCALAPPDATA%\UnityPortable` 后台释放 Unity 资源。需要语音对话时，Python Agent 仍需单独启动；此 EXE 不包含其 API Key 或配置。校验文件见 [SHA-256](../exe/x2模拟器.sha256)。
+可以只分发这一个 EXE，无需附带 Data 文件夹、Playground 或 Python。首次启动会在 `%LOCALAPPDATA%\UnityPortable` 后台释放 Unity 资源。需要语音对话时，Python Agent 仍需单独启动；此 EXE 不包含其 API Key 或配置。每次更新构建后请核对随附的 [SHA-256](../exe/x2模拟器.sha256)。
 
 ## 运行须知
 
@@ -15,12 +15,12 @@
 | 监听 | `127.0.0.1:9002`（仅本机；修改方式见 Unity 工程指南） |
 | 路径 | `/api/V1/open-portal/app/wss/agent-sdk` |
 | 鉴权 | 示例客户端发送 HMAC 签名；网关是否强制校验由其构建配置决定 |
-| 会话 | 同一时间连接一个 Agent |
+| 会话 | 默认 8 路；控制台固定最高优先级，其它优先级可在控制台调节 |
 
 - 测试语音时保持窗口打开；若最小化后出现音频或网络异常，先恢复窗口再排查
 - **F1** 呼出/隐藏调试面板（默认隐藏，录屏时画面干净）
 - 调试面板按钮可手动触发挥手/表情/行走（无 Agent 时验证动作用）
-- 同一时间只允许一个 Agent 连接；Agent 退出后可立即重连
+- 支持多路连接；控制权与语音接收权分别选举，断线后自动交接
 
 ## 从 EXE 开始
 
@@ -30,11 +30,11 @@
 4. 如需连接示例 Agent，在仓库根目录执行：
 
 ```powershell
-python -m pip install -r example/requirements.txt
-python example/demo.py
+python -m pip install -r example/x2_agent/requirements.txt
+python example/x2_agent/demo.py
 ```
 
-出现 `state=online` 表示连接成功。demo 使用固定文字和随附音频，不调用云服务。真实对话请按 [Agent 指南](../example/README.md) 使用 `.env.example` 配置凭据，退出 demo 后运行 `python example/agent.py`。关闭窗口退出模拟器；Ctrl+C 停止 Agent。
+出现 `state=online` 表示连接成功。demo 使用固定文字和随附音频，不调用云服务。真实对话请按 [Agent 指南](../example/x2_agent/README.md) 使用 `.env.example` 配置凭据，退出 demo 后运行 `python example/x2_agent/agent.py`。关闭窗口退出模拟器；Ctrl+C 停止 Agent。
 
 ## 多视角观察
 

@@ -6,14 +6,15 @@ Ces guides vous accompagnent du premier lancement à la création d’un agent. 
 
 - **Depuis l’EXE :** suivez le [guide du simulateur](simulator.fr.md) pour lancer l’application Windows portable.
 - **Modifier le projet Unity :** suivez le [guide Unity](unity.fr.md) pour télécharger l’ancien éditeur requis, importer le projet, exécuter la scène et compiler.
-- Après le lancement du robot par l’une de ces méthodes, suivez le [guide de l’Agent](../example/docs/README.fr.md) pour la démo hors ligne, puis les conversations vocales.
+- Après le lancement du robot par l’une de ces méthodes, suivez le [guide de l’Agent](../example/x2_agent/docs/README.fr.md) pour la démo hors ligne, puis les conversations vocales.
 - **Créer votre client :** consultez le [protocole](interface.fr.md), puis le [guide de développement](development.fr.md) pour les tests et la maintenance.
 
 | Sujet | 中文 | English | Français |
 |---|---|---|---|
+| Console graphique Python | [控制台](console.md) | [Desktop console](console.en.md) | [Console graphique](console.fr.md) |
 | Projet Unity | [工程指南](unity.md) | [Unity project](unity.en.md) | [Projet Unity](unity.fr.md) |
 | Présentation et démarrage | [首页](../README.md) | [Overview](README.en.md) | [Présentation](README.fr.md) |
-| Agent d’exemple | [使用指南](../example/README.md) | [Agent guide](../example/docs/README.en.md) | [Guide de l’agent](../example/docs/README.fr.md) |
+| Agent d’exemple | [使用指南](../example/x2_agent/README.md) | [Agent guide](../example/x2_agent/docs/README.en.md) | [Guide de l’agent](../example/x2_agent/docs/README.fr.md) |
 | Simulateur Unity | [运行说明](simulator.md) | [Simulator](simulator.en.md) | [Simulateur](simulator.fr.md) |
 | Protocole de la passerelle | [接口文档](interface.md) | [Protocol](interface.en.md) | [Protocole](interface.fr.md) |
 | Développement | [开发指南](development.md) | [Development](development.en.md) | [Développement](development.fr.md) |

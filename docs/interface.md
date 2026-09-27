@@ -4,7 +4,7 @@
 
 协议参考版本：v1.0，与 LinkSoul AgentSDK v1.4.0 对齐。本页说明仓库中 Unity 网关的消息格式和行为，供自定义 Agent 客户端接入使用。真机接入时还需确认设备侧支持的能力。
 
-开始联调前，先按 [EXE 运行说明](simulator.md) 或 [Unity 工程指南](unity.md) 启动机器人，再按 [示例 Agent 指南](../example/README.md) 连接；两种启动方式使用相同的网关协议。
+开始联调前，先按 [EXE 运行说明](simulator.md) 或 [Unity 工程指南](unity.md) 启动机器人，再按 [示例 Agent 指南](../example/x2_agent/README.md) 连接；两种启动方式使用相同的网关协议。
 
 ## 1. 概述
 
@@ -29,7 +29,7 @@
 |---|---|
 | URL | `ws://<robot-host>:9002/api/V1/open-portal/app/wss/agent-sdk` |
 | 协议 | WebSocket（RFC 6455），消息为 **JSON 文本帧** |
-| 并发会话 | **1**（单客户端；已有连接未释放时新连接被拒） |
+| 并发会话 | 默认 **8** 路，可在 `CompetitionLauncher.MaxConnections` 调整 |
 
 > 路径参与签名校验，必须与上面完全一致（含大小写）。
 
@@ -66,7 +66,7 @@ signature = hmac.new(app_secret.encode(), payload.encode(),
 | `400` | 非 WebSocket 升级请求 |
 | `401` | 签名/凭证/时间戳校验失败 |
 | `404` | 路径不匹配 |
-| `503` | 已有会话占用（单会话限制） |
+| `503` | 已达到并发连接上限 |
 
 > 示例客户端始终发送签名。是否强制校验由网关构建配置决定；不要依赖宽松模式。
 > 修改 `StrictAuth` 后需从 [Unity 工程](../unity-agent-playground/) 重新构建网关。
@@ -76,6 +76,75 @@ signature = hmac.new(app_secret.encode(), payload.encode(),
 - 连接成功后等待 `robot_state.sync`（state=online，见 §4.1）；音频事件可能先到达，不要假定同步是第一帧
 - 断线后 Agent 应自动重连（建议间隔 3s），机器人重复上线以最新 sync 为准
 - 机器人侧状态周期性推送见 §4.5
+
+### 2.5 多连接、控制权和语音接收权
+
+握手可附加以下字段；旧 Agent 不传时仍能连接：
+
+| Header | 默认值 | 说明 |
+|---|---|---|
+| `X-Client-Role` | `agent` | `controller` / `agent` / `observer` |
+| `X-Client-Name` | 应用 ID | 用于控制台区分连接，最多 64 字符，HTTP 头使用 ASCII |
+| `X-Audio-Enabled` | agent 为 `true`，其它角色为 `false` | 是否参与麦克风接收端选举；observer 始终不接收音频 |
+| `X-Control-Enabled` | 未声明时为 `true`（observer 除外） | 握手时声明动作控制资格；管理控制台固定发送 `false`，避免连接时短暂抢占 Agent |
+
+控制台声明 `controller`，优先级固定 **1000**；普通 Agent 初始为 **50**，observer 为 **0**。
+当前管理控制台（最先连接的在线 controller）可以将其它非控制台连接调为 **0–999**；
+不能修改任何控制台的固定优先级。
+优先级属于本次连接，断线重连后恢复默认值。同级时先连接者优先。
+
+动作和打断指令仅由参与接管的最高优先级在线非 observer 连接执行；低优先级请求以 `4091` 拒绝，
+不会排队后重放。日志、技能状态和周期状态广播给所有连接。
+麦克风只发给启用语音的最高优先级连接；管理控制台固定发送 `X-Audio-Enabled: false`，
+不接收麦克风、不执行语音服务。语音对话由独立 Agent 处理。
+控制台断开或修改其它优先级时自动重新选举，切换语音接收端会清空旧的语音状态。
+控制台打断后旧 Agent 的迟到语音回复会被拒绝，直到下一轮录音开始。
+角色沿用现有握手鉴权，由客户端声明，面向受信任的本机客户端。
+
+每个连接会收到自己的 `agentsdk.session.state`：
+
+```json
+{
+  "type": "agentsdk.session.state",
+  "robotCid": "cid-controller",
+  "revision": 4,
+  "controlOwnerCid": "cid-agent",
+  "managementOwnerCid": "cid-controller",
+  "audioOwnerCid": "cid-agent",
+  "sessions": [
+    {"robotCid": "cid-controller", "name": "X2 Console", "role": "controller",
+     "priority": 1000, "controlEnabled": false, "audioEnabled": false, "controlActive": false, "audioActive": false},
+    {"robotCid": "cid-agent", "name": "Agent", "role": "agent",
+     "priority": 800, "controlEnabled": true, "audioEnabled": true, "controlActive": true, "audioActive": true}
+  ]
+}
+```
+
+上线 `robot_state.sync` 也附带 `robotCid`、`clientRole`、`priority`、
+`controlActive`、`audioActive`、`controlEnabled`、`canManage`。备用 Agent 应跳过开场白和云端预连接。
+客户端以最新 `revision` 为准；旧客户端可以忽略此扩展。
+
+管理控制台修改优先级：
+
+```json
+{"type": "agentsdk.session.priority.set", "eventId": "evt-priority",
+ "targetRobotCid": "cid-agent", "priority": 800}
+```
+
+成功后广播新的 `session.state`。没有管理权限、目标已断开、试图修改控制台，
+或数值不是 0–999 的整数时返回 `agentsdk.error`，`errorCode=4093`。
+
+控制台可主动交还或收回自己的动作控制资格；本管理控制台连接时默认关闭，手动操作时开启：
+
+```json
+{"type": "agentsdk.session.control.set", "eventId": "evt-release", "enabled": false}
+```
+
+仅 controller 能修改自己的 `controlEnabled`；`enabled` 必须为 JSON 布尔值。
+关闭后，该连接不参与动作控制选举，但保留固定优先级、日志连接以及原有管理资格，
+也不改变语音接收设置。管理控制台由 `managementOwnerCid` 指定，与动作归属分开。
+重新设为 `true` 后按原有优先级选举；成功广播新的 `session.state`，非法请求返回 `4093`。
+Agent 应在接收线程及时更新权限状态，不要等当前语音轮次结束；发送技能前再次检查权限。
 
 ## 3. 消息信封
 
@@ -147,6 +216,48 @@ VAD 检测到用户开始说话时发送此消息。`audio2tts` 模式携带 `it
   "stateName": "power", "stateValue": "ok" }
 ```
 
+### 4.6 Unity 运行时日志 `agentsdk.runtime.log`（仿真扩展）
+
+通过同一个 WebSocket 连接发送 Unity 的 Info、Warning、Error、Assert 和 Exception，
+包含引擎与脚本通过 Unity 日志回调产生的消息。无需额外订阅；
+`agent.py` 和 `demo.py` 会在终端显示，即使开场白或对话轮次尚未结束也会继续接收。
+
+```json
+{
+  "type": "agentsdk.runtime.log",
+  "agentId": "agent-001",
+  "robotCid": "cid-...",
+  "cid": "cid-...",
+  "eventId": "evt-...",
+  "source": "unity",
+  "level": "error",
+  "logType": "Exception",
+  "message": "InvalidOperationException: example",
+  "stackTrace": "Example.Update () (at Assets/Example.cs:42)",
+  "timestampMs": 1790388000000,
+  "sequence": 17,
+  "threadId": 1,
+  "droppedCount": 0,
+  "truncated": false
+}
+```
+
+- `level`：`info` / `warning` / `error`；Assert 和 Exception 归入 `error`，
+  `logType` 保留 Unity 原始类型 `Log` / `Warning` / `Error` / `Assert` / `Exception`。
+- `timestampMs`：捕获时的 UTC Unix 毫秒时间；`sequence`：本次运行内递增序号。
+  `stackTrace` 取自 Unity 回调，是否存在及详细程度由 Unity 的堆栈配置决定。
+- 未连接或发送积压时保留最近 256 条，满时丢弃最旧条目；
+  `droppedCount` 为本次运行内捕获缓冲区累计丢弃数。
+  每帧最多转交 32 条，每个会话最多排队 128 条日志，普通语音消息优先发送。
+  慢客户端单独丢弃积压日志，以 `sessionDroppedCount` 报告；不阻塞其它客户端。
+- 正文最多 8192 个 UTF-16 代码单元，堆栈最多 16384；超长时 `truncated=true`。
+  转发自身不产生日志，避免循环。
+- 日志为尽力交付，无 ACK；断线时已交给旧连接的日志不重发。
+  编译失败、进入运行时前的编辑器消息及进程崩溃后未发送的日志不在此通道保证范围内。
+  自定义客户端不支持该扩展时可忽略此类型。
+
+网关对单条消息（含所有分片）限制为 16 MiB，超限关闭码为 `1009`。
+
 ## 5. Agent → 网关（Agent 回传）
 
 以下消息均需携带 §3 信封字段。
@@ -195,14 +306,17 @@ VAD 检测到用户开始说话时发送此消息。`audio2tts` 模式携带 `it
 
 | skillType | skillName | skillParam | 说明 |
 |---|---|---|---|
-| gesture | `wave_hands` | — | 挥手（手臂举起摆动） |
-| gesture | `open_arms` | — | 张开双臂（欢迎姿势） |
+| gesture | `wave_hands` | — | 约 6 秒：屈肘抬起右手、手腕轻摆、柔和收回 |
+| gesture | `open_arms` | — | 约 6.5 秒：双臂弧形舒展、停留、缓慢收回 |
 | movement | `walk` | `{"distanceM": 1.0}` | 前进指定米数（0.2~5） |
 | movement | `turn` | `{"angleDeg": 90}` | 原地转角（右转为正） |
 | movement | `stop` | — | 立即停止 |
 | emotion | `happy` / `sad` / `surprised` / `angry` / `love` / `neutral` | `{"durationMs": 3000}` | 头部表情屏（5 种经典表情 + 复位） |
 
-- 手势由程序化关节轨迹驱动（肩/肘/腕/腰/头），步态机器人可边走边做上半身手势
+- 手势协调肩、肘、腕与头部 yaw，准备、表达和收回分阶段执行；双臂展开带轻微左右错峰。
+- 目标角度受关节限位与速度限制，切换手势从当前目标衔接；打断立即回报 `failed` 并平滑归位。
+- 6 秒 / 6.5 秒为名义时长，平滑收尾可能略有延长；衔接后续动作请等待 `done`。
+- 手势不写腿部、腰部或根位姿；episode reset 会清掉旧手势，避免复位后恢复旧动作。
 - 运动指令在步态支撑相位切换、结束在支撑相位归零，动作完成即回报
 - 表情屏同时联动 TTS 播放能量做口型张合
 - 未知 `skillName` 回报 `failed`，不影响语音链路
@@ -221,7 +335,7 @@ VAD 检测到用户开始说话时发送此消息。`audio2tts` 模式携带 `it
 |---|---|
 | `running` | 已接受并开始执行 |
 | `done` | 执行完成（手势播完 / 运动站稳 / 表情已设置） |
-| `failed` | 未知技能名 / 无对应执行器（如无步态机器人时下 `walk`） |
+| `failed` | 未知技能名 / 无对应执行器 / 执行中的运动或手势被替换、停止或打断 |
 
 技能异步执行，发送完成不代表动作已经完成。需要衔接后续动作时，Agent 应等待对应的 `done` 或 `failed` 状态。状态回报属于仿真扩展，真机接入时需先确认设备是否支持。
 

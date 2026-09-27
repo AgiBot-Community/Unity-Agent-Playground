@@ -16,16 +16,7 @@
   Dialoguez avec un robot X2 dans Unity à l’aide d’un agent vocal Python et déclenchez des gestes, des déplacements et des expressions. Ce dépôt contient un simulateur Windows portable, des scripts Python d’exemple et la documentation du protocole de la passerelle.
 </p>
 
-<p align="center">
-  <a href="https://unity.com/releases/editor/archive"><img src="https://img.shields.io/badge/Unity-2022.3-222222?style=flat-square&amp;logo=unity&amp;logoColor=white" alt="Unity 2022.3"></a>
-  <a href="https://learn.microsoft.com/dotnet/csharp/"><img src="https://img.shields.io/badge/C%23-512BD4?style=flat-square&amp;logo=dotnet&amp;logoColor=white" alt="C#"></a>
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white" alt="Python 3.10+"></a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/AgiBot-Community"><img src="https://img.shields.io/badge/Community-AgiBot-181717?style=flat-square&amp;logo=github&amp;logoColor=white" alt="AgiBot Community"></a>
-  <a href="https://github.com/AgiBot-Community/Unity-Agent-Playground/issues"><img src="https://img.shields.io/badge/Feedback-GitHub_Issues-238636?style=flat-square&amp;logo=github&amp;logoColor=white" alt="GitHub Issues"></a>
-</p>
+<p align="center"><a href="https://unity.com/releases/editor/archive"><img src="https://img.shields.io/badge/Unity-2022.3-222222?style=flat-square&amp;logo=unity&amp;logoColor=white" alt="Unity 2022.3"></a> <a href="https://learn.microsoft.com/dotnet/csharp/"><img src="https://img.shields.io/badge/C%23-512BD4?style=flat-square&amp;logo=dotnet&amp;logoColor=white" alt="C#"></a> <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white" alt="Python 3.10+"></a> <a href="../LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue?style=flat-square" alt="Apache License 2.0"></a> <a href="https://github.com/AgiBot-Community"><img src="https://img.shields.io/badge/Community-AgiBot-181717?style=flat-square&amp;logo=github&amp;logoColor=white" alt="AgiBot Community"></a> <a href="https://github.com/AgiBot-Community/Unity-Agent-Playground/issues"><img src="https://img.shields.io/badge/Feedback-GitHub_Issues-238636?style=flat-square&amp;logo=github&amp;logoColor=white" alt="GitHub Issues"></a></p>
 
 ## Contenu du dépôt
 
@@ -33,7 +24,8 @@
 |---|---|
 | [exe/](simulator.fr.md) | Exécutable portable `x2模拟器.exe` et empreinte SHA-256 |
 | [unity-agent-playground/](unity.fr.md) | Sources Unity, modèles, actions et passerelle |
-| [example/](../example/docs/README.fr.md) | Scripts Python de l’agent, modèle de configuration et tests locaux |
+| [example/x2_console/](console.fr.md) | Console Python de gestion et surveillance, sessions et tests |
+| [example/x2_agent/](../example/x2_agent/docs/README.fr.md) | Agent Python autonome, configuration et tests |
 | [docs/](index.fr.md) | Index, protocole et guide de développement en trois langues |
 
 Unity capture le microphone, affiche le robot et exécute les actions en tant que serveur WebSocket. L’agent Python reçoit l’audio, appelle la reconnaissance vocale (ASR), un grand modèle de langage (LLM) et la synthèse vocale (TTS), puis renvoie texte, audio et commandes. Démarrez d’abord le simulateur, puis connectez un seul agent.
@@ -71,14 +63,14 @@ Les deux parcours écoutent sur `127.0.0.1:9002` : ne lancez qu’un simulateur 
 Gardez le robot actif et ouvrez PowerShell à la racine du dépôt :
 
 ```powershell
-cd example
+cd example/x2_agent
 python -m pip install -r requirements.txt
 python demo.py
 ```
 
 La démo renvoie du texte fixe et lit les enregistrements fournis pour vérifier la passerelle et la chaîne audio. Elle ne reconnaît pas la parole et ne synthétise pas de réponse en temps réel. Un enregistrement absent ou invalide est remplacé par un signal sinusoïdal.
 
-`state=online` confirme la connexion. Arrêtez la démo avec Ctrl+C, puis utilisez le modèle `.env.example` du dépôt dans le même terminal `example/` pour configurer et lancer Doubao :
+`state=online` confirme la connexion. Arrêtez la démo avec Ctrl+C, puis utilisez le modèle `.env.example` du dépôt dans le même terminal `example/x2_agent/` pour configurer et lancer Doubao :
 
 ```powershell
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
@@ -86,20 +78,20 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 python agent.py
 ```
 
-Attendez la fin de l’accueil avant de parler. Exemples en chinois : « 你好 » (bonjour), « 挥挥手 » (faire un signe de la main), « 往前走一米 » (avancer d’un mètre). Un seul agent peut se connecter. Le fonctionnement est semi-duplex : la détection vocale s’arrête pendant la lecture. Parler n’interrompt donc pas la réponse ; une commande explicite du protocole permet de l’interrompre.
+Attendez la fin de l’accueil avant de parler. Exemples en chinois : « 你好 » (bonjour), « 挥挥手 » (faire un signe de la main), « 往前走一米 » (avancer d’un mètre). Huit clients peuvent se connecter par défaut. La console possède la priorité maximale fixe ; les autres priorités sont réglables depuis la console. Un seul agent reçoit le microphone. Le fonctionnement est semi-duplex : la détection vocale s’arrête pendant la lecture. Parler n’interrompt donc pas la réponse ; une commande explicite du protocole permet de l’interrompre.
 
 Les trois langues de documentation ne signifient pas que les services vocaux, la voix chinoise par défaut ou l’interface Unity sont adaptés à ces trois langues.
 
 ## Distribution et compilation des sources
 
-Le fichier `exe/x2模拟器.exe` du dépôt peut être distribué seul ; son empreinte est dans le fichier `.sha256` adjacent. L’agent Python est fourni séparément dans `example/`.
+Le fichier `exe/x2模拟器.exe` du dépôt peut être distribué seul ; son empreinte est dans le fichier `.sha256` adjacent. L’agent Python est fourni séparément dans `example/x2_agent/`.
 
 Après une modification des sources, utilisez Build Settings selon le [guide Unity](unity.fr.md) et conservez tout le dossier produit. Les modifications ne mettent pas automatiquement à jour l’EXE portable du dépôt.
 
 ## Développement et validation
 
 ```powershell
-cd example
+cd example/x2_agent
 # Tests locaux, sans appel cloud
 python -B -m unittest discover -s tests -v
 ```
@@ -111,7 +103,13 @@ Les tests utilisent des services simulés locaux, sans Unity ni clés API. Le [g
 | Besoin | Guide |
 |---|---|
 | Installer Unity Hub, ajouter le projet autonome, exécuter et compiler | [Prise en main Unity](unity.fr.md) |
-| Modèles, voix, accueil, paramètres et dépannage | [Agent d’exemple](../example/docs/README.fr.md) |
+| Modèles, voix, accueil, paramètres et dépannage | [Agent d’exemple](../example/x2_agent/docs/README.fr.md) |
 | Démarrage EXE, vérification et changement de vue | [Simulateur](simulator.fr.md) |
 | Agents personnalisés, authentification et échanges | [Protocole](interface.fr.md) |
 | Toutes les langues disponibles | [Index documentaire](index.fr.md) |
+
+## Licence
+
+Le code original de ce projet est distribué sous **Apache License 2.0 (Apache-2.0)**.
+Consultez [LICENSE](../LICENSE) pour les conditions complètes. Les composants et ressources tiers
+restent soumis aux licences et mentions qui les accompagnent.

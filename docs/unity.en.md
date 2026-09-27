@@ -2,7 +2,7 @@
 
 [中文](unity.md) | **English** | [Français](unity.fr.md)
 
-Follow this guide to install the required Editor, import the project, run the robot scene and build a Windows application. To try the robot immediately, use the [portable simulator](simulator.en.md). Both routes support the same [example agent](../example/docs/README.en.md).
+Follow this guide to install the required Editor, import the project, run the robot scene and build a Windows application. To try the robot immediately, use the [portable simulator](simulator.en.md). Both routes support the same [example agent](../example/x2_agent/docs/README.en.md).
 
 [unity-agent-playground/](../unity-agent-playground/) contains the X2 robot models, Agent gateway, gestures, expressions and locomotion sources. The recorded editor version is **2022.3.62f3c1**. Use the project configuration and bundled local packages for URP, Sentis, ML-Agents and URDF Importer dependencies.
 
@@ -65,11 +65,11 @@ Unity-Agent-Playground/          Repository
 3. To test the Agent connection, open a separate terminal at the repository root:
 
 ```powershell
-python -m pip install -r example/requirements.txt
-python example/demo.py
+python -m pip install -r example/x2_agent/requirements.txt
+python example/x2_agent/demo.py
 ```
 
-The demo needs no cloud credentials. For voice conversations, follow the [Agent setup guide](../example/docs/README.en.md), stop the demo with Ctrl+C, then run `python example/agent.py`. These are direct Python scripts; installing this repository as a Python package is unnecessary. If you copied only the Unity project, supply a separate compatible Agent client.
+The demo needs no cloud credentials. For voice conversations, follow the [Agent setup guide](../example/x2_agent/docs/README.en.md), stop the demo with Ctrl+C, then run `python example/x2_agent/agent.py`. These are direct Python scripts; installing this repository as a Python package is unnecessary. If you copied only the Unity project, supply a separate compatible Agent client.
 
 `state=online` in the Agent terminal confirms the connection. Press Play again to stop the scene and Ctrl+C to stop the Agent. Source changes do not automatically update the portable EXE.
 
@@ -83,7 +83,7 @@ The demo needs no cloud credentials. For voice conversations, follow the [Agent 
 | Missing Editor | Install the full version `2022.3.62f3c1`, or register an existing installation with Installs → Locate. |
 | Dependency resolution stalls or packages fail | Check network access and errors in Console / Window → Package Manager. Keep the manifests and embedded packages in `Packages/`. |
 | No robot visible | Open the specified `scene.unity`, enter Play and view the Game window. |
-| Gateway fails or port 9002 is busy | Stop another running EXE or Editor scene. Run one simulator and connect one Agent at a time. |
+| Gateway fails or port 9002 is busy | Stop another running EXE or Editor scene. Run one simulator; it accepts eight client connections by default. |
 | Agent cannot connect | Confirm Play mode and gateway startup, then check the endpoint using the Agent guide. A remote client cannot reach another machine through `127.0.0.1`. |
 
 ## Source layout
@@ -109,4 +109,4 @@ Configure the port and `StrictAuth` on the scene's `CompetitionLauncher` compone
 
 Run the EXE in the completed output directory and verify connections using the Agent commands above. Keep all output files for running and distribution. A normal Unity Build does not automatically create or replace the repository's single-file [EXE](../exe/x2模拟器.exe). For Linux, install the module above, switch the target and use a separate output directory.
 
-See the [example](../example/docs/README.en.md) for Agent setup and the [protocol](interface.en.md) for custom clients.
+See the [example](../example/x2_agent/docs/README.en.md) for Agent setup and the [protocol](interface.en.md) for custom clients.

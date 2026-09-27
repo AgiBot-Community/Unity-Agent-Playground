@@ -16,16 +16,7 @@
   基于 Unity 的 X2 人形机器人 Agent 开发环境：机器人侧提供网关与动作/表情/步态技能，接入你自己的 Agent 即可实现语音对话驱动机器人。
 </p>
 
-<p align="center">
-  <a href="https://unity.com/releases/editor/archive"><img src="https://img.shields.io/badge/Unity-2022.3-222222?style=flat-square&amp;logo=unity&amp;logoColor=white" alt="Unity 2022.3"></a>
-  <a href="https://learn.microsoft.com/dotnet/csharp/"><img src="https://img.shields.io/badge/C%23-512BD4?style=flat-square&amp;logo=dotnet&amp;logoColor=white" alt="C#"></a>
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white" alt="Python 3.10+"></a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/AgiBot-Community"><img src="https://img.shields.io/badge/Community-AgiBot-181717?style=flat-square&amp;logo=github&amp;logoColor=white" alt="AgiBot Community"></a>
-  <a href="https://github.com/AgiBot-Community/Unity-Agent-Playground/issues"><img src="https://img.shields.io/badge/Feedback-GitHub_Issues-238636?style=flat-square&amp;logo=github&amp;logoColor=white" alt="GitHub Issues"></a>
-</p>
+<p align="center"><a href="https://unity.com/releases/editor/archive"><img src="https://img.shields.io/badge/Unity-2022.3-222222?style=flat-square&amp;logo=unity&amp;logoColor=white" alt="Unity 2022.3"></a> <a href="https://learn.microsoft.com/dotnet/csharp/"><img src="https://img.shields.io/badge/C%23-512BD4?style=flat-square&amp;logo=dotnet&amp;logoColor=white" alt="C#"></a> <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white" alt="Python 3.10+"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue?style=flat-square" alt="Apache License 2.0"></a> <a href="https://github.com/AgiBot-Community"><img src="https://img.shields.io/badge/Community-AgiBot-181717?style=flat-square&amp;logo=github&amp;logoColor=white" alt="AgiBot Community"></a> <a href="https://github.com/AgiBot-Community/Unity-Agent-Playground/issues"><img src="https://img.shields.io/badge/Feedback-GitHub_Issues-238636?style=flat-square&amp;logo=github&amp;logoColor=white" alt="GitHub Issues"></a></p>
 
 ## 仓库结构
 
@@ -33,7 +24,8 @@
 |---|---|
 | [exe/](docs/simulator.md) | `x2模拟器.exe` 单文件便携程序及 SHA-256 校验文件 |
 | [unity-agent-playground/](docs/unity.md) | Unity 工程源码、机器人模型、技能与网关实现 |
-| [example/](example/README.md) | Python Agent 脚本、配置模板及本机回归测试 |
+| [example/x2_console/](docs/console.md) | 独立 Python 管理监控控制台、会话管理和测试 |
+| [example/x2_agent/](example/x2_agent/README.md) | 独立 Python Agent、配置模板及本机回归测试 |
 | [tools/unity-packager/](tools/unity-packager/README.md) | 将已有的 Windows Unity 构建打包为单文件便携 EXE |
 | [docs/](docs/index.md) | 三语文档索引、接口规范及开发指南 |
 
@@ -42,6 +34,16 @@ Unity 负责采集麦克风音频、显示机器人并执行技能，作为 WebS
 开发环境使用 Unity **2022.3.62f3c1**，完整版本见 [ProjectVersion.txt](unity-agent-playground/ProjectSettings/ProjectVersion.txt)。Hub 中找不到该旧版时，请按 [Unity 工程指南](docs/unity.md) 从官方发布页下载并添加编辑器。
 
 ## 快速开始
+
+推荐使用新增的 Python 图形控制台：
+
+```powershell
+python -m pip install -r example/x2_console/requirements.txt
+python example/x2_console/main.py
+```
+
+控制台可启动模拟器、控制动作、筛选日志，并在“会话 / 优先级”页签调整其它客户端优先级。
+控制台固定为最高管理优先级，默认监控、不接管动作；语音由独立 Agent 负责。详见[控制台指南](docs/console.md)。
 
 先根据用途选择启动方式，再连接 Agent：
 
@@ -72,14 +74,14 @@ Unity 负责采集麦克风音频、显示机器人并执行技能，作为 WebS
 保持机器人运行，在仓库根目录打开 PowerShell：
 
 ```powershell
-cd example
+cd example/x2_agent
 python -m pip install -r requirements.txt
 python demo.py
 ```
 
 demo 返回固定文字并播放内置录音，用来验证网关与音频链路，不进行真实语音识别或实时语音合成。录音缺失或格式不符时退回正弦提示音。
 
-看到 `state=online` 表示已连接。按 Ctrl+C 退出 demo，然后在同一个 `example/` 终端中根据仓库的 `.env.example` 配置并启动豆包客户端：
+看到 `state=online` 表示已连接。按 Ctrl+C 退出 demo，然后在同一个 `example/x2_agent/` 终端中根据仓库的 `.env.example` 配置并启动豆包客户端：
 
 ```powershell
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
@@ -87,21 +89,23 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 python agent.py
 ```
 
-等待开场白结束再说话，例如“你好”“挥挥手”“往前走一米”。同一时间只能连接一个 Agent。当前流程为半双工：播报期间暂停语音检测，普通说话不会打断播报；协议提供显式打断指令。
+等待开场白结束再说话，例如“你好”“挥挥手”“往前走一米”。默认支持 8 路连接；控制台优先级固定最高，其它客户端优先级可在控制台调整，麦克风音频只发给当前语音接收端。当前流程为半双工：播报期间暂停语音检测，普通说话不会打断播报；协议提供显式打断指令。
 
 文档提供三种语言，不代表语音模型、默认中文音色或 Unity 界面已完成三语适配。
 
 ## 分发与源码构建
 
-仓库中的 `exe/x2模拟器.exe` 可单文件分发，校验值见同目录的 `.sha256` 文件；Python Agent 由 `example/` 单独提供。
+仓库中的 `exe/x2模拟器.exe` 可单文件分发，校验值见同目录的 `.sha256` 文件；Python Agent 由 `example/x2_agent/` 单独提供。
 
 修改 Unity 源码后，按照 [Unity 工程指南](docs/unity.md) 使用 Build Settings 构建，并完整保留 Unity 输出目录。源码修改不会自动更新仓库中的便携 EXE。
 
 ## 开发与验证
 
 ```powershell
-cd example
+cd example/x2_agent
 # 本机测试，不调用云服务
+python -B -m unittest discover -s tests -v
+cd ../x2_console
 python -B -m unittest discover -s tests -v
 ```
 
@@ -112,7 +116,12 @@ python -B -m unittest discover -s tests -v
 | 需求 | 文档 |
 |---|---|
 | Unity Hub 下载安装、独立工程导入、场景运行与构建 | [Unity 工程入门](docs/unity.md) |
-| 模型、音色、开场白、参数及排障 | [示例 Agent](example/README.md) |
+| 模型、音色、开场白、参数及排障 | [示例 Agent](example/x2_agent/README.md) |
 | 从 EXE 启动、校验文件与切换视角 | [模拟器说明](docs/simulator.md) |
 | 自己实现 Agent、鉴权和消息时序 | [网关协议](docs/interface.md) |
 | 所有语言文档 | [文档索引](docs/index.md) |
+
+## 开源协议
+
+本项目原创代码采用 **Apache License 2.0（Apache-2.0）**，完整条款见 [LICENSE](LICENSE)。
+第三方组件及资源遵循其各自附带的许可证和声明。
