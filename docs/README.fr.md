@@ -45,7 +45,7 @@ Choisissez un parcours selon votre objectif, puis connectez un agent :
 
 ### Parcours A : démarrer depuis l’EXE
 
-1. Téléchargez l’EXE portable et son empreinte depuis [GitHub Releases](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases), vérifiez l’empreinte, puis lancez l’EXE sous Windows 10/11 x64.
+1. Téléchargez `x2-simulator-windows-x64.exe` et son empreinte depuis [GitHub Releases](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases), vérifiez l’empreinte, puis lancez l’EXE sous Windows 10/11 x64.
 2. **F1** affiche le panneau. Ses boutons permettent de tester les actions sans agent.
 3. Pour les échanges vocaux, poursuivez avec « Démarrer l’agent » ci-dessous. Consultez le [guide EXE](simulator.fr.md).
 

@@ -45,7 +45,7 @@ Choose a startup route for your task, then connect an agent:
 
 ### Path A: start from the EXE
 
-1. Download the portable EXE and matching checksum from [GitHub Releases](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases), verify the checksum, and open the EXE on Windows 10/11 x64.
+1. Download `x2-simulator-windows-x64.exe` and its matching checksum from [GitHub Releases](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases), verify the checksum, and open the EXE on Windows 10/11 x64.
 2. Press **F1** to show the debug panel. Skill buttons work without an Agent.
 3. For voice interaction, continue to “Start the Agent” below. See the [EXE guide](simulator.en.md) for details.
 

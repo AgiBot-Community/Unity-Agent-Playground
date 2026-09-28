@@ -56,7 +56,7 @@ python example/x2_console/main.py
 
 ### 路径 A：从 EXE 开始
 
-1. 从 [GitHub Releases](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases) 下载便携 EXE 和同版本的 SHA-256 文件，校验后在 Windows 10/11 x64 上双击运行。使用控制台时，将下载的程序放到本地 `exe/x2模拟器.exe`；该目录不纳入 Git。
+1. 从 [GitHub Releases](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases) 下载 `x2-simulator-windows-x64.exe` 和同版本的 SHA-256 文件，校验后在 Windows 10/11 x64 上双击运行。使用控制台时，将下载的程序重命名并放到本地 `exe/x2模拟器.exe`；该目录不纳入 Git。
 2. 按 **F1** 显示调试面板。无需 Agent，也可用技能按钮测试动作。
 3. 需要语音交互时，继续下面的“启动 Agent”。完整操作见 [EXE 使用指南](docs/simulator.md)。
 

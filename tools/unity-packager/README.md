@@ -54,3 +54,8 @@ Publish the EXE and its matching checksum as assets of the same GitHub
 Release. Build output belongs in ignored `build/` and `release/` directories;
 downloaded copies may be placed in ignored `exe/` for the Python console.
 Do not commit these binaries or checksums to the source repository.
+
+Use the ASCII asset name `x2-simulator-windows-x64.exe` on GitHub Releases:
+GitHub may remove non-ASCII characters from uploaded asset names. The released
+`.sha256` must name that exact file. After verification, users may rename the
+download to `exe/x2模拟器.exe` for the console launcher.
