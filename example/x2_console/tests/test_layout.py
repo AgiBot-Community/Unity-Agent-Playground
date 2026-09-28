@@ -34,7 +34,6 @@ class ConsoleLayoutTests(unittest.TestCase):
     def test_local_protocol_and_repository_resources_resolve(self):
         self.assertEqual(PROJECT_ROOT, CONSOLE_ROOT)
         self.assertEqual(ui.ROOT, REPOSITORY_ROOT)
-        self.assertTrue((ui.ROOT / "exe/x2模拟器.exe").is_file())
         self.assertTrue((ui.ROOT / "tools/unity-packager/assets/agibot-x2.ico").is_file())
         self.assertIs(client.T, gateway.T)
         self.assertIs(client.build_headers, gateway.build_headers)

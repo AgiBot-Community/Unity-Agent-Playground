@@ -2,9 +2,9 @@
 
 **中文** | [English](simulator.en.md) | [Français](simulator.fr.md)
 
-本指南适用于直接运行 Windows 便携模拟器的用户。双击 [x2模拟器.exe](../exe/x2模拟器.exe) 后，窗口显示机器人，网关在 `127.0.0.1:9002` 等待连接。按 **F1** 打开调试面板即可手动测试技能；语音对话需要另行启动[示例 Agent](../example/x2_agent/README.md)，连接成功后由 Agent 发送开场白。
+本指南适用于直接运行 Windows 便携模拟器的用户。双击 [x2模拟器.exe](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases) 后，窗口显示机器人，网关在 `127.0.0.1:9002` 等待连接。按 **F1** 打开调试面板即可手动测试技能；语音对话需要另行启动[示例 Agent](../example/x2_agent/README.md)，连接成功后由 Agent 发送开场白。
 
-可以只分发这一个 EXE，无需附带 Data 文件夹、Playground 或 Python。首次启动会在 `%LOCALAPPDATA%\UnityPortable` 后台释放 Unity 资源。需要语音对话时，Python Agent 仍需单独启动；此 EXE 不包含其 API Key 或配置。每次更新构建后请核对随附的 [SHA-256](../exe/x2模拟器.sha256)。
+可以只分发这一个 EXE，无需附带 Data 文件夹、Playground 或 Python。首次启动会在 `%LOCALAPPDATA%\UnityPortable` 后台释放 Unity 资源。需要语音对话时，Python Agent 仍需单独启动；此 EXE 不包含其 API Key 或配置。每次更新构建后请核对随附的 [SHA-256](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases)。
 
 ## 运行须知
 
@@ -24,8 +24,8 @@
 
 ## 从 EXE 开始
 
-1. 获取仓库的 [EXE](../exe/x2模拟器.exe) 和 [校验文件](../exe/x2模拟器.sha256)。仅运行模拟器无需安装 Unity 或 Python。
-2. 可在仓库根目录运行 `Get-FileHash -LiteralPath 'exe/x2模拟器.exe' -Algorithm SHA256`，与校验文件中的值比较。
+1. 从 [GitHub Releases](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases) 下载同版本的便携 EXE 和校验文件。源码仓库不包含二进制文件。仅运行模拟器无需安装 Unity 或 Python。
+2. 若使用控制台启动按钮，将 EXE 保存到仓库本地 `exe/x2模拟器.exe`。在仓库根目录运行 `Get-FileHash -LiteralPath 'exe/x2模拟器.exe' -Algorithm SHA256`，与下载的校验文件比较；也可以在其他目录直接运行便携 EXE。
 3. 双击 EXE，等待机器人窗口出现；按 **F1** 查看状态或手动测试技能。
 4. 如需连接示例 Agent，在仓库根目录执行：
 

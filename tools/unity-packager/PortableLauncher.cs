@@ -59,18 +59,38 @@ internal static class PortableLauncher
                 Directory.CreateDirectory(staging);
                 try
                 {
-                    using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("payload"))
-                    using (var zip = new ZipArchive(stream, ZipArchiveMode.Read))
+                    // Decode the solid LZMA payload to a temporary seekable ZIP.
+                    // It is removed even if extraction or manifest validation fails.
+                    using (var decoded = new FileStream(
+                        Path.Combine(parent, "payload-" + Guid.NewGuid().ToString("N") + ".tmp"),
+                        FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 65536,
+                        FileOptions.DeleteOnClose))
                     {
-                        foreach (var entry in zip.Entries)
+                        using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("payload"))
                         {
-                            string path = Path.GetFullPath(Path.Combine(staging, entry.FullName.Replace('/', Path.DirectorySeparatorChar)));
-                            if (!path.StartsWith(staging + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-                                throw new IOException("Unsafe archive entry: " + entry.FullName);
-                            if (entry.Name.Length == 0) continue;
-                            Directory.CreateDirectory(Path.GetDirectoryName(path));
-                            using (var input = entry.Open())
-                            using (var output = File.Create(path)) input.CopyTo(output);
+                            var header = new BinaryReader(stream);
+                            byte[] properties = header.ReadBytes(5);
+                            if (properties.Length != 5 || header.ReadBytes(8).Length != 8)
+                                throw new IOException("Truncated LZMA payload");
+                            var decoder = new SevenZip.Compression.LZMA.Decoder();
+                            decoder.SetDecoderProperties(properties);
+                            decoder.Code(stream, decoded, -1, BuildInfo.ArchiveSize, null);
+                            if (decoded.Length != BuildInfo.ArchiveSize)
+                                throw new IOException("Invalid decompressed payload size");
+                        }
+                        decoded.Position = 0;
+                        using (var zip = new ZipArchive(decoded, ZipArchiveMode.Read, true))
+                        {
+                            foreach (var entry in zip.Entries)
+                            {
+                                string path = Path.GetFullPath(Path.Combine(staging, entry.FullName.Replace('/', Path.DirectorySeparatorChar)));
+                                if (!path.StartsWith(staging + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                                    throw new IOException("Unsafe archive entry: " + entry.FullName);
+                                if (entry.Name.Length == 0) continue;
+                                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                                using (var input = entry.Open())
+                                using (var output = File.Create(path)) input.CopyTo(output);
+                            }
                         }
                     }
                     Verify(staging);

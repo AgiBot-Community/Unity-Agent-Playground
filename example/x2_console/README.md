@@ -32,7 +32,9 @@ x2_console/
 
 可以单独复制本目录运行，无需相邻的 `x2_agent` 项目或云服务依赖。
 网关地址和签名凭据在界面中设置，仅在本次运行中使用。
-在仓库中，“启动模拟器”按钮定位仓库根目录的 `exe/`；
+先从 [GitHub Releases](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases)
+下载便携 EXE，保存为仓库根目录下的 `exe/x2模拟器.exe`，再使用“启动模拟器”按钮。
+`exe/` 是本地下载目录，不随源码仓库分发；
 单独分发控制台时，请另行启动 Unity 模拟器，再填写网关地址连接。
 
 控制台测试（从仓库根目录）：

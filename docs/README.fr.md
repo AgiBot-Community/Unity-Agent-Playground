@@ -22,7 +22,7 @@
 
 | Chemin | Rôle |
 |---|---|
-| [exe/](simulator.fr.md) | Exécutable portable `x2模拟器.exe` et empreinte SHA-256 |
+| [GitHub Releases](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases) | EXE portable et empreinte SHA-256, distribués séparément des sources |
 | [unity-agent-playground/](unity.fr.md) | Sources Unity, modèles, actions et passerelle |
 | [example/x2_console/](console.fr.md) | Console Python de gestion et surveillance, sessions et tests |
 | [example/x2_agent/](../example/x2_agent/docs/README.fr.md) | Agent Python autonome, configuration et tests |
@@ -45,7 +45,7 @@ Choisissez un parcours selon votre objectif, puis connectez un agent :
 
 ### Parcours A : démarrer depuis l’EXE
 
-1. Sous Windows 10/11 x64, ouvrez [exe/x2模拟器.exe](../exe/x2模拟器.exe) et attendez la fenêtre du robot. L’[empreinte SHA-256](../exe/x2模拟器.sha256) permet de vérifier le téléchargement.
+1. Téléchargez l’EXE portable et son empreinte depuis [GitHub Releases](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases), vérifiez l’empreinte, puis lancez l’EXE sous Windows 10/11 x64.
 2. **F1** affiche le panneau. Ses boutons permettent de tester les actions sans agent.
 3. Pour les échanges vocaux, poursuivez avec « Démarrer l’agent » ci-dessous. Consultez le [guide EXE](simulator.fr.md).
 
@@ -84,9 +84,9 @@ Les trois langues de documentation ne signifient pas que les services vocaux, la
 
 ## Distribution et compilation des sources
 
-Le fichier `exe/x2模拟器.exe` du dépôt peut être distribué seul ; son empreinte est dans le fichier `.sha256` adjacent. L’agent Python est fourni séparément dans `example/x2_agent/`.
+Téléchargez l’EXE portable et son empreinte depuis GitHub Releases. L’EXE doit faire moins de 100 000 000 octets (100 MB) et n’est pas suivi par Git. Pour le lanceur de la console, placez-le localement dans `exe/x2模拟器.exe`. L’agent Python est fourni séparément dans `example/x2_agent/`.
 
-Après une modification des sources, utilisez Build Settings selon le [guide Unity](unity.fr.md) et conservez tout le dossier produit. Les modifications ne mettent pas automatiquement à jour l’EXE portable du dépôt.
+Après une modification des sources, compilez selon le [guide Unity](unity.fr.md), conservez tout le dossier produit et utilisez l’[outil d’empaquetage](../tools/unity-packager/README.md) pour créer les pièces jointes de la Release.
 
 ## Développement et validation
 

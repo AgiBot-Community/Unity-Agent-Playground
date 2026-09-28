@@ -22,7 +22,7 @@
 
 | Path | Purpose |
 |---|---|
-| [exe/](simulator.en.md) | `x2模拟器.exe` portable executable and its SHA-256 checksum |
+| [GitHub Releases](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases) | Portable EXE and SHA-256 checksum, distributed separately from source |
 | [unity-agent-playground/](unity.en.md) | Unity sources, robot models, skills and gateway implementation |
 | [example/x2_console/](console.en.md) | Python management/monitoring console, sessions and tests |
 | [example/x2_agent/](../example/x2_agent/docs/README.en.md) | Self-contained Python Agent, configuration and tests |
@@ -45,7 +45,7 @@ Choose a startup route for your task, then connect an agent:
 
 ### Path A: start from the EXE
 
-1. On Windows 10/11 x64, open [exe/x2模拟器.exe](../exe/x2模拟器.exe) and wait for the robot window. Use the supplied [SHA-256 checksum](../exe/x2模拟器.sha256) to verify the download.
+1. Download the portable EXE and matching checksum from [GitHub Releases](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases), verify the checksum, and open the EXE on Windows 10/11 x64.
 2. Press **F1** to show the debug panel. Skill buttons work without an Agent.
 3. For voice interaction, continue to “Start the Agent” below. See the [EXE guide](simulator.en.md) for details.
 
@@ -84,9 +84,9 @@ Three documentation languages do not imply that speech services, the default Chi
 
 ## Distribution and source builds
 
-The repository's `exe/x2模拟器.exe` can be distributed alone; its checksum is in the adjacent `.sha256` file. The Python Agent is supplied separately in `example/x2_agent/`.
+Download the portable EXE and matching checksum from GitHub Releases. The EXE must be smaller than 100,000,000 bytes (100 MB) and is not tracked in Git. For the console launcher, save it locally as `exe/x2模拟器.exe`. The Python Agent is supplied separately in `example/x2_agent/`.
 
-After changing Unity sources, use Build Settings as described in the [Unity guide](unity.en.md) and keep the complete output directory. Source edits do not automatically update the repository's portable EXE.
+After changing Unity sources, build as described in the [Unity guide](unity.en.md), keep the complete output directory, and use the [portable packager](../tools/unity-packager/README.md) to create the Release assets.
 
 ## Development and validation
 

@@ -8,7 +8,7 @@ Follow this guide to install the required Editor, import the project, run the ro
 
 ## Install Unity Hub and the Editor
 
-The supplied `exe/x2模拟器.exe` runs without Unity Hub or the Editor. Install them to edit scenes, change sources or rebuild:
+The portable EXE from GitHub Releases runs without Unity Hub or the Editor. Install them to edit scenes, change sources or rebuild:
 
 1. Download Unity Hub for your operating system from the [official download page](https://unity.com/download), install it and sign in. Activate an appropriate license under Settings → Licenses; eligible individuals can use Unity Personal.
 2. Install **2022.3.62f3c1**, matching `ProjectSettings/ProjectVersion.txt`. Hub's recommended list does not include every historical release; use “Download an older Editor” below if the version is missing.
@@ -107,6 +107,6 @@ Configure the port and `StrictAuth` on the scene's `CompetitionLauncher` compone
 3. Enable `Run In Background` in Player Settings so the application can process Agent messages while unfocused.
 4. Select **Build**, choose a dedicated empty output directory outside `Assets/`, and wait for completion.
 
-Run the EXE in the completed output directory and verify connections using the Agent commands above. Keep all output files for running and distribution. A normal Unity Build does not automatically create or replace the repository's single-file [EXE](../exe/x2模拟器.exe). For Linux, install the module above, switch the target and use a separate output directory.
+Run the EXE in the completed output directory and verify connections using the Agent commands above. Keep all output files for running and packaging. Use the [portable packager](../tools/unity-packager/README.md) to produce a single EXE for GitHub Releases; a normal Unity Build does not publish it. For Linux, install the module above, switch the target and use a separate output directory.
 
 See the [example](../example/x2_agent/docs/README.en.md) for Agent setup and the [protocol](interface.en.md) for custom clients.

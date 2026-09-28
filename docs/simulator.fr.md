@@ -2,9 +2,9 @@
 
 [中文](simulator.md) | [English](simulator.en.md) | **Français**
 
-Ce guide explique comment exécuter le simulateur Windows portable. Ouvrez [x2模拟器.exe](../exe/x2模拟器.exe) : le robot apparaît et la passerelle attend sur `127.0.0.1:9002`. Appuyez sur **F1** pour tester les actions avec les boutons de débogage. Les conversations vocales nécessitent [l’agent Python](../example/x2_agent/docs/README.fr.md), lancé séparément, qui envoie l’accueil après connexion.
+Ce guide explique comment exécuter le simulateur Windows portable. Ouvrez [x2模拟器.exe](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases) : le robot apparaît et la passerelle attend sur `127.0.0.1:9002`. Appuyez sur **F1** pour tester les actions avec les boutons de débogage. Les conversations vocales nécessitent [l’agent Python](../example/x2_agent/docs/README.fr.md), lancé séparément, qui envoie l’accueil après connexion.
 
-Cet EXE suffit pour distribuer le simulateur, sans dossier Data, Python, clés ou dépôt Playground. Au premier lancement, les ressources Unity sont extraites en arrière-plan sous `%LOCALAPPDATA%\UnityPortable`. Les conversations réelles nécessitent toujours l’agent séparé. Vérifiez chaque build avec son [empreinte SHA-256](../exe/x2模拟器.sha256).
+Cet EXE suffit pour distribuer le simulateur, sans dossier Data, Python, clés ou dépôt Playground. Au premier lancement, les ressources Unity sont extraites en arrière-plan sous `%LOCALAPPDATA%\UnityPortable`. Les conversations réelles nécessitent toujours l’agent séparé. Vérifiez chaque build avec son [empreinte SHA-256](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases).
 
 ## Exécution
 
@@ -20,8 +20,8 @@ Gardez la fenêtre ouverte pendant les essais vocaux. Si sa réduction perturbe 
 
 ## Démarrer depuis l’EXE
 
-1. Téléchargez l’[EXE](../exe/x2模拟器.exe) et son [empreinte](../exe/x2模拟器.sha256). Unity et Python ne sont pas nécessaires pour le simulateur seul.
-2. À la racine du dépôt, `Get-FileHash -LiteralPath 'exe/x2模拟器.exe' -Algorithm SHA256` permet de comparer le fichier téléchargé avec l’empreinte fournie.
+1. Téléchargez l’EXE portable et son empreinte de la même version depuis [GitHub Releases](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases). Les binaires ne sont pas inclus dans le dépôt source. Unity et Python ne sont pas nécessaires pour le simulateur seul.
+2. Pour le lanceur de la console, placez l’EXE dans `exe/x2模拟器.exe`. À la racine du dépôt, `Get-FileHash -LiteralPath 'exe/x2模拟器.exe' -Algorithm SHA256` permet de le comparer avec l’empreinte téléchargée. L’EXE peut aussi être lancé depuis un autre dossier.
 3. Ouvrez l’EXE, attendez la fenêtre du robot et appuyez sur **F1** pour consulter l’état ou tester les actions.
 4. Pour connecter l’agent d’exemple, exécutez depuis la racine du dépôt :
 

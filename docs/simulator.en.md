@@ -2,9 +2,9 @@
 
 [中文](simulator.md) | **English** | [Français](simulator.fr.md)
 
-Use this guide to run the portable Windows simulator. Open [x2模拟器.exe](../exe/x2模拟器.exe): the robot appears and its gateway waits on `127.0.0.1:9002`. Press **F1** to test skills with the debug buttons. Voice conversations require the separate [Python agent](../example/x2_agent/docs/README.en.md), which sends the greeting after connecting.
+Use this guide to run the portable Windows simulator. Open [x2模拟器.exe](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases): the robot appears and its gateway waits on `127.0.0.1:9002`. Press **F1** to test skills with the debug buttons. Voice conversations require the separate [Python agent](../example/x2_agent/docs/README.en.md), which sends the greeting after connecting.
 
-Distribute this EXE alone: no Data folder, Python, credentials or Playground checkout is needed to run the simulator. On first launch it extracts the Unity resources in the background under `%LOCALAPPDATA%\UnityPortable`. Real voice conversations still require the separate agent. Verify each build against its [SHA-256 checksum](../exe/x2模拟器.sha256).
+Distribute this EXE alone: no Data folder, Python, credentials or Playground checkout is needed to run the simulator. On first launch it extracts the Unity resources in the background under `%LOCALAPPDATA%\UnityPortable`. Real voice conversations still require the separate agent. Verify each build against its [SHA-256 checksum](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases).
 
 ## Runtime
 
@@ -20,8 +20,8 @@ Keep the window open during voice tests. If minimizing it causes audio or networ
 
 ## Start from the EXE
 
-1. Download the repository's [EXE](../exe/x2模拟器.exe) and [checksum](../exe/x2模拟器.sha256). Unity and Python are not required just to run the simulator.
-2. Optionally run `Get-FileHash -LiteralPath 'exe/x2模拟器.exe' -Algorithm SHA256` at the repository root and compare the value with the checksum file.
+1. Download the portable EXE and matching checksum from [GitHub Releases](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases). Binaries are not included in the source repository. Unity and Python are not required just to run the simulator.
+2. For the console launcher, save the EXE locally as `exe/x2模拟器.exe`. Run `Get-FileHash -LiteralPath 'exe/x2模拟器.exe' -Algorithm SHA256` at the repository root and compare with the downloaded checksum. You can also launch the portable EXE from another directory.
 3. Open the EXE, wait for the robot window, then press **F1** to view status or test skills.
 4. To connect the example Agent, run from the repository root:
 

@@ -594,7 +594,9 @@ class ConsoleWindow:
     def _launch_simulator(self):
         path = ROOT / "exe/x2模拟器.exe"
         if os.name != "nt" or not path.is_file():
-            self.client.events.log("error", "控制台", "未找到 Windows 模拟器，请手动启动 Unity 工程或指定的 EXE。")
+            self.client.events.log("error", "控制台",
+                                   "未找到 Windows 模拟器。请从 GitHub Releases 下载便携版，"
+                                   "放到仓库 exe/x2模拟器.exe，或手动启动下载的 EXE / Unity 工程。")
             return
         try:
             subprocess.Popen([str(path)], cwd=str(path.parent))

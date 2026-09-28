@@ -67,11 +67,23 @@ WebSocket 分片与大小限制、慢客户端关闭以及 Unity 日志外发。
 - 功能变更包含相应的本机模拟测试；文档变更检查相对链接和三语覆盖。
 - 中文无后缀，英文 `.en.md`，法文 `.fr.md`；技术标识保持原样。
 - 文档的目录表、链接和操作入口只引用纳入 Git 管理的文件；新增文件先确认不被忽略规则排除。忽略范围见 [仓库规则](../.gitignore)，配置以 [模板](../example/x2_agent/.env.example) 为准；个人密钥不提交。
-- `exe/x2模拟器.exe` 是明确的交付产物，不能被通用 `*.exe` 规则忽略。更新时记录体积、SHA-256 和启动验证。
+- 便携 EXE 与校验文件仅作为 GitHub Release 附件分发，不纳入 Git；`exe/`、`build/`、`release/` 均为本地产物目录。发布 EXE 必须小于 100,000,000 字节，记录体积、SHA-256 和启动验证。
 - 不将维护者个人路径、临时工具或未随仓库交付的脚本写成使用前提。
 - PR 说明应包含问题、最终行为和验证结果；未做的云端或 Unity 测试应明确注明。
 
 ## Unity 源码与发布文件
+
+表情修改可运行画板渲染验证：
+
+```powershell
+& $unityEditor -batchmode -quit -projectPath "$PWD/unity-agent-playground" `
+  -executeMethod EmotionVerification.Run -logFile "$PWD/emotion-verification.log"
+```
+
+不要添加 `-nographics`。成功标记为 `EMOTION_VERIFICATION_PASSED`；
+`.diagnostics/emotions/atlas.png` 从左到右显示 neutral、happy、sad、surprised、
+angry、love，上排静态、下排说话。验证覆盖画板位置、旋转、尺寸及分辨率、
+表情轮廓差异、说话时保留眼眉、定时回到 neutral。发布前同时检查实际画面。
 
 手势修改可额外运行真实场景验证：
 
@@ -88,7 +100,7 @@ episode reset；成功标记为 `GESTURE_VERIFICATION_PASSED`。测试自行退�
 
 Unity 工程位于 [unity-agent-playground/](../unity-agent-playground/)，使用 `2022.3.62f3c1`。启动入口、HUD 和相机位于 `Assets/X02Competition/Bootstrap/`，回归检查位于 `Assets/X02Competition/Tests/Editor/`。修改后按 [Unity 指南](unity.md) 使用 Build Settings 构建，并保留完整输出。
 
-Git 中的发布文件为 [x2模拟器.exe](../exe/x2模拟器.exe) 和 [校验文件](../exe/x2模拟器.sha256)。替换发布文件时同步更新校验值并验证启动、Agent 连接与视角切换。普通 Unity Build 不会自动更新这两个文件。
+发布文件为同一 [GitHub Release](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases) 下的便携 EXE 和校验文件。构建后运行便携打包器，验证启动、Agent 连接与视角切换，再上传两个附件。普通 Unity Build 不会自动打包或发布。
 
 也可通过批处理构建 Windows x64 Player：
 

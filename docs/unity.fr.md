@@ -8,7 +8,7 @@ Ce guide explique comment installer l’éditeur requis, importer le projet, ex�
 
 ## Installer Unity Hub et l’éditeur
 
-L’exécutable fourni `exe/x2模拟器.exe` fonctionne sans Unity Hub ni éditeur. Installez-les pour modifier les scènes, les sources ou reconstruire le simulateur :
+L’EXE portable de GitHub Releases fonctionne sans Unity Hub ni éditeur. Installez-les pour modifier les scènes, les sources ou reconstruire le simulateur :
 
 1. Téléchargez Unity Hub pour votre système depuis la [page officielle](https://unity.com/download), installez-le et connectez-vous. Activez une licence adaptée dans Settings → Licenses ; Unity Personal est disponible pour les personnes éligibles.
 2. Installez **2022.3.62f3c1**, conformément à `ProjectSettings/ProjectVersion.txt`. La liste recommandée du Hub ne contient pas toutes les anciennes versions ; si celle-ci manque, suivez « Télécharger un ancien éditeur » ci-dessous.
@@ -107,6 +107,6 @@ Configurez le port et `StrictAuth` sur le composant `CompetitionLauncher` de la 
 3. Activez `Run In Background` dans Player Settings pour traiter les messages de l’agent lorsque la fenêtre perd le focus.
 4. Cliquez sur **Build**, choisissez un dossier de sortie vide dédié hors de `Assets/`, puis attendez la fin de la compilation.
 
-Exécutez l’EXE du dossier produit et vérifiez la connexion avec les commandes Agent ci-dessus. Conservez tous les fichiers pour l’exécution et la distribution. Un Build Unity normal ne crée ni ne remplace automatiquement l’[EXE unique](../exe/x2模拟器.exe) du dépôt. Pour Linux, installez le module ci-dessus, changez de cible et utilisez une sortie distincte.
+Exécutez l’EXE du dossier produit et vérifiez la connexion avec les commandes Agent ci-dessus. Conservez tous les fichiers pour l’exécution et l’empaquetage. Utilisez l’[outil d’empaquetage](../tools/unity-packager/README.md) pour produire un EXE unique destiné à GitHub Releases ; un Build Unity normal ne le publie pas. Pour Linux, installez le module ci-dessus, changez de cible et utilisez une sortie distincte.
 
 Voir le [guide de l’Agent](../example/x2_agent/docs/README.fr.md) et le [protocole](interface.fr.md).

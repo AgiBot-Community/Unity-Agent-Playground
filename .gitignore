@@ -38,7 +38,10 @@ Desktop.ini
 *.tmp
 *.swp
 
-# exe/x2模拟器.exe is an intentional release artifact; do not ignore *.exe.
+# Portable binaries are downloaded locally or attached to GitHub Releases.
+/exe/
+/release/
+/build/
 *.sln
 unity-agent-playground/Assets/ML-Agents/
 unity-agent-playground/Assets/ML-Agents.meta

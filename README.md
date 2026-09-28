@@ -22,7 +22,7 @@
 
 | 路径 | 内容 |
 |---|---|
-| [exe/](docs/simulator.md) | `x2模拟器.exe` 单文件便携程序及 SHA-256 校验文件 |
+| [GitHub Releases](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases) | 单文件便携 EXE 与 SHA-256 校验文件，独立于源码分发 |
 | [unity-agent-playground/](docs/unity.md) | Unity 工程源码、机器人模型、技能与网关实现 |
 | [example/x2_console/](docs/console.md) | 独立 Python 管理监控控制台、会话管理和测试 |
 | [example/x2_agent/](example/x2_agent/README.md) | 独立 Python Agent、配置模板及本机回归测试 |
@@ -56,7 +56,7 @@ python example/x2_console/main.py
 
 ### 路径 A：从 EXE 开始
 
-1. 在 Windows 10/11 x64 上双击 [exe/x2模拟器.exe](exe/x2模拟器.exe)，等待机器人窗口出现。可使用随附的 [SHA-256 文件](exe/x2模拟器.sha256) 核对下载文件。
+1. 从 [GitHub Releases](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases) 下载便携 EXE 和同版本的 SHA-256 文件，校验后在 Windows 10/11 x64 上双击运行。使用控制台时，将下载的程序放到本地 `exe/x2模拟器.exe`；该目录不纳入 Git。
 2. 按 **F1** 显示调试面板。无需 Agent，也可用技能按钮测试动作。
 3. 需要语音交互时，继续下面的“启动 Agent”。完整操作见 [EXE 使用指南](docs/simulator.md)。
 
@@ -95,9 +95,9 @@ python agent.py
 
 ## 分发与源码构建
 
-仓库中的 `exe/x2模拟器.exe` 可单文件分发，校验值见同目录的 `.sha256` 文件；Python Agent 由 `example/x2_agent/` 单独提供。
+便携 EXE 仅通过 GitHub Releases 分发，发布文件必须小于 **100,000,000 字节（100 MB）**，校验值随同版本附件提供。源码仓库不包含 EXE；Python Agent 由 `example/x2_agent/` 单独提供。
 
-修改 Unity 源码后，按照 [Unity 工程指南](docs/unity.md) 使用 Build Settings 构建，并完整保留 Unity 输出目录。源码修改不会自动更新仓库中的便携 EXE。
+修改 Unity 源码后，按照 [Unity 工程指南](docs/unity.md) 构建，并完整保留 Unity 输出目录，再使用 [便携打包工具](tools/unity-packager/README.md) 生成 Release 附件。
 
 ## 开发与验证
 

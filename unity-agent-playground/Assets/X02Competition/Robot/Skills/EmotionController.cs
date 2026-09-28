@@ -40,6 +40,22 @@ namespace X02Competition.Robot
         {
             "neutral", "happy", "sad", "surprised", "angry", "love",
         };
+        static readonly string[] HeartRows =
+        {
+            "   ###     ###   ",
+            "  #####   #####  ",
+            " ####### ####### ",
+            "#################",
+            "#################",
+            " ############### ",
+            "  #############  ",
+            "   ###########   ",
+            "    #########    ",
+            "     #######     ",
+            "      #####      ",
+            "       ###       ",
+            "        #        ",
+        };
 
         /// <summary>是否正在显示非 neutral 表情（含说话口型）。</summary>
         public bool IsShowing => _emotion != "neutral" || _mouthSmooth > 0.02f;
@@ -164,7 +180,9 @@ namespace X02Competition.Robot
 
             var target = _mouthLevel;
             _mouthLevel = 0f; // 每帧能量需重喂（TtsStreamPlayer 驱动）
+            var previousMouth = _mouthSmooth;
             _mouthSmooth = Mathf.MoveTowards(_mouthSmooth, target, Time.deltaTime * 10f);
+            if (!Mathf.Approximately(previousMouth, _mouthSmooth)) _dirty = true;
 
             // 限频重绘（口型变化才画）
             if ((Time.time - _lastRedraw) > 0.08f &&
@@ -185,35 +203,38 @@ namespace X02Competition.Robot
             Fill(px, Background);
 
             bool speaking = _mouthSmooth > 0.05f;
-            string face = speaking ? "neutral" : _emotion;
+            string face = _emotion;
 
             switch (face)
             {
                 case "happy":
-                    Eyes(px, squint: 0.45f, tilt: 0);
+                    // Broad closed smiling eyes remain recognizable during speech.
+                    Arch(px, 16, 25, 8, 5);
+                    Arch(px, 47, 25, 8, 5);
                     Mouth(px, curve: +1f, open: speaking ? _mouthSmooth : 0f);
                     break;
                 case "sad":
-                    Eyes(px, squint: 0.25f, tilt: -1);
-                    Mouth(px, curve: -0.8f, open: 0f);
-                    // 左眼下一滴泪
-                    DrawOval(px, 10, 16, 3, 4);
+                    Eyes(px, squint: 0.65f, tilt: 0);
+                    ThickLine(px, 7, 29, 23, 34);
+                    ThickLine(px, 40, 34, 56, 29);
+                    Mouth(px, curve: -1f, open: speaking ? _mouthSmooth : 0f);
+                    DrawOval(px, 10, 16, 4, 7);
                     break;
                 case "surprised":
                     Eyes(px, squint: 0f, tilt: 0, big: true);
-                    Mouth(px, curve: 0f, open: speaking ? Mathf.Max(_mouthSmooth, 0.4f) : 0.3f, round: true);
+                    Mouth(px, curve: 0f, open: speaking ? Mathf.Max(_mouthSmooth, 0.6f) : 0.6f, round: true);
                     break;
                 case "angry":
-                    // 斜眉（内侧高外侧低）
-                    Line(px, 8, 29, 20, 33);
-                    Line(px, W - 9, 29, W - 21, 33);
-                    Eyes(px, squint: 0.5f, tilt: 0);
-                    Mouth(px, curve: -1f, open: 0f);
+                    // Inner brow ends point down toward the nose.
+                    ThickLine(px, 6, 35, 24, 27);
+                    ThickLine(px, 39, 27, 57, 35);
+                    Eyes(px, squint: 0.85f, tilt: 0);
+                    Mouth(px, curve: -0.6f, open: speaking ? _mouthSmooth : 0f);
                     break;
                 case "love":
-                    Heart(px, 16, 24, 9);
-                    Heart(px, W - 17, 24, 9);
-                    Mouth(px, curve: +1f, open: 0f);
+                    Heart(px, 16, 26);
+                    Heart(px, W - 17, 26);
+                    Mouth(px, curve: +1f, open: speaking ? _mouthSmooth : 0f);
                     break;
                 default: // neutral
                     Eyes(px, squint: 0f, tilt: 0);
@@ -247,17 +268,18 @@ namespace X02Competition.Robot
             var cy = 10;
             if (round)
             {
-                var h = Mathf.RoundToInt(2 + open * 9);
-                DrawOval(px, cx, cy, 12, h);
+                var h = Mathf.RoundToInt(7 + open * 5);
+                DrawOval(px, cx, cy, 10, h);
+                DrawOval(px, cx, cy, 5, h - 5, Background);
                 return;
             }
             // 弧线嘴：curve +1 上弯（笑）/ -1 下弯
-            var openH = Mathf.RoundToInt(open * 8);
+            var openH = Mathf.RoundToInt(open * (curve > 0f ? 4 : 6));
             var halfW = 12;
             for (int dx = -halfW; dx <= halfW; dx++)
             {
                 var t = dx / (float)halfW;
-                var bend = curve * 4f * (1f - t * t); // 抛物线
+                var bend = -curve * 4f * (1f - t * t); // smiling center below corners
                 var y = cy + bend;
                 var th = 2 + openH;
                 for (int dy = 0; dy < th; dy++)
@@ -265,10 +287,26 @@ namespace X02Competition.Robot
             }
         }
 
-        void DrawOval(Color32[] px, int cx, int cy, int w, int h)
+        void ThickLine(Color32[] px, int x0, int y0, int x1, int y1)
+        {
+            for (int dy = -1; dy <= 1; dy++)
+                Line(px, x0, y0 + dy, x1, y1 + dy);
+        }
+
+        void Arch(Color32[] px, int cx, int cy, int radius, int height)
+        {
+            for (int dx = -radius; dx <= radius; dx++)
+            {
+                float t = dx / (float)radius;
+                int y = cy + Mathf.RoundToInt(height * (1f - t * t));
+                for (int dy = -1; dy <= 1; dy++) SetPx(px, cx + dx, y + dy);
+            }
+        }
+
+        void DrawOval(Color32[] px, int cx, int cy, int w, int h, Color? color = null)
         {
             if (w <= 0 || h <= 0) return;
-            var fg = (Color32)Foreground;
+            var fg = (Color32)(color ?? Foreground);
             for (int x = -w / 2; x <= w / 2; x++)
                 for (int y = -h / 2; y <= h / 2; y++)
                 {
@@ -277,19 +315,13 @@ namespace X02Competition.Robot
                 }
         }
 
-        /// <summary>像素心形（爱心眼用）。经典隐式方程，尖朝下。</summary>
-        void Heart(Color32[] px, int cx, int cy, int s)
+        /// <summary>Pixel heart with a deep notch and a tapered point.</summary>
+        void Heart(Color32[] px, int cx, int cy)
         {
-            var fg = (Color32)Foreground;
-            for (int y = -s; y <= s; y++)
-                for (int x = -s; x <= s; x++)
-                {
-                    var X = x / (float)s;
-                    var Y = y / (float)s;
-                    // 隐式心形：(x²+y²-1)³ - x²·y³ ≤ 0（y 向上，中心偏上）
-                    if (Mathf.Pow(X * X + Y * Y - 1f, 3f) - X * X * Mathf.Pow(Y, 3f) <= 0f)
-                        SetPx(px, cx + x, cy + y + s / 4, fg);
-                }
+            for (int row = 0; row < HeartRows.Length; row++)
+                for (int column = 0; column < HeartRows[row].Length; column++)
+                    if (HeartRows[row][column] == '#')
+                        SetPx(px, cx + column - 8, cy + 6 - row);
         }
 
         /// <summary>像素线段（斜眉等）。</summary>

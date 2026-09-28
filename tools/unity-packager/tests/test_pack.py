@@ -1,6 +1,7 @@
 import importlib.util
 import os
 from pathlib import Path
+import random
 import subprocess
 import struct
 import tempfile
@@ -78,6 +79,16 @@ class PackagerTests(unittest.TestCase):
         pack.build(self.source, Path("Robot.exe"), self.output, icon)
         self.assertTrue(self.output.is_file())
 
+    def test_size_failure_preserves_existing_release(self):
+        self.output.parent.mkdir()
+        self.output.write_bytes(b"previous release")
+        checksum = self.output.with_suffix(".sha256")
+        checksum.write_text("previous checksum", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "must be below"):
+            pack.build(self.source, Path("Robot.exe"), self.output, max_bytes=1)
+        self.assertEqual(self.output.read_bytes(), b"previous release")
+        self.assertEqual(checksum.read_text(encoding="utf-8"), "previous checksum")
+
     def test_builds_with_x2_icon(self):
         icon = SCRIPT.parent / "assets" / "agibot-x2.ico"
         pack.build(self.source, Path("Robot.exe"), self.output, icon)
@@ -90,6 +101,24 @@ class PackagerTests(unittest.TestCase):
             self.output.with_suffix(".sha256").read_text(encoding="utf-8"),
             f"{checksum}  {self.output.name}\n",
         )
+
+    def test_solid_compression_and_large_binary_roundtrip(self):
+        # Repeated incompressible blocks in separate files only benefit from
+        # a shared dictionary; also exercise more than one decoder window flush.
+        block = random.Random(42).randbytes(256 * 1024)
+        for name in ("first.bin", "second.bin"):
+            (self.source / "Robot_Data" / name).write_bytes(block)
+        pack.build(self.source, Path("Robot.exe"), self.output)
+        self.assertLess(self.output.stat().st_size, 400_000)
+        cache = self.root / "solid-cache"
+        subprocess.run([str(self.output), "--portable-extract-only"],
+                       env=dict(os.environ, UNITY_PORTABLE_CACHE=str(cache)),
+                       check=True, timeout=30)
+        for name in ("first.bin", "second.bin"):
+            extracted = list(cache.glob("*/Robot_Data/" + name))
+            self.assertEqual(len(extracted), 1)
+            self.assertEqual(extracted[0].read_bytes(), block)
+        self.assertFalse(list(cache.glob("payload-*.tmp")))
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@
 
 ## 安装 Unity Hub 和编辑器
 
-仅运行仓库提供的 `exe/x2模拟器.exe` 不需要安装 Unity Hub 或 Unity Editor。需要打开场景、修改源码或重新构建时，按以下步骤安装：
+仅运行 GitHub Releases 提供的便携 EXE 不需要安装 Unity Hub 或 Unity Editor。需要打开场景、修改源码或重新构建时，按以下步骤安装：
 
 1. 从 [Unity 官方下载页](https://unity.com/download) 下载适合操作系统的 Unity Hub，运行安装程序并启动 Hub。按提示登录 Unity 账号，在 Settings → Licenses 中激活适用的许可证；符合条件的个人用户可选择 Unity Personal。
 2. 安装 **2022.3.62f3c1**，与 `ProjectSettings/ProjectVersion.txt` 保持一致。Hub 的推荐列表不包含所有历史版本；找不到时，按下方“下载旧版编辑器”操作。
@@ -107,6 +107,6 @@ demo 不需要云服务密钥。真实语音对话的配置见[示例说明](../
 3. 在 Player Settings 中启用 `Run In Background`，让窗口失去焦点时仍可处理 Agent 消息。
 4. 点击 **Build**，选择 `Assets/` 之外的专用空输出目录，等待构建完成。
 
-构建完成后运行输出目录内的 EXE，使用上述 Agent 命令验证连接。运行和分发时保留全部输出文件；Unity 的普通 Build 不会自动生成或替换仓库的单文件 [EXE](../exe/x2模拟器.exe)。Linux 构建需先安装上述模块，再切换目标平台并单独输出。
+构建完成后运行输出目录内的 EXE，使用上述 Agent 命令验证连接。运行和打包时保留全部输出文件；使用[便携打包工具](../tools/unity-packager/README.md) 生成 GitHub Release 的单文件 EXE，Unity 的普通 Build 不会自动发布。Linux 构建需先安装上述模块，再切换目标平台并单独输出。
 
 Agent 接入见[示例说明](../example/x2_agent/README.md)，自定义 Agent 见[网关协议](interface.md)。

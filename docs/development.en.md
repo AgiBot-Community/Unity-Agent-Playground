@@ -67,11 +67,24 @@ Record the model, speech resources, results and per-stage timings. Separate reco
 - Cover behavior changes with local mock tests; check relative links and language coverage for documentation changes.
 - Chinese files have no suffix; English uses `.en.md`, French `.fr.md`. Keep technical identifiers unchanged.
 - Documentation tables, links and entry points refer only to files maintained in Git; check ignore rules for new files. Use the [repository rules](../.gitignore) and [configuration template](../example/x2_agent/.env.example). Never commit personal credentials.
-- `exe/x2模拟器.exe` is a deliberate release artifact; do not ignore all `*.exe` files. Record size, SHA-256 and startup validation when replacing it.
+- Distribute the portable EXE and checksum only as GitHub Release assets, never in Git. `exe/`, `build/`, and `release/` are ignored local output directories. Require an EXE smaller than 100,000,000 bytes and record its size, SHA-256, and startup validation.
 - Do not make personal paths, temporary tools or scripts absent from the repository prerequisites for users.
 - Describe the problem, resulting behavior and validation in PRs. State when Unity or cloud testing was not performed.
 
 ## Unity and distribution boundaries
+
+Verify expression rendering with graphics enabled:
+
+```powershell
+& $unityEditor -batchmode -quit -projectPath "$PWD/unity-agent-playground" `
+  -executeMethod EmotionVerification.Run -logFile "$PWD/emotion-verification.log"
+```
+
+Do not add `-nographics`. The success marker is `EMOTION_VERIFICATION_PASSED`.
+Inspect `.diagnostics/emotions/atlas.png`: neutral, happy, sad, surprised,
+angry, love from left to right; idle above, speaking below. Checks cover board
+placement, rotation, dimensions, resolution, distinct silhouettes, preserved
+eyes/brows during speech, and timed neutral reset.
 
 For gesture changes, run the real-scene check:
 
@@ -88,7 +101,7 @@ Curves belong to `GestureMotion.cs`; smoothing, limits and lifecycle belong to `
 
 The [Unity project](../unity-agent-playground/) uses `2022.3.62f3c1`. The launcher, HUD and cameras are under `Assets/X02Competition/Bootstrap/`; regression checks are under `Assets/X02Competition/Tests/Editor/`. Build changes through Build Settings following the [Unity guide](unity.en.md), and keep the full output.
 
-The Git release files are [x2模拟器.exe](../exe/x2模拟器.exe) and its [checksum](../exe/x2模拟器.sha256). When replacing them, update the checksum and verify startup, Agent connections and view switching. A normal Unity Build does not automatically update these files.
+Attach the portable EXE and matching checksum to the same [GitHub Release](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases). Package the Unity build, verify startup, Agent connections and view switching, then upload both assets. A normal Unity Build does not automatically package or publish them.
 
 For a batch Windows x64 Player build:
 

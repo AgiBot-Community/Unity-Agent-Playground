@@ -70,11 +70,24 @@ Notez le modèle, les ressources vocales, les résultats et les délais par éta
 - Accompagner les changements de comportement de tests locaux ; vérifier les liens relatifs et les trois langues pour la documentation.
 - Le chinois n’a pas de suffixe ; l’anglais utilise `.en.md`, le français `.fr.md`. Conserver les identifiants techniques.
 - Les tableaux, liens et points d’entrée documentés concernent uniquement les fichiers gérés dans Git ; vérifier les règles pour les nouveaux fichiers. Suivre les [règles du dépôt](../.gitignore) et le [modèle de configuration](../example/x2_agent/.env.example). Ne jamais versionner de clés personnelles.
-- `exe/x2模拟器.exe` est un livrable volontaire ; ne pas ignorer tous les `*.exe`. Noter taille, SHA-256 et vérification de lancement lors d’un remplacement.
+- Distribuer l’EXE portable et son empreinte uniquement comme pièces jointes GitHub Release, jamais dans Git. `exe/`, `build/` et `release/` sont des dossiers locaux ignorés. Exiger un EXE inférieur à 100 000 000 octets et consigner taille, SHA-256 et vérification de lancement.
 - Ne pas imposer de chemins personnels, outils temporaires ou scripts absents du dépôt aux utilisateurs.
 - Une PR décrit le problème, le comportement final et les vérifications. Préciser les essais Unity ou cloud non effectués.
 
 ## Unity et distribution
+
+Vérifiez les expressions avec le rendu graphique activé :
+
+```powershell
+& $unityEditor -batchmode -quit -projectPath "$PWD/unity-agent-playground" `
+  -executeMethod EmotionVerification.Run -logFile "$PWD/emotion-verification.log"
+```
+
+N’ajoutez pas `-nographics`. Le marqueur de succès est `EMOTION_VERIFICATION_PASSED`.
+Inspectez `.diagnostics/emotions/atlas.png` : neutral, happy, sad, surprised,
+angry, love de gauche à droite ; repos en haut, parole en bas. Les contrôles
+couvrent position, rotation, dimensions et résolution du panneau, différences
+de silhouettes, maintien des yeux/sourcils pendant la parole et retour temporisé.
 
 Pour modifier les gestes, lancez la vérification dans la scène réelle :
 
@@ -92,7 +105,7 @@ le lissage, les limites et le cycle de vie dans `GesturePlayer.cs`.
 
 Le [projet Unity](../unity-agent-playground/) utilise `2022.3.62f3c1`. Le lanceur, le HUD et les caméras sont dans `Assets/X02Competition/Bootstrap/`, les vérifications dans `Assets/X02Competition/Tests/Editor/`. Compilez les changements via Build Settings selon le [guide Unity](unity.fr.md), puis conservez toute la sortie.
 
-Les livrables Git sont [x2模拟器.exe](../exe/x2模拟器.exe) et son [empreinte](../exe/x2模拟器.sha256). Lors de leur remplacement, actualisez l’empreinte et vérifiez le démarrage, les connexions Agent et le changement de vue. Un Build Unity normal ne met pas automatiquement à jour ces fichiers.
+Joignez l’EXE portable et son empreinte à la même [GitHub Release](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases). Après empaquetage, vérifiez le démarrage, les connexions Agent et le changement de vue, puis téléversez les deux fichiers. Un Build Unity normal ne les empaquette ni ne les publie automatiquement.
 
 Pour compiler le Player Windows x64 en batch :
 
