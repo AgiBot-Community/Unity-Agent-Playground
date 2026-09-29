@@ -1,10 +1,10 @@
 # X2 simulator · portable executable
 
-[中文](simulator.md) | **English** | [Français](simulator.fr.md)
+[中文](../zh-CN/simulator.md) | **English** | [Français](../fr/simulator.md)
 
-Use this guide to run the portable Windows simulator. Open [x2模拟器.exe](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases): the robot appears and its gateway waits on `127.0.0.1:9002`. Press **F1** to test skills with the debug buttons. Voice conversations require the separate [Python agent](../example/x2_agent/docs/README.en.md), which sends the greeting after connecting.
+The Windows simulator is distributed as a single EXE. It displays the robot and listens on `127.0.0.1:9002`. Press **F1** to test skills with the debug buttons. Voice conversations require the separate [Python agent](../../example/x2_agent/docs/en/README.md).
 
-Distribute this EXE alone: no Data folder, Python, credentials or Playground checkout is needed to run the simulator. On first launch it extracts the Unity resources in the background under `%LOCALAPPDATA%\UnityPortable`. Real voice conversations still require the separate agent. Verify each build against its [SHA-256 checksum](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases).
+On first launch, Unity resources are extracted under `%LOCALAPPDATA%\UnityPortable`; subsequent launches reuse the cache. The simulator runs without Unity or Python installed. Configure the agent's dependencies and credentials separately.
 
 ## Runtime
 
@@ -30,7 +30,7 @@ python -m pip install -r example/x2_agent/requirements.txt
 python example/x2_agent/demo.py
 ```
 
-`state=online` confirms the connection. The demo uses fixed text and supplied audio without cloud services. For real conversations, configure credentials using `.env.example` as described in the [Agent guide](../example/x2_agent/docs/README.en.md), stop the demo, and run `python example/x2_agent/agent.py`. Close the window to stop the simulator; Ctrl+C stops the Agent.
+`state=online` confirms the connection. The demo uses fixed text and supplied audio without cloud services. For real conversations, configure credentials using `.env.example` as described in the [Agent guide](../../example/x2_agent/docs/en/README.md), stop the demo, and run `python example/x2_agent/agent.py`. Close the window to stop the simulator; Ctrl+C stops the Agent.
 
 ## Camera views
 
@@ -45,13 +45,8 @@ Press **C** to cycle views, or use the camera buttons in the debug panel:
 
 Every view frames the robot's full bounds and reserves space for the HUD. Orbit zoom cannot crop the robot. Follow views retain ground references and a small movement dead zone. Collapse the detailed panel with F1 for more viewing space in small windows.
 
-## Start from the Unity project
+## Editing and building
 
-Use the repository's [Unity project](../unity-agent-playground/) to change scenes, cameras, skills or the gateway:
+See the [Unity guide](unity.md) to change scenes, cameras, skills or the gateway. Editor Play mode uses the same shortcuts and agent commands. Close the portable EXE before entering Play to avoid a port conflict.
 
-1. Follow the [Unity guide](unity.en.md) to download Unity Hub and the older **2022.3.62f3c1** Editor, then add `unity-agent-playground/` with **Add project from disk**.
-2. After import, open `Assets/X02Competition/Scenes/scene.unity`, press **Play** and focus the Game window.
-3. Use the same shortcuts and Agent commands above. Close the EXE before Play to avoid a port 9002 conflict.
-4. Follow the [Unity build guide](unity.en.md) using **File → Build Settings** to generate a Windows application; keep its complete output directory.
-
-The supplied single-file EXE is ready to run and distribute. A normal Unity Build creates a directory containing the application and its resources; keep that entire directory when distributing your build. Building does not automatically replace the repository EXE.
+Unity Build produces a complete directory containing the application and its resources. Use the [portable packager](../../tools/unity-packager/README.md) to package that directory as a single EXE.

@@ -1,14 +1,14 @@
 # Développement et maintenance
 
-[中文](development.md) | [English](development.en.md) | **Français**
+[中文](../zh-CN/development.md) | [English](../en/development.md) | **Français**
 
-Ce guide s’adresse aux développeurs qui modifient le client Python, la passerelle Unity ou les fichiers distribués. Pour une première utilisation, consultez le [démarrage rapide](README.fr.md). Cette page précise les responsabilités du code, les vérifications et la livraison.
+Cette page décrit les modules, tests et publications. Consultez le [démarrage rapide](README.md) pour une première utilisation et le [guide de contribution](CONTRIBUTING.md) pour les issues et pull requests.
 
 ## Environnement et lancement
 
-Démarrez le robot avec l’[EXE du dépôt](simulator.fr.md) ou la scène principale du [projet Unity](unity.fr.md) en mode Play. Les deux utilisent la même interface Agent ; n’en lancez qu’un à la fois.
+Pour les tests d’intégration, lancez le [simulateur portable](simulator.md) ou la scène principale du [projet Unity](unity.md) en mode Play. Les deux utilisent la même interface Agent ; exécutez une seule instance à la fois.
 
-Utilisez Python 3.10+. Dans `example/x2_agent/`, installez les dépendances tierces avec `python -m pip install -r requirements.txt`, puis lancez `python agent.py` ou `python demo.py`. Voir le [guide de l’agent](../example/x2_agent/docs/README.fr.md).
+Utilisez Python 3.10+. Dans `example/x2_agent/`, installez les dépendances tierces avec `python -m pip install -r requirements.txt`, puis lancez `python agent.py` ou `python demo.py`. Voir le [guide de l’agent](../../example/x2_agent/docs/fr/README.md).
 
 Chaque projet possède son `requirements.txt` ; `.env.example` et `.env` appartiennent uniquement à l’Agent vocal.
 Priorité Agent : arguments CLI > environnement existant > `example/x2_agent/.env` > valeurs par défaut.
@@ -65,16 +65,7 @@ Effectuez la validation manuelle en deux étapes :
 
 Notez le modèle, les ressources vocales, les résultats et les délais par étape. Distinguez l’enregistrement et la détection du silence du traitement cloud ; une mesure isolée ne garantit pas les performances.
 
-## Modifications et documentation
-
-- Accompagner les changements de comportement de tests locaux ; vérifier les liens relatifs et les trois langues pour la documentation.
-- Le chinois n’a pas de suffixe ; l’anglais utilise `.en.md`, le français `.fr.md`. Conserver les identifiants techniques.
-- Les tableaux, liens et points d’entrée documentés concernent uniquement les fichiers gérés dans Git ; vérifier les règles pour les nouveaux fichiers. Suivre les [règles du dépôt](../.gitignore) et le [modèle de configuration](../example/x2_agent/.env.example). Ne jamais versionner de clés personnelles.
-- Distribuer l’EXE portable et son empreinte uniquement comme pièces jointes GitHub Release, jamais dans Git. `exe/`, `build/` et `release/` sont des dossiers locaux ignorés. Exiger un EXE inférieur à 100 000 000 octets et consigner taille, SHA-256 et vérification de lancement.
-- Ne pas imposer de chemins personnels, outils temporaires ou scripts absents du dépôt aux utilisateurs.
-- Une PR décrit le problème, le comportement final et les vérifications. Préciser les essais Unity ou cloud non effectués.
-
-## Unity et distribution
+## Tests des composants Unity
 
 Vérifiez les expressions avec le rendu graphique activé :
 
@@ -103,7 +94,9 @@ le CSV articulaire et les mesures sont dans `.diagnostics/gesture-polish/`.
 Sans microphone ni service cloud. Les courbes sont dans `GestureMotion.cs`,
 le lissage, les limites et le cycle de vie dans `GesturePlayer.cs`.
 
-Le [projet Unity](../unity-agent-playground/) utilise `2022.3.62f3c1`. Le lanceur, le HUD et les caméras sont dans `Assets/X02Competition/Bootstrap/`, les vérifications dans `Assets/X02Competition/Tests/Editor/`. Compilez les changements via Build Settings selon le [guide Unity](unity.fr.md), puis conservez toute la sortie.
+## Compilation et publication
+
+Le [projet Unity](../../unity-agent-playground/) utilise `2022.3.62f3c1`. Le lanceur, le HUD et les caméras sont dans `Assets/X02Competition/Bootstrap/`, les vérifications dans `Assets/X02Competition/Tests/Editor/`. Compilez les changements via Build Settings selon le [guide Unity](unity.md), puis conservez toute la sortie.
 
 Joignez l’EXE portable et son empreinte à la même [GitHub Release](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases). Après empaquetage, vérifiez le démarrage, les connexions Agent et le changement de vue, puis téléversez les deux fichiers. Un Build Unity normal ne les empaquette ni ne les publie automatiquement.
 
@@ -117,3 +110,11 @@ Pour compiler le Player Windows x64 en batch :
 
 `-x2Output` doit être un chemin EXE absolu. Vérifiez `X2_WINDOWS_BUILD_PASSED`,
 puis empaquetez tout le dossier Player avec `tools/unity-packager/pack-x2.ps1`.
+
+Pour publier :
+
+1. Nommez l’exécutable `x2-simulator-windows-x64.exe` et vérifiez que le fichier `.sha256` indique ce nom exact.
+2. Vérifiez le démarrage, les connexions Agent, les actions et les caméras. Notez la version, la taille et le SHA-256.
+3. Téléversez l’EXE et son empreinte dans la même GitHub Release.
+
+`exe/`, `build/` et `release/` sont des dossiers locaux ignorés. Les fichiers distribués ne sont pas versionnés dans le dépôt source.

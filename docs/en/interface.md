@@ -1,16 +1,16 @@
 # X2 agent gateway protocol
 
-[中文](interface.md) | **English** | [Français](interface.fr.md)
+[中文](../zh-CN/interface.md) | **English** | [Français](../fr/interface.md)
 
 Protocol reference v1.0, aligned with LinkSoul AgentSDK v1.4.0. Use this page to implement a client for the repository's Unity gateway. Unity is the WebSocket server and the agent is the client. The gateway captures microphone audio, plays returned PCM, displays text and executes skills. Confirm device capabilities separately when integrating real hardware.
 
-Before integration, start the robot using the [EXE guide](simulator.en.md) or [Unity project guide](unity.en.md), then connect using the [Agent guide](../example/x2_agent/docs/README.en.md). Both routes use the same gateway protocol.
+Before integration, start the robot using the [EXE guide](simulator.md) or [Unity project guide](unity.md), then connect using the [Agent guide](../../example/x2_agent/docs/en/README.md). Both routes use the same gateway protocol.
 
 ## Connection and authentication
 
 Endpoint: `ws://<robot-host>:9002/api/V1/open-portal/app/wss/agent-sdk`. Messages are JSON text frames; audio is base64 PCM. Up to eight clients may connect by default (`CompetitionLauncher.MaxConnections`). Disable WebSocket compression (`compression=None` in the Python client).
 
-Use `127.0.0.1` for local connections. Remote access requires changing the gateway's listen address and making its port reachable; see the [Unity configuration guide](unity.en.md).
+Use `127.0.0.1` for local connections. Remote access requires changing the gateway's listen address and making its port reachable; see the [Unity configuration guide](unity.md).
 
 | Header | Value |
 |---|---|
@@ -28,7 +28,7 @@ payload = "GET\n" + path + "\n" + ts + "\n" + nonce
 signature = hmac.new(app_secret.encode(), payload.encode(), hashlib.sha256).hexdigest()
 ```
 
-The path, including case, participates in the signature. Demo credentials are `demo-app` / `demo-key` / `demo-secret`. Clients always sign; enforcement depends on the gateway build. Do not assume permissive authentication. Changing it requires rebuilding the gateway from [Unity sources](../unity-agent-playground/).
+The path, including case, participates in the signature. Demo credentials are `demo-app` / `demo-key` / `demo-secret`. Clients always sign; enforcement depends on the gateway build. Do not assume permissive authentication. Changing it requires rebuilding the gateway from [Unity sources](../../unity-agent-playground/).
 
 | HTTP status | Meaning |
 |---|---|
@@ -40,7 +40,7 @@ The path, including case, participates in the signature. Demo credentials are `d
 
 Wait for `agentsdk.robot_state.sync` with `state=online`, but do not assume it is the first frame: audio events may arrive earlier. Reconnect after a disconnect; the example uses a three-second retry interval. No application heartbeat is required by this gateway.
 
-## Envelope
+## Sessions and priorities
 
 Multi-client headers: `X-Client-Role` (`agent` by default, or `controller` / `observer`),
 `X-Client-Name` (ASCII display name), `X-Audio-Enabled` (`true` for agents by default,
@@ -71,6 +71,8 @@ The first connected controller retains administration via `managementOwnerCid`, 
 actions. Session entries expose `controlEnabled`; online sync also exposes `controlEnabled` and `canManage`.
 Success broadcasts state; invalid requests return `4093`. Agents should apply authority changes on receipt,
 including during an active voice round, and recheck authority before dispatching a skill.
+
+## Envelope
 
 ```json
 {
@@ -141,7 +143,7 @@ PCM playback starts as chunks arrive. LLM text and TTS audio may interleave: do 
 
 ## Skills and interrupts
 
-This table describes the default Unity skill catalog. After changing skills, rebuild and validate the target application; see the [Unity guide](unity.en.md) for configuration locations.
+This table describes the default Unity skill catalog. After changing skills, rebuild and validate the target application; see the [Unity guide](unity.md) for configuration locations.
 
 | `skillType` | `skillName` | `skillParam` |
 |---|---|---|
@@ -166,7 +168,7 @@ An explicit interrupt stops TTS and current movement/gestures. Speaking during p
 Replacing, stopping or interrupting a running movement or gesture also reports `failed`
 for the old command, so clients can finish waiting for its terminal state.
 
-## Audio and timing
+## Gesture timing
 
 Default gesture timing is about 6 seconds for `wave_hands` and 6.5 seconds for `open_arms`.
 Waving raises a bent right arm and uses a small wrist-led swing; opening the arms uses a rounded,
@@ -176,6 +178,8 @@ current targets. Interruption reports `failed` immediately and returns smoothly 
 The final settling can slightly extend nominal duration; wait for `done` when chaining actions.
 Gestures do not command the waist, root or legs, and an episode reset cancels the old trajectory.
 
+## Audio and timing
+
 Audio is 16,000 Hz, signed 16-bit mono PCM, base64-encoded in JSON. Typical upstream chunks are 100 ms = 1,600 samples = 3,200 bytes. Voice activity detection (VAD) defaults in `Assets/X02Competition/Robot/Audio/VadGate.cs` are RMS start 0.02, stop 0.008, silence 600 ms and maximum turn 15,000 ms. The portable application does not expose every setting; use runtime logs for actual timing. VAD pauses during TTS to avoid recording the robot's own voice.
 
 A normal turn is `start → append × N → commit → ASR final`, followed by interleaved LLM deltas and TTS chunks, completion messages and optional skill status. Distinguish recording/silence time, post-commit ASR wait, first LLM token and first audio latency. There is no fixed end-to-end latency guarantee.
@@ -184,4 +188,4 @@ A normal turn is `start → append × N → commit → ASR final`, followed by i
 
 Unknown message types are ignored. Some types, including `llm_response.item.done`, `vlm_*`, `greet_*` and `xlm_response.control`, may be logged but not acted upon in this gateway version. Keep completion messages for protocol compatibility.
 
-**F1** toggles the Unity panel showing connection state, ASR/LLM text and skill events. Buttons execute skills locally. After synchronization, the agent sends a greeting as LLM text and TTS audio. In `agent.py`, `--greeting` changes text and synthesized speech; in the demo it changes captions only and retains the recording. An empty value disables the greeting. See the [example guide](../example/x2_agent/docs/README.en.md).
+**F1** toggles the Unity panel showing connection state, ASR/LLM text and skill events. Buttons execute skills locally. After synchronization, the agent sends a greeting as LLM text and TTS audio. In `agent.py`, `--greeting` changes text and synthesized speech; in the demo it changes captions only and retains the recording. An empty value disables the greeting. See the [example guide](../../example/x2_agent/docs/en/README.md).

@@ -1,14 +1,14 @@
 # Development and maintenance
 
-[中文](development.md) | **English** | [Français](development.fr.md)
+[中文](../zh-CN/development.md) | **English** | [Français](../fr/development.md)
 
-Use this guide when changing the Python client, Unity gateway or release files. For a first run, start with the [quick start](README.en.md); this page covers code responsibilities, validation and delivery.
+This page covers module responsibilities, tests and releases. See the [quick start](README.md) for a first run and the [contributing guide](CONTRIBUTING.md) for issues and pull requests.
 
 ## Environment and entry points
 
-Start the robot using either the [repository EXE](simulator.en.md) or the main scene in the [Unity project](unity.en.md) in Play mode. Both use the same Agent interface; run one at a time.
+For integration tests, start the [portable simulator](simulator.md) or the main scene in the [Unity project](unity.md) in Play mode. Both use the same agent interface; run one instance at a time.
 
-Use Python 3.10+. In `example/x2_agent/`, install third-party dependencies with `python -m pip install -r requirements.txt`, then run `python agent.py` or `python demo.py`. See the [agent guide](../example/x2_agent/docs/README.en.md).
+Use Python 3.10+. In `example/x2_agent/`, install third-party dependencies with `python -m pip install -r requirements.txt`, then run `python agent.py` or `python demo.py`. See the [agent guide](../../example/x2_agent/docs/en/README.md).
 
 Each project owns its `requirements.txt`; `.env.example` and `.env` belong only to the voice Agent.
 Agent configuration precedence is CLI arguments > existing environment variables > `example/x2_agent/.env` > defaults.
@@ -39,7 +39,7 @@ cd ../..
 
 Tests use local mock services, with no Unity or API keys.
 
-The Unity audit regression enters real Play Mode and checks short audio, bounded input,
+The Unity regression suite enters Play Mode and checks short audio, bounded input,
 skill cancellation, WebSocket fragmentation/limits/slow-peer shutdown and log forwarding:
 
 ```powershell
@@ -62,16 +62,7 @@ Validate manually in two stages:
 
 Record the model, speech resources, results and per-stage timings. Separate recording and silence detection from cloud processing; a single measurement is not a performance guarantee.
 
-## Changes and documentation
-
-- Cover behavior changes with local mock tests; check relative links and language coverage for documentation changes.
-- Chinese files have no suffix; English uses `.en.md`, French `.fr.md`. Keep technical identifiers unchanged.
-- Documentation tables, links and entry points refer only to files maintained in Git; check ignore rules for new files. Use the [repository rules](../.gitignore) and [configuration template](../example/x2_agent/.env.example). Never commit personal credentials.
-- Distribute the portable EXE and checksum only as GitHub Release assets, never in Git. `exe/`, `build/`, and `release/` are ignored local output directories. Require an EXE smaller than 100,000,000 bytes and record its size, SHA-256, and startup validation.
-- Do not make personal paths, temporary tools or scripts absent from the repository prerequisites for users.
-- Describe the problem, resulting behavior and validation in PRs. State when Unity or cloud testing was not performed.
-
-## Unity and distribution boundaries
+## Unity component tests
 
 Verify expression rendering with graphics enabled:
 
@@ -99,7 +90,9 @@ Look for `GESTURE_VERIFICATION_PASSED`. Front/oblique screenshots, sampled joint
 are written to `.diagnostics/gesture-polish/`. No microphone or cloud service is used.
 Curves belong to `GestureMotion.cs`; smoothing, limits and lifecycle belong to `GesturePlayer.cs`.
 
-The [Unity project](../unity-agent-playground/) uses `2022.3.62f3c1`. The launcher, HUD and cameras are under `Assets/X02Competition/Bootstrap/`; regression checks are under `Assets/X02Competition/Tests/Editor/`. Build changes through Build Settings following the [Unity guide](unity.en.md), and keep the full output.
+## Building and releasing
+
+The [Unity project](../../unity-agent-playground/) uses `2022.3.62f3c1`. The launcher, HUD and cameras are under `Assets/X02Competition/Bootstrap/`; regression checks are under `Assets/X02Competition/Tests/Editor/`. Build changes through Build Settings following the [Unity guide](unity.md), and keep the full output.
 
 Attach the portable EXE and matching checksum to the same [GitHub Release](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases). Package the Unity build, verify startup, Agent connections and view switching, then upload both assets. A normal Unity Build does not automatically package or publish them.
 
@@ -113,3 +106,11 @@ For a batch Windows x64 Player build:
 
 `-x2Output` must be an absolute EXE path. Look for `X2_WINDOWS_BUILD_PASSED`,
 then package the complete Player directory with `tools/unity-packager/pack-x2.ps1`.
+
+For a release:
+
+1. Name the asset `x2-simulator-windows-x64.exe` and ensure the `.sha256` file names that exact EXE.
+2. Verify startup, agent connections, skills and camera switching. Record the build version, size and SHA-256.
+3. Upload the EXE and checksum to the same GitHub Release.
+
+`exe/`, `build/` and `release/` are ignored local directories. Keep release assets out of the source repository.

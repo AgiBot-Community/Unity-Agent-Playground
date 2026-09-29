@@ -1,10 +1,10 @@
 # Unity 工程
 
-**中文** | [English](unity.en.md) | [Français](unity.fr.md)
+**中文** | [English](../en/unity.md) | [Français](../fr/unity.md)
 
-本指南带你安装指定版本的编辑器、导入工程、运行机器人场景并构建 Windows 程序。只想体验机器人时，可直接使用[便携模拟器](simulator.md)。两种方式启动后，都可连接[示例 Agent](../example/x2_agent/README.md)。
+Unity 工程包含机器人场景、网关和技能源码，可用于修改与构建模拟器。运行已构建的 Windows 版本见[便携模拟器](simulator.md)，语音配置见[示例 Agent](../../example/x2_agent/docs/zh-CN/README.md)。
 
-[unity-agent-playground/](../unity-agent-playground/) 提供 X2 机器人模型、Agent 网关、动作、表情和步态源码。工程记录的编辑器版本是 **2022.3.62f3c1**，URP、Sentis、ML-Agents、URDF Importer 等依赖以工程配置和随附本地包为准。
+[unity-agent-playground/](../../unity-agent-playground/) 提供 X2 机器人模型、Agent 网关、动作、表情和步态源码。工程记录的编辑器版本是 **2022.3.62f3c1**，URP、Sentis、ML-Agents、URDF Importer 等依赖以工程配置和随附本地包为准。
 
 ## 安装 Unity Hub 和编辑器
 
@@ -36,11 +36,11 @@
 
 通过 Hub 安装的编辑器，可在 **Installs → Manage → Add modules** 添加模块。通过独立安装程序安装、再用 Locate 登记的编辑器通常没有此选项；Locate 不会将其转换为 Hub 管理的安装。若需要由 Hub 管理模块，按官方说明通过 Hub 重新安装所需编辑器。工程中的 Linux 工具链包不能替代 Editor 的平台构建模块。
 
-官方下载依据（2026-09-23 联网核对）：[中国发布页](https://unity.cn/releases)、[全球归档](https://unity.com/releases/editor/archive)、[Hub 安装旧版与 Locate 说明](https://docs.unity.com/en-us/hub/add-editor)、[构建模块说明](https://docs.unity.com/en-us/hub/add-modules)。已核对 Windows 安装链接可访问，未在本次文档更新中下载安装程序。
+相关参考：[Hub 编辑器安装与 Locate](https://docs.unity.com/en-us/hub/add-editor)、[构建模块管理](https://docs.unity.com/en-us/hub/add-modules)。
 
 ## 添加独立工程
 
-该目录可整体复制为独立工程，打开时不依赖外层仓库。ML-Agents 和 URDF Importer 两个随附源码包已作为嵌入式包放入 `Packages/`；首次导入仍需联网获取注册表依赖。详见工程内的[独立打开说明](../unity-agent-playground/README.md)。
+该目录可整体复制为独立工程，打开时不依赖外层仓库。ML-Agents 和 URDF Importer 两个随附源码包已作为嵌入式包放入 `Packages/`；首次导入仍需联网获取注册表依赖。详见工程内的[独立打开说明](../../unity-agent-playground/README.md)。
 
 下载仓库后先完整解压。目录结构应为：
 
@@ -69,9 +69,9 @@ python -m pip install -r example/x2_agent/requirements.txt
 python example/x2_agent/demo.py
 ```
 
-demo 不需要云服务密钥。真实语音对话的配置见[示例说明](../example/x2_agent/README.md)；配置完成后，先按 Ctrl+C 退出 demo，再运行 `python example/x2_agent/agent.py`。Python 使用直接启动脚本的方式，无需安装本仓库为 Python 包。单独复制 Unity 工程的用户需另外准备兼容的 Agent 客户端。
+demo 不需要云服务密钥。真实语音对话的配置见[示例说明](../../example/x2_agent/docs/zh-CN/README.md)；配置完成后，先按 Ctrl+C 退出 demo，再运行 `python example/x2_agent/agent.py`。Python 使用直接启动脚本的方式，无需安装本仓库为 Python 包。单独复制 Unity 工程的用户需另外准备兼容的 Agent 客户端。
 
-看到 Agent 终端中的 `state=online` 表示连接成功。再次点击 Play 可停止场景，Ctrl+C 停止 Agent。源码修改不会自动更新仓库便携 EXE。
+看到 Agent 终端中的 `state=online` 表示连接成功。再次点击 Play 可停止场景，Ctrl+C 停止 Agent。源码修改后需重新构建并打包便携 EXE。
 
 **C** 轮换观察视角；**F2** 全景、**F3** 正面跟随、**F4** 侧面跟随、**F5** 自由环绕。自由环绕支持在场景内按住鼠标右键旋转、滚轮调节距离。所有视角自动保留机器人全身；也可在 F1 面板点击视角按钮。
 
@@ -107,6 +107,6 @@ demo 不需要云服务密钥。真实语音对话的配置见[示例说明](../
 3. 在 Player Settings 中启用 `Run In Background`，让窗口失去焦点时仍可处理 Agent 消息。
 4. 点击 **Build**，选择 `Assets/` 之外的专用空输出目录，等待构建完成。
 
-构建完成后运行输出目录内的 EXE，使用上述 Agent 命令验证连接。运行和打包时保留全部输出文件；使用[便携打包工具](../tools/unity-packager/README.md) 生成 GitHub Release 的单文件 EXE，Unity 的普通 Build 不会自动发布。Linux 构建需先安装上述模块，再切换目标平台并单独输出。
+构建完成后运行输出目录内的 EXE，使用上述 Agent 命令验证连接。运行和打包时保留全部输出文件；使用[便携打包工具](../../tools/unity-packager/README.md) 生成 GitHub Release 的单文件 EXE，Unity 的普通 Build 不会自动发布。Linux 构建需先安装上述模块，再切换目标平台并单独输出。
 
-Agent 接入见[示例说明](../example/x2_agent/README.md)，自定义 Agent 见[网关协议](interface.md)。
+Agent 接入见[示例说明](../../example/x2_agent/docs/zh-CN/README.md)，自定义 Agent 见[网关协议](interface.md)。

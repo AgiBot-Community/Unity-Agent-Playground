@@ -1,14 +1,14 @@
 # 开发与维护
 
-**中文** | [English](development.en.md) | [Français](development.fr.md)
+**中文** | [English](../en/development.md) | [Français](../fr/development.md)
 
-本指南面向修改 Python 客户端、Unity 网关或发布文件的开发者。首次运行请先阅读[快速开始](../README.md)；这里重点说明代码职责、验证步骤和交付要求。
+本页记录模块职责、测试和发布流程。首次运行见[快速开始](../../README.md)，Issue 与 Pull Request 的提交方式见[贡献指南](../../CONTRIBUTING.md)。
 
 ## 环境与入口
 
-先启动机器人侧：直接运行 [仓库 EXE](simulator.md)，或通过 [Unity 工程](unity.md) 打开主场景并进入 Play。两者使用相同的 Agent 接口，不同时启动。
+联调时先运行[便携模拟器](simulator.md)，或在 [Unity 工程](unity.md)中打开主场景并进入 Play。两者使用相同的 Agent 接口，同一时间运行一个实例。
 
-使用 Python 3.10+，在 `example/x2_agent/` 中执行 `python -m pip install -r requirements.txt` 安装第三方依赖，再运行 `python agent.py` 或 `python demo.py`。完整步骤见 [Agent 指南](../example/x2_agent/README.md)。
+使用 Python 3.10+，在 `example/x2_agent/` 中执行 `python -m pip install -r requirements.txt` 安装第三方依赖，再运行 `python agent.py` 或 `python demo.py`。完整步骤见 [Agent 指南](../../example/x2_agent/docs/zh-CN/README.md)。
 
 两个项目分别维护自己的 `requirements.txt`；语音配置 `.env.example` 和 `.env` 仅属于 Agent。
 Agent 配置优先级为命令行参数 > 已有环境变量 > `example/x2_agent/.env` > 默认值；
@@ -39,7 +39,7 @@ cd ../..
 
 请使用已安装本项目依赖的 Python。测试使用本机模拟服务，不需要 Unity 或 API Key。
 
-Unity 侧的审计回归会进入真实 Play Mode，验证短音频、输入缓存、技能取消、
+Unity 回归测试进入 Play Mode，验证短音频、输入缓存、技能取消、
 WebSocket 分片与大小限制、慢客户端关闭以及 Unity 日志外发。在仓库根目录执行：
 
 ```powershell
@@ -62,16 +62,7 @@ WebSocket 分片与大小限制、慢客户端关闭以及 Unity 日志外发。
 
 记录所用模型、语音资源、测试结果和各阶段耗时。区分录音时间、静音检测和云端处理时间，避免把一次测量当作固定性能。
 
-## 提交与文档
-
-- 功能变更包含相应的本机模拟测试；文档变更检查相对链接和三语覆盖。
-- 中文无后缀，英文 `.en.md`，法文 `.fr.md`；技术标识保持原样。
-- 文档的目录表、链接和操作入口只引用纳入 Git 管理的文件；新增文件先确认不被忽略规则排除。忽略范围见 [仓库规则](../.gitignore)，配置以 [模板](../example/x2_agent/.env.example) 为准；个人密钥不提交。
-- 便携 EXE 与校验文件仅作为 GitHub Release 附件分发，不纳入 Git；`exe/`、`build/`、`release/` 均为本地产物目录。发布 EXE 必须小于 100,000,000 字节，记录体积、SHA-256 和启动验证。
-- 不将维护者个人路径、临时工具或未随仓库交付的脚本写成使用前提。
-- PR 说明应包含问题、最终行为和验证结果；未做的云端或 Unity 测试应明确注明。
-
-## Unity 源码与发布文件
+## Unity 专项测试
 
 表情修改可运行画板渲染验证：
 
@@ -98,7 +89,9 @@ episode reset；成功标记为 `GESTURE_VERIFICATION_PASSED`。测试自行退�
 测试关闭麦克风，不调用云服务。动作曲线位于 `GestureMotion.cs`，
 运行时平滑、限位和生命周期处理位于 `GesturePlayer.cs`。
 
-Unity 工程位于 [unity-agent-playground/](../unity-agent-playground/)，使用 `2022.3.62f3c1`。启动入口、HUD 和相机位于 `Assets/X02Competition/Bootstrap/`，回归检查位于 `Assets/X02Competition/Tests/Editor/`。修改后按 [Unity 指南](unity.md) 使用 Build Settings 构建，并保留完整输出。
+## 构建与发布
+
+Unity 工程位于 [unity-agent-playground/](../../unity-agent-playground/)，使用 `2022.3.62f3c1`。启动入口、HUD 和相机位于 `Assets/X02Competition/Bootstrap/`，回归检查位于 `Assets/X02Competition/Tests/Editor/`。修改后按 [Unity 指南](unity.md) 使用 Build Settings 构建，并保留完整输出。
 
 发布文件为同一 [GitHub Release](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases) 下的便携 EXE 和校验文件。构建后运行便携打包器，验证启动、Agent 连接与视角切换，再上传两个附件。普通 Unity Build 不会自动打包或发布。
 
@@ -112,3 +105,11 @@ Unity 工程位于 [unity-agent-playground/](../unity-agent-playground/)，使�
 
 `-x2Output` 必须是绝对 EXE 路径。成功标记为 `X2_WINDOWS_BUILD_PASSED`；
 再使用 `tools/unity-packager/pack-x2.ps1` 将完整 Player 目录打包为便携 EXE。
+
+发布时：
+
+1. 使用 `x2-simulator-windows-x64.exe` 作为附件名，确保 `.sha256` 文件记录同名 EXE。
+2. 验证启动、Agent 连接、技能与视角切换，记录构建版本、文件大小和 SHA-256。
+3. 将 EXE 和校验文件上传到同一个 GitHub Release。
+
+`exe/`、`build/` 和 `release/` 是被 Git 忽略的本地目录。发布附件不提交到源码仓库。

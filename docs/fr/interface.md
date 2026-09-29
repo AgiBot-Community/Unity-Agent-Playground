@@ -1,16 +1,16 @@
 # Protocole de la passerelle X2
 
-[中文](interface.md) | [English](interface.en.md) | **Français**
+[中文](../zh-CN/interface.md) | [English](../en/interface.md) | **Français**
 
 Référence v1.0, alignée sur LinkSoul AgentSDK v1.4.0. Cette page permet de développer un client pour la passerelle Unity du dépôt. Unity est le serveur WebSocket ; l’agent est le client. La passerelle capture le microphone, lit le PCM reçu, affiche le texte et exécute les actions. Vérifiez séparément les capacités de l’appareil lors d’une intégration matérielle.
 
-Avant l’intégration, lancez le robot avec le [guide EXE](simulator.fr.md) ou le [guide du projet Unity](unity.fr.md), puis connectez-le selon le [guide de l’Agent](../example/x2_agent/docs/README.fr.md). Les deux méthodes utilisent le même protocole.
+Avant l’intégration, lancez le robot avec le [guide EXE](simulator.md) ou le [guide du projet Unity](unity.md), puis connectez-le selon le [guide de l’Agent](../../example/x2_agent/docs/fr/README.md). Les deux méthodes utilisent le même protocole.
 
 ## Connexion et authentification
 
 Adresse : `ws://<robot-host>:9002/api/V1/open-portal/app/wss/agent-sdk`. Les messages sont des trames texte JSON ; l’audio est du PCM en base64. Huit clients peuvent se connecter par défaut (`CompetitionLauncher.MaxConnections`). Désactivez la compression WebSocket (`compression=None` en Python).
 
-Utilisez `127.0.0.1` pour une connexion locale. Un accès distant nécessite de modifier l’adresse d’écoute de la passerelle et de rendre son port accessible ; consultez la [configuration Unity](unity.fr.md).
+Utilisez `127.0.0.1` pour une connexion locale. Un accès distant nécessite de modifier l’adresse d’écoute de la passerelle et de rendre son port accessible ; consultez la [configuration Unity](unity.md).
 
 | En-tête | Valeur |
 |---|---|
@@ -28,7 +28,7 @@ payload = "GET\n" + path + "\n" + ts + "\n" + nonce
 signature = hmac.new(app_secret.encode(), payload.encode(), hashlib.sha256).hexdigest()
 ```
 
-Le chemin, avec sa casse exacte, participe à la signature. Identifiants de démonstration : `demo-app` / `demo-key` / `demo-secret`. Les clients signent toujours ; le contrôle dépend du build de la passerelle. Ne supposez pas un mode permissif. Sa modification nécessite de reconstruire la passerelle depuis les [sources Unity](../unity-agent-playground/).
+Le chemin, avec sa casse exacte, participe à la signature. Identifiants de démonstration : `demo-app` / `demo-key` / `demo-secret`. Les clients signent toujours ; le contrôle dépend du build de la passerelle. Ne supposez pas un mode permissif. Sa modification nécessite de reconstruire la passerelle depuis les [sources Unity](../../unity-agent-playground/).
 
 | Code HTTP | Signification |
 |---|---|
@@ -40,7 +40,7 @@ Le chemin, avec sa casse exacte, participe à la signature. Identifiants de dém
 
 Attendez `agentsdk.robot_state.sync` avec `state=online`, sans supposer qu’il s’agit de la première trame : des événements audio peuvent arriver avant. Après une déconnexion, reconnectez-vous ; l’exemple attend trois secondes. Aucun message périodique de maintien de connexion n’est imposé au niveau applicatif.
 
-## Enveloppe
+## Sessions et priorités
 
 En-têtes multi-client : `X-Client-Role` (`agent` par défaut, ou `controller` / `observer`),
 `X-Client-Name` (nom ASCII), `X-Audio-Enabled` (`true` par défaut pour agent, sinon `false` ;
@@ -73,6 +73,8 @@ La première console conserve la gestion via `managementOwnerCid`, même après 
 Les sessions exposent `controlEnabled` ; la synchronisation expose aussi `canManage`.
 Le succès diffuse un nouvel état, une demande invalide renvoie `4093`.
 Les Agents doivent appliquer les droits dès réception, même pendant un tour vocal, puis les revérifier avant une action.
+
+## Enveloppe
 
 ```json
 {
@@ -145,7 +147,7 @@ La lecture commence à l’arrivée des fragments PCM. Le texte LLM et l’audio
 
 ## Actions et interruptions
 
-Ce tableau décrit les actions Unity par défaut. Après toute modification, recompilez et vérifiez l’application cible ; le [guide Unity](unity.fr.md) indique où se trouvent les configurations.
+Ce tableau décrit les actions Unity par défaut. Après toute modification, recompilez et vérifiez l’application cible ; le [guide Unity](unity.md) indique où se trouvent les configurations.
 
 | `skillType` | `skillName` | `skillParam` |
 |---|---|---|
@@ -170,7 +172,7 @@ Une interruption explicite arrête le TTS et les mouvements/gestes en cours. Par
 Le remplacement, l’arrêt ou l’interruption d’un mouvement ou geste en cours produit aussi
 `failed` pour l’ancienne commande, afin de terminer l’attente de son état final.
 
-## Audio et délais
+## Durée des gestes
 
 Les gestes durent environ 6 secondes pour `wave_hands` et 6,5 secondes pour `open_arms`.
 Le salut lève le bras droit fléchi avec une légère oscillation du poignet ; l’ouverture des bras
@@ -181,6 +183,8 @@ Une interruption renvoie immédiatement `failed`, puis ramène doucement au repo
 La stabilisation finale peut allonger légèrement la durée ; attendez `done` avant d’enchaîner.
 Les gestes ne commandent ni taille, ni racine, ni jambes ; un reset annule l’ancienne trajectoire.
 
+## Audio et délais
+
 Audio PCM mono signé 16 bits à 16 000 Hz, encodé en base64 dans JSON. Un fragment montant fait généralement 100 ms, soit 1 600 échantillons ou 3 200 octets. Les valeurs de détection d’activité vocale (VAD) dans `Assets/X02Competition/Robot/Audio/VadGate.cs` sont : seuil RMS de départ 0,02, arrêt 0,008, silence 600 ms et tour maximal 15 000 ms. L’application portable n’expose pas tous les paramètres ; consultez les journaux pour les délais réels. Le VAD s’arrête pendant le TTS pour éviter de capter la voix du robot.
 
 Un tour suit `start → append × N → commit → ASR final`, puis les deltas LLM et fragments TTS entrelacés, les fins de flux et éventuellement les états d’action. Distinguez temps d’enregistrement/silence, attente ASR après commit, premier jeton LLM et premier audio. Aucun délai global fixe n’est garanti.
@@ -189,4 +193,4 @@ Un tour suit `start → append × N → commit → ASR final`, puis les deltas L
 
 Les types inconnus sont ignorés. Certains types, dont `llm_response.item.done`, `vlm_*`, `greet_*` et `xlm_response.control`, peuvent être journalisés sans action dans cette version. Conservez les messages de fin pour la compatibilité du protocole.
 
-**F1** affiche le panneau Unity : connexion, texte ASR/LLM et actions. Les boutons exécutent les actions localement. Après synchronisation, l’agent envoie l’accueil sous forme de texte LLM et d’audio TTS. Dans `agent.py`, `--greeting` modifie le texte et la synthèse vocale ; dans la démo, il modifie uniquement les sous-titres et conserve l’enregistrement. Une valeur vide désactive l’accueil. Voir le [guide de l’exemple](../example/x2_agent/docs/README.fr.md).
+**F1** affiche le panneau Unity : connexion, texte ASR/LLM et actions. Les boutons exécutent les actions localement. Après synchronisation, l’agent envoie l’accueil sous forme de texte LLM et d’audio TTS. Dans `agent.py`, `--greeting` modifie le texte et la synthèse vocale ; dans la démo, il modifie uniquement les sous-titres et conserve l’enregistrement. Une valeur vide désactive l’accueil. Voir le [guide de l’exemple](../../example/x2_agent/docs/fr/README.md).

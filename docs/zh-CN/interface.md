@@ -1,10 +1,10 @@
 # X2 机器人 Agent 网关协议
 
-**中文** | [English](interface.en.md) | [Français](interface.fr.md)
+**中文** | [English](../en/interface.md) | [Français](../fr/interface.md)
 
-协议参考版本：v1.0，与 LinkSoul AgentSDK v1.4.0 对齐。本页说明仓库中 Unity 网关的消息格式和行为，供自定义 Agent 客户端接入使用。真机接入时还需确认设备侧支持的能力。
+协议参考版本：v1.0，与 LinkSoul AgentSDK v1.4.0 对齐。本页定义 Unity 网关的消息格式和行为。真机的协议与技能支持需单独确认。
 
-开始联调前，先按 [EXE 运行说明](simulator.md) 或 [Unity 工程指南](unity.md) 启动机器人，再按 [示例 Agent 指南](../example/x2_agent/README.md) 连接；两种启动方式使用相同的网关协议。
+开始联调前，先按 [EXE 运行说明](simulator.md) 或 [Unity 工程指南](unity.md) 启动机器人，再按 [示例 Agent 指南](../../example/x2_agent/docs/zh-CN/README.md) 连接；两种启动方式使用相同的网关协议。
 
 ## 1. 概述
 
@@ -17,7 +17,7 @@
 ```
 ┌──────────────┐  WebSocket (JSON 文本帧)  ┌──────────────┐
 │   机器人网关   │ ◄──────────────────────► │  Agent 客户端 │
-│ (Unity/真机)  │   16k PCM base64 内嵌      │ (你的服务)   │
+│ (Unity/真机)  │   16k PCM base64 内嵌      │ (外部服务)   │
 └──────────────┘                           └──────────────┘
 ```
 
@@ -46,7 +46,7 @@
 | `X-Timestamp` | 毫秒 Unix 时间戳（±5 分钟内有效） |
 | `X-Nonce` | 随机串，每次连接唯一 |
 | `X-Signature` | 签名，见下 |
-| `X-Callback-Types` | 回调类型 JSON 数组，主路径填 `["audio2tts"]` |
+| `X-Callback-Types` | 回调类型 JSON 数组，语音交互使用 `["audio2tts"]` |
 
 **签名算法**（HMAC-SHA256，小写 hex）：
 
@@ -69,7 +69,7 @@ signature = hmac.new(app_secret.encode(), payload.encode(),
 | `503` | 已达到并发连接上限 |
 
 > 示例客户端始终发送签名。是否强制校验由网关构建配置决定；不要依赖宽松模式。
-> 修改 `StrictAuth` 后需从 [Unity 工程](../unity-agent-playground/) 重新构建网关。
+> 修改 `StrictAuth` 后需从 [Unity 工程](../../unity-agent-playground/) 重新构建网关。
 
 ### 2.4 会话生命周期
 
@@ -300,18 +300,16 @@ VAD 检测到用户开始说话时发送此消息。`audio2tts` 模式携带 `it
   "skillParam": {} }
 ```
 
-仿真技能表（`skillType` / `skillName` / `skillParam`）：
-
 下表对应 Unity 源码的默认技能表。修改技能后，应重新构建并验证目标程序；具体配置位置见 [Unity 工程指南](unity.md)。
 
 | skillType | skillName | skillParam | 说明 |
 |---|---|---|---|
-| gesture | `wave_hands` | — | 约 6 秒：屈肘抬起右手、手腕轻摆、柔和收回 |
-| gesture | `open_arms` | — | 约 6.5 秒：双臂弧形舒展、停留、缓慢收回 |
+| gesture | `wave_hands` | — | 挥手，名义时长约 6 秒 |
+| gesture | `open_arms` | — | 张开双臂，名义时长约 6.5 秒 |
 | movement | `walk` | `{"distanceM": 1.0}` | 前进指定米数（0.2~5） |
 | movement | `turn` | `{"angleDeg": 90}` | 原地转角（右转为正） |
 | movement | `stop` | — | 立即停止 |
-| emotion | `happy` / `sad` / `surprised` / `angry` / `love` / `neutral` | `{"durationMs": 3000}` | 头部表情屏（5 种经典表情 + 复位） |
+| emotion | `happy` / `sad` / `surprised` / `angry` / `love` / `neutral` | `{"durationMs": 3000}` | 头部表情屏，`neutral` 用于复位 |
 
 - 手势协调肩、肘、腕与头部 yaw，准备、表达和收回分阶段执行；双臂展开带轻微左右错峰。
 - 目标角度受关节限位与速度限制，切换手势从当前目标衔接；打断立即回报 `failed` 并平滑归位。
@@ -387,7 +385,7 @@ VAD 检测到用户开始说话时发送此消息。`audio2tts` 模式携带 `it
     │  （本轮复位，等待下一轮）        │
 ```
 
-**流式要点**：LLM delta 与 TTS 音频可交错到达，以上图示并非要求先完成 LLM 再开始 TTS。默认使用双向 TTS，逐句合成为兼容模式。延迟应区分录音与静音检测、commit 后 ASR 等待、LLM 首 token 和 TTS 首包；不保证固定的端到端耗时。
+LLM delta 与 TTS 音频可交错到达，无需等待 LLM 完成后再开始 TTS。默认使用双向 TTS，逐句合成为兼容模式。延迟测量分别记录录音与静音检测、commit 后 ASR 等待、LLM 首 token 和 TTS 首包。
 
 ## 7. 音频与 VAD 约定
 
@@ -410,9 +408,9 @@ VAD 检测到用户开始说话时发送此消息。`audio2tts` 模式携带 `it
 - 未知 `type` 同样忽略，向前兼容
 - Agent 侧心跳无强制要求，依赖 TCP 层保活
 
-## 9. 仿真演示说明（Unity exe / Play Mode）
+## 9. 调试（Unity EXE / Play Mode）
 
-- **调试面板**：默认隐藏，**F1** 呼出/隐藏（录屏时画面干净，收起态左上角保留状态与视角切换入口）。面板含连接状态、ASR/LLM 字幕、技能触发记录；按钮可手动触发技能（不经过 Agent，直接路由到 Unity 执行器），方便在无云端 Key 时验证动作
+- **调试面板**：**F1** 显示或隐藏，默认隐藏。面板显示连接状态、ASR/LLM 字幕和技能记录；按钮直接调用 Unity 执行器，无需 Agent 或云端密钥。
 - **技能按钮**：2 个基本动作（挥手/张臂）/ 5 种表情（开心/难过/惊讶/生气/爱心）/ 前进 1m / 右转 90° / 停止，与协议技能表一一对应
 - **开场播报**：Agent 收到 `robot_state.sync` 后主动发送一轮 LLM 文本和 TTS 音频，网关直接播放。`agent.py --greeting` 同时修改文本与合成语音；demo 的同名参数只修改字幕，保留内置录音。传入空值可禁用开场白。
 - **打断验证**：机器人播报中开口说话 → VAD 冻结到播完（半双工），Agent 下发 `interrupt` 则立即停播停动作

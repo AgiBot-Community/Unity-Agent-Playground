@@ -1,10 +1,10 @@
 # Projet Unity
 
-[中文](unity.md) | [English](unity.en.md) | **Français**
+[中文](../zh-CN/unity.md) | [English](../en/unity.md) | **Français**
 
-Ce guide explique comment installer l’éditeur requis, importer le projet, exécuter la scène du robot et compiler une application Windows. Pour essayer directement le robot, utilisez le [simulateur portable](simulator.fr.md). Les deux parcours permettent de connecter le même [agent d’exemple](../example/x2_agent/docs/README.fr.md).
+Le projet Unity contient la scène du robot, la passerelle et les sources des actions pour modifier et compiler le simulateur. Consultez le [guide du simulateur portable](simulator.md) pour exécuter une version Windows et le [guide de l’agent](../../example/x2_agent/docs/fr/README.md) pour configurer la voix.
 
-[unity-agent-playground/](../unity-agent-playground/) contient les modèles X2, la passerelle Agent et les sources des gestes, expressions et déplacements. La version d’éditeur enregistrée est **2022.3.62f3c1**. Les dépendances URP, Sentis, ML-Agents et URDF Importer suivent la configuration du projet et les paquets locaux fournis.
+[unity-agent-playground/](../../unity-agent-playground/) contient les modèles X2, la passerelle Agent et les sources des gestes, expressions et déplacements. La version d’éditeur enregistrée est **2022.3.62f3c1**. Les dépendances URP, Sentis, ML-Agents et URDF Importer suivent la configuration du projet et les paquets locaux fournis.
 
 ## Installer Unity Hub et l’éditeur
 
@@ -36,11 +36,11 @@ L’EXE portable de GitHub Releases fonctionne sans Unity Hub ni éditeur. Insta
 
 Pour un éditeur installé via Hub, utilisez **Installs → Manage → Add modules**. Un éditeur installé séparément puis ajouté avec Locate ne propose généralement pas cette option ; Locate ne transforme pas l’installation en une installation gérée par Hub. Pour gérer les modules avec Hub, suivez les instructions officielles et réinstallez l’éditeur requis via Hub. Les paquets de compilation Linux du projet ne remplacent pas les modules de plateforme.
 
-Sources officielles consultées en ligne le 2026-09-23 : [versions chinoises](https://unity.cn/releases), [archives mondiales](https://unity.com/releases/editor/archive), [installation des anciennes versions et Locate](https://docs.unity.com/en-us/hub/add-editor), [gestion des modules](https://docs.unity.com/en-us/hub/add-modules). Le lien Windows était accessible ; le programme d’installation n’a pas été téléchargé ni exécuté pour cette mise à jour documentaire.
+Références : [installation de l’éditeur et Locate](https://docs.unity.com/en-us/hub/add-editor), [gestion des modules](https://docs.unity.com/en-us/hub/add-modules).
 
 ## Ajouter le projet autonome
 
-Copiez le dossier entier pour utiliser le projet indépendamment du dépôt parent. Les deux paquets sources fournis, ML-Agents et URDF Importer, sont intégrés dans `Packages/` ; le premier import nécessite toujours un accès réseau pour les dépendances du registre. Consultez les [instructions autonomes du projet](../unity-agent-playground/README.md).
+Copiez le dossier entier pour utiliser le projet indépendamment du dépôt parent. Les deux paquets sources fournis, ML-Agents et URDF Importer, sont intégrés dans `Packages/` ; le premier import nécessite toujours un accès réseau pour les dépendances du registre. Consultez les [instructions autonomes du projet](../../unity-agent-playground/README.md).
 
 Décompressez entièrement le dépôt avant de l’ouvrir :
 
@@ -69,7 +69,7 @@ python -m pip install -r example/x2_agent/requirements.txt
 python example/x2_agent/demo.py
 ```
 
-La démo ne nécessite aucune clé cloud. Pour les conversations vocales, suivez le [guide de l’Agent](../example/x2_agent/docs/README.fr.md), arrêtez la démo avec Ctrl+C puis lancez `python example/x2_agent/agent.py`. Les scripts Python se lancent directement, sans installer ce dépôt comme paquet Python. Si vous avez copié uniquement le projet Unity, préparez un client Agent compatible séparément.
+La démo ne nécessite aucune clé cloud. Pour les conversations vocales, suivez le [guide de l’Agent](../../example/x2_agent/docs/fr/README.md), arrêtez la démo avec Ctrl+C puis lancez `python example/x2_agent/agent.py`. Les scripts Python se lancent directement, sans installer ce dépôt comme paquet Python. Si vous avez copié uniquement le projet Unity, préparez un client Agent compatible séparément.
 
 `state=online` dans le terminal Agent confirme la connexion. Cliquez de nouveau sur Play pour arrêter la scène et utilisez Ctrl+C pour arrêter l’agent. Les modifications des sources ne mettent pas automatiquement à jour l’EXE portable.
 
@@ -107,6 +107,6 @@ Configurez le port et `StrictAuth` sur le composant `CompetitionLauncher` de la 
 3. Activez `Run In Background` dans Player Settings pour traiter les messages de l’agent lorsque la fenêtre perd le focus.
 4. Cliquez sur **Build**, choisissez un dossier de sortie vide dédié hors de `Assets/`, puis attendez la fin de la compilation.
 
-Exécutez l’EXE du dossier produit et vérifiez la connexion avec les commandes Agent ci-dessus. Conservez tous les fichiers pour l’exécution et l’empaquetage. Utilisez l’[outil d’empaquetage](../tools/unity-packager/README.md) pour produire un EXE unique destiné à GitHub Releases ; un Build Unity normal ne le publie pas. Pour Linux, installez le module ci-dessus, changez de cible et utilisez une sortie distincte.
+Exécutez l’EXE du dossier produit et vérifiez la connexion avec les commandes Agent ci-dessus. Conservez tous les fichiers pour l’exécution et l’empaquetage. Utilisez l’[outil d’empaquetage](../../tools/unity-packager/README.md) pour produire un EXE unique destiné à GitHub Releases ; un Build Unity normal ne le publie pas. Pour Linux, installez le module ci-dessus, changez de cible et utilisez une sortie distincte.
 
-Voir le [guide de l’Agent](../example/x2_agent/docs/README.fr.md) et le [protocole](interface.fr.md).
+Voir le [guide de l’Agent](../../example/x2_agent/docs/fr/README.md) et le [protocole](interface.md).

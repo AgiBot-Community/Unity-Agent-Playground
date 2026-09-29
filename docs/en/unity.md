@@ -1,10 +1,10 @@
 # Unity project
 
-[中文](unity.md) | **English** | [Français](unity.fr.md)
+[中文](../zh-CN/unity.md) | **English** | [Français](../fr/unity.md)
 
-Follow this guide to install the required Editor, import the project, run the robot scene and build a Windows application. To try the robot immediately, use the [portable simulator](simulator.en.md). Both routes support the same [example agent](../example/x2_agent/docs/README.en.md).
+The Unity project contains the robot scene, gateway and skill sources for editing and building the simulator. See the [portable simulator guide](simulator.md) to run a Windows build, or the [agent guide](../../example/x2_agent/docs/en/README.md) for voice configuration.
 
-[unity-agent-playground/](../unity-agent-playground/) contains the X2 robot models, Agent gateway, gestures, expressions and locomotion sources. The recorded editor version is **2022.3.62f3c1**. Use the project configuration and bundled local packages for URP, Sentis, ML-Agents and URDF Importer dependencies.
+[unity-agent-playground/](../../unity-agent-playground/) contains the X2 robot models, Agent gateway, gestures, expressions and locomotion sources. The recorded editor version is **2022.3.62f3c1**. Use the project configuration and bundled local packages for URP, Sentis, ML-Agents and URDF Importer dependencies.
 
 ## Install Unity Hub and the Editor
 
@@ -36,11 +36,11 @@ The portable EXE from GitHub Releases runs without Unity Hub or the Editor. Inst
 
 For Editors installed through Hub, use **Installs → Manage → Add modules**. Editors installed separately and registered with Locate usually lack this option; Locate does not convert them into Hub-managed installations. To manage modules through Hub, follow Unity's instructions to reinstall the required Editor through Hub. The project's Linux toolchain packages do not replace platform build modules.
 
-Official sources checked online on 2026-09-23: [China releases](https://unity.cn/releases), [global archive](https://unity.com/releases/editor/archive), [archived installation and Locate](https://docs.unity.com/en-us/hub/add-editor), and [module management](https://docs.unity.com/en-us/hub/add-modules). The Windows installer URL was reachable; the installer was not downloaded or run for this documentation update.
+References: [Editor installation and Locate](https://docs.unity.com/en-us/hub/add-editor), [build module management](https://docs.unity.com/en-us/hub/add-modules).
 
 ## Add the standalone project
 
-Copy the entire directory to use it as a standalone project without the parent repository. The two bundled source packages, ML-Agents and URDF Importer, are embedded under `Packages/`; the first import still needs network access for registry dependencies. See the project's [standalone instructions](../unity-agent-playground/README.md).
+Copy the entire directory to use it as a standalone project without the parent repository. The two bundled source packages, ML-Agents and URDF Importer, are embedded under `Packages/`; the first import still needs network access for registry dependencies. See the project's [standalone instructions](../../unity-agent-playground/README.md).
 
 Fully extract the repository before opening it:
 
@@ -69,7 +69,7 @@ python -m pip install -r example/x2_agent/requirements.txt
 python example/x2_agent/demo.py
 ```
 
-The demo needs no cloud credentials. For voice conversations, follow the [Agent setup guide](../example/x2_agent/docs/README.en.md), stop the demo with Ctrl+C, then run `python example/x2_agent/agent.py`. These are direct Python scripts; installing this repository as a Python package is unnecessary. If you copied only the Unity project, supply a separate compatible Agent client.
+The demo needs no cloud credentials. For voice conversations, follow the [Agent setup guide](../../example/x2_agent/docs/en/README.md), stop the demo with Ctrl+C, then run `python example/x2_agent/agent.py`. These are direct Python scripts; installing this repository as a Python package is unnecessary. If you copied only the Unity project, supply a separate compatible Agent client.
 
 `state=online` in the Agent terminal confirms the connection. Press Play again to stop the scene and Ctrl+C to stop the Agent. Source changes do not automatically update the portable EXE.
 
@@ -107,6 +107,6 @@ Configure the port and `StrictAuth` on the scene's `CompetitionLauncher` compone
 3. Enable `Run In Background` in Player Settings so the application can process Agent messages while unfocused.
 4. Select **Build**, choose a dedicated empty output directory outside `Assets/`, and wait for completion.
 
-Run the EXE in the completed output directory and verify connections using the Agent commands above. Keep all output files for running and packaging. Use the [portable packager](../tools/unity-packager/README.md) to produce a single EXE for GitHub Releases; a normal Unity Build does not publish it. For Linux, install the module above, switch the target and use a separate output directory.
+Run the EXE in the completed output directory and verify connections using the Agent commands above. Keep all output files for running and packaging. Use the [portable packager](../../tools/unity-packager/README.md) to produce a single EXE for GitHub Releases; a normal Unity Build does not publish it. For Linux, install the module above, switch the target and use a separate output directory.
 
-See the [example](../example/x2_agent/docs/README.en.md) for Agent setup and the [protocol](interface.en.md) for custom clients.
+See the [example](../../example/x2_agent/docs/en/README.md) for Agent setup and the [protocol](interface.md) for custom clients.

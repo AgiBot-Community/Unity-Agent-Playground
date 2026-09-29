@@ -1,20 +1,15 @@
 # Example voice agent
 
-[中文](../README.md) | **English** | [Français](README.fr.md)
+[中文](../zh-CN/README.md) | **English** | [Français](../fr/README.md)
 
-This directory provides Python clients for the Unity robot gateway. Start with `python demo.py` to check the connection and audio without cloud credentials. It returns fixed text and bundled recordings, with a sine-wave fallback if a recording is missing or invalid. Then configure `python agent.py` for Doubao voice conversations and skill calls.
+These Python clients connect to the Unity robot gateway over WebSocket. `agent.py` uses Doubao speech services and Volcengine Ark for conversations and skill calls. `demo.py` checks connections and playback using fixed text and bundled recordings, with a sine-wave fallback for missing or invalid audio.
 
 Commands below run in the repository's `example/x2_agent/` directory using Windows PowerShell. On Linux/macOS, use `python3` if required by your environment; the supplied portable simulator runs on Windows.
 
 ## Project layout
 
 This is a self-contained Agent project. It can run without the console and reads its own `.env`.
-The GUI is a separate project; see the [console guide](../../../docs/console.en.md).
-
-Unity runtime logs arrive as `agentsdk.runtime.log` on the same connection.
-Both clients display Info, Warning, Error and exception stacks, including during greetings
-and voice rounds. Buffer drops and truncation are reported. See the
-[protocol reference](../../../docs/interface.en.md) for fields and delivery limits.
+The GUI is a separate project; see the [console guide](../../../../docs/en/console.md).
 
 | Path | Responsibility |
 |---|---|
@@ -42,8 +37,8 @@ python -m pip install -r requirements.txt
 
 Start the robot using one of these routes:
 
-- **From the EXE:** on Windows, launch `exe/x2模拟器.exe` from the repository; follow the [EXE guide](../../../docs/simulator.en.md).
-- **From the Unity project:** open `unity-agent-playground/` with Unity **2022.3.62f3c1**, open `Assets/X02Competition/Scenes/scene.unity` and press Play; follow the [Unity guide](../../../docs/unity.en.md).
+- **Portable simulator:** download and run the Windows EXE from GitHub Releases; follow the [simulator guide](../../../../docs/en/simulator.md).
+- **From the Unity project:** open `unity-agent-playground/` with Unity **2022.3.62f3c1**, open `Assets/X02Competition/Scenes/scene.unity` and press Play; follow the [Unity guide](../../../../docs/en/unity.md).
 
 Both use local port `9002`; run only one robot instance. Then start one Agent from `example/x2_agent/`:
 
@@ -75,7 +70,7 @@ The phrases below require `agent.py`; the model selects skills from the request.
 - Requests for happy, sad, surprised or other expressions change the robot face. The protocol also includes a neutral expression.
 - **F1** opens the Unity debug panel; its skill buttons work without a cloud key.
 
-The mouth follows speech playback. See the [protocol skill table](../../../docs/interface.en.md) for skill names and parameters.
+The mouth follows speech playback. See the [protocol skill table](../../../../docs/en/interface.md) for skill names and parameters.
 
 The demo’s `--reply` and `--greeting` change captions, not the bundled voice recordings. Audio comes from `x2_agent/greeting.wav` and `x2_agent/tts.wav`, sent in 200 ms chunks.
 
@@ -91,7 +86,7 @@ Configuration loads at CLI startup, not on import. Precedence: CLI arguments > e
 | `DOUBAO_TTS_SPEAKER` | No | `zh_female_wanqudashu_moon_bigtts`; compatible with `seed-tts-1.0` |
 | `DOUBAO_ASR_RESOURCE_ID` | No | `volc.bigasr.sauc.duration` |
 
-The versioned configuration template is [`.env.example`](../.env.example). Keep the `.env` containing your keys private; follow the repository [`.gitignore`](../../../.gitignore) when adding files.
+The versioned configuration template is [`.env.example`](../../.env.example). Keep the `.env` containing your keys private; follow the repository [`.gitignore`](../../../../.gitignore) when adding files.
 
 ## Useful options
 
@@ -111,7 +106,7 @@ python demo.py --skill gesture/wave_hands
 python demo.py --interrupt chat
 ```
 
-The default uploads ASR audio while recording, reuses LLM connections and passes text deltas directly into a bidirectional TTS session. `--asr-after-commit` delays upload for comparison; `--tts-mode sentence` selects the fallback. Mini prioritizes speed; its reasoning behavior can differ from Turbo.
+The default uploads ASR audio while recording, reuses LLM connections and passes text deltas directly into a bidirectional TTS session. `--asr-after-commit` delays upload for comparison; `--tts-mode sentence` selects the fallback. Set the model with `--llm-model` or `DOUBAO_LLM_MODEL` in `.env`.
 
 ## Troubleshooting
 
@@ -135,6 +130,13 @@ Run from `example/x2_agent/` with the same Python environment used to install de
 python -B -m unittest discover -s tests -v
 ```
 
-Tests use local mock services, not Unity or cloud APIs. Dependencies belong in `requirements.txt`; update them with `python -m pip install -r requirements.txt`. Run the scripts with `python agent.py` or `python demo.py`.
+Tests use local mock services without Unity or cloud APIs.
 
-See the [protocol](../../../docs/interface.en.md) and [development guide](../../../docs/development.en.md).
+See the [protocol](../../../../docs/en/interface.md), [development guide](../../../../docs/en/development.md) and [contributing guide](../../../../docs/en/CONTRIBUTING.md).
+
+## Runtime logs
+
+Unity runtime logs arrive as `agentsdk.runtime.log` on the same connection.
+Both clients display Info, Warning, Error and exception stacks, including during greetings
+and voice rounds. Buffer drops and truncation are reported. See the
+[protocol reference](../../../../docs/en/interface.md) for fields and delivery limits.

@@ -1,20 +1,15 @@
 # Agent vocal d’exemple
 
-[中文](../README.md) | [English](README.en.md) | **Français**
+[中文](../zh-CN/README.md) | [English](../en/README.md) | **Français**
 
-Ce dossier fournit des clients Python pour la passerelle du robot Unity. Commencez par `python demo.py` pour vérifier la connexion et l’audio sans clé cloud. La démo renvoie du texte fixe et des enregistrements, remplacés par un signal sinusoïdal si un fichier est absent ou invalide. Configurez ensuite `python agent.py` pour les conversations Doubao et les commandes du robot.
+Ces clients Python se connectent à la passerelle Unity par WebSocket. `agent.py` utilise les services vocaux Doubao et Volcengine Ark pour les conversations et les actions. `demo.py` vérifie la connexion et la lecture avec du texte fixe et des enregistrements, remplacés par un signal sinusoïdal si l’audio est absent ou invalide.
 
 Les commandes ci-dessous s’exécutent dans le dossier `example/x2_agent/` du dépôt, avec Windows PowerShell. Sous Linux/macOS, utilisez `python3` si nécessaire ; le simulateur portable fourni fonctionne sous Windows.
 
 ## Organisation
 
 Ce projet Agent est autonome et lit son propre fichier `.env`. La console graphique est un projet
-distinct ; voir le [guide de la console](../../../docs/console.fr.md).
-
-Les journaux Unity arrivent sous le type `agentsdk.runtime.log` sur la même connexion.
-Les deux clients affichent Info, Warning, Error et les piles d’exception, y compris pendant
-l’accueil et les tours de dialogue. Les pertes et troncatures sont signalées.
-Voir le [protocole](../../../docs/interface.fr.md) pour les champs et limites de livraison.
+distinct ; voir le [guide de la console](../../../../docs/fr/console.md).
 
 | Chemin | Responsabilité |
 |---|---|
@@ -42,8 +37,8 @@ python -m pip install -r requirements.txt
 
 Choisissez une méthode pour lancer le robot :
 
-- **Depuis l’EXE :** sous Windows, lancez `exe/x2模拟器.exe` depuis le dépôt ; consultez le [guide EXE](../../../docs/simulator.fr.md).
-- **Depuis le projet Unity :** ouvrez `unity-agent-playground/` avec Unity **2022.3.62f3c1**, ouvrez `Assets/X02Competition/Scenes/scene.unity` puis cliquez sur Play ; consultez le [guide Unity](../../../docs/unity.fr.md).
+- **Simulateur portable :** téléchargez et lancez l’EXE Windows depuis GitHub Releases ; consultez le [guide du simulateur](../../../../docs/fr/simulator.md).
+- **Depuis le projet Unity :** ouvrez `unity-agent-playground/` avec Unity **2022.3.62f3c1**, ouvrez `Assets/X02Competition/Scenes/scene.unity` puis cliquez sur Play ; consultez le [guide Unity](../../../../docs/fr/unity.md).
 
 Les deux méthodes utilisent le port local `9002` ; ne lancez qu’une instance du robot. Lancez ensuite un seul Agent depuis `example/x2_agent/` :
 
@@ -75,7 +70,7 @@ Les phrases ci-dessous nécessitent `agent.py` ; le modèle choisit les actions 
 - Les demandes d’expressions heureuses, tristes ou surprises changent le visage. Le protocole prévoit aussi une expression neutre.
 - **F1** ouvre le panneau Unity, dont les boutons fonctionnent sans clé cloud.
 
-La bouche suit la lecture vocale. Consultez le [tableau des actions du protocole](../../../docs/interface.fr.md) pour les noms et paramètres.
+La bouche suit la lecture vocale. Consultez le [tableau des actions du protocole](../../../../docs/fr/interface.md) pour les noms et paramètres.
 
 Les options `--reply` et `--greeting` changent les sous-titres, pas les enregistrements. Les fichiers `x2_agent/greeting.wav` et `x2_agent/tts.wav` sont envoyés par tranches de 200 ms.
 
@@ -91,7 +86,7 @@ La configuration se charge au lancement, jamais à l’import. Priorité : argum
 | `DOUBAO_TTS_SPEAKER` | Non | `zh_female_wanqudashu_moon_bigtts`, compatible avec `seed-tts-1.0` |
 | `DOUBAO_ASR_RESOURCE_ID` | Non | `volc.bigasr.sauc.duration` |
 
-Le modèle de configuration versionné est [`.env.example`](../.env.example). Gardez privé le `.env` contenant vos clés ; respectez le [`.gitignore`](../../../.gitignore) du dépôt lors de l’ajout de fichiers.
+Le modèle de configuration versionné est [`.env.example`](../../.env.example). Gardez privé le `.env` contenant vos clés ; respectez le [`.gitignore`](../../../../.gitignore) du dépôt lors de l’ajout de fichiers.
 
 ## Paramètres utiles
 
@@ -111,7 +106,7 @@ python demo.py --skill gesture/wave_hands
 python demo.py --interrupt chat
 ```
 
-Par défaut, l’audio ASR est envoyé pendant l’enregistrement, les connexions LLM sont réutilisées et le texte alimente directement une session TTS bidirectionnelle. `--asr-after-commit` retarde l’envoi à des fins de comparaison ; `--tts-mode sentence` active le mode par phrase. Mini privilégie la rapidité ; son raisonnement peut différer de Turbo.
+Par défaut, l’audio ASR est envoyé pendant l’enregistrement, les connexions LLM sont réutilisées et le texte alimente directement une session TTS bidirectionnelle. `--asr-after-commit` retarde l’envoi à des fins de comparaison ; `--tts-mode sentence` active le mode par phrase. Choisissez le modèle avec `--llm-model` ou `DOUBAO_LLM_MODEL` dans `.env`.
 
 ## Dépannage
 
@@ -135,6 +130,13 @@ Depuis `example/x2_agent/`, utilisez le même environnement Python que pour l’
 python -B -m unittest discover -s tests -v
 ```
 
-Les tests utilisent des services simulés locaux, sans Unity ni API cloud. Les dépendances sont définies dans `requirements.txt` ; mettez-les à jour avec `python -m pip install -r requirements.txt`. Lancez les scripts avec `python agent.py` ou `python demo.py`.
+Les tests utilisent des services simulés locaux, sans Unity ni API cloud.
 
-Voir le [protocole](../../../docs/interface.fr.md) et le [guide de développement](../../../docs/development.fr.md).
+Voir le [protocole](../../../../docs/fr/interface.md), le [guide de développement](../../../../docs/fr/development.md) et le [guide de contribution](../../../../docs/fr/CONTRIBUTING.md).
+
+## Journaux d’exécution
+
+Les journaux Unity arrivent sous le type `agentsdk.runtime.log` sur la même connexion.
+Les deux clients affichent Info, Warning, Error et les piles d’exception, y compris pendant
+l’accueil et les tours de dialogue. Les pertes et troncatures sont signalées.
+Voir le [protocole](../../../../docs/fr/interface.md) pour les champs et limites de livraison.

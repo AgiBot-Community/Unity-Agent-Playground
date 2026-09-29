@@ -13,7 +13,7 @@
 3. 优先使用页面提供的 Hub 安装入口。入口不可用时，Windows 用户可下载[官方独立安装程序](https://download.unitychina.cn/download_unity/1623fc0bbb97/Windows64EditorInstaller/UnitySetup64.exe)，安装后通过 **Installs → Locate** 选择安装目录中的 `Editor/Unity.exe`。其他系统在发布页选择对应系统和架构的安装包。
 4. 确认 Hub 显示 **2022.3.62f3c1** 后再打开工程。该版本可与其他编辑器共存；不要将全球版 `2022.3.62f3` 直接当作同一版本。
 
-其他全球版旧编辑器可从 **Installs → Install Editor → Archive** 进入[全球归档](https://unity.com/releases/editor/archive)，选择版本并点击安装到 Hub。官方步骤见 [Editor 安装与 Locate](https://docs.unity.com/en-us/hub/add-editor)。上述中国版下载链接已于 2026-09-23 联网核对，未在本次文档更新中下载安装程序。
+其他全球版旧编辑器可从 **Installs → Install Editor → Archive** 进入[全球归档](https://unity.com/releases/editor/archive)，选择版本并点击安装到 Hub。官方步骤见 [Editor 安装与 Locate](https://docs.unity.com/en-us/hub/add-editor)。
 
 ### 添加工程并运行
 
@@ -44,7 +44,7 @@ Linux 构建需要与脚本后端匹配的 **Linux Build Support**，工程内�
 3. Prefer the page's Hub installation option if available. Otherwise, Windows users can use the [official standalone installer](https://download.unitychina.cn/download_unity/1623fc0bbb97/Windows64EditorInstaller/UnitySetup64.exe), then select the installed `Editor/Unity.exe` with **Installs → Locate**. Select the appropriate OS and architecture on the releases page for other systems.
 4. Confirm **2022.3.62f3c1** in Hub before opening the project. It can coexist with other Editors; the global `2022.3.62f3` installer is not the same version.
 
-For other older global releases, use **Installs → Install Editor → Archive** to open the [global archive](https://unity.com/releases/editor/archive), select a version and install through Hub. See the official [Editor installation and Locate guide](https://docs.unity.com/en-us/hub/add-editor). The China download link was checked online on 2026-09-23; the installer was not downloaded or run for this documentation update.
+For other older global releases, use **Installs → Install Editor → Archive** to open the [global archive](https://unity.com/releases/editor/archive), select a version and install through Hub. See the official [Editor installation and Locate guide](https://docs.unity.com/en-us/hub/add-editor).
 
 ### Add and run the project
 
@@ -73,7 +73,7 @@ Linux builds require **Linux Build Support** matching the scripting backend; the
 3. Privilégiez l’installation via Hub si la page la propose. Sinon, sous Windows, utilisez le [programme officiel autonome](https://download.unitychina.cn/download_unity/1623fc0bbb97/Windows64EditorInstaller/UnitySetup64.exe), puis sélectionnez `Editor/Unity.exe` dans **Installs → Locate**. Pour les autres systèmes, choisissez le système et l’architecture sur la page des versions.
 4. Vérifiez **2022.3.62f3c1** dans Hub avant d’ouvrir le projet. Cette version peut coexister avec d’autres éditeurs ; la version mondiale `2022.3.62f3` utilise un autre programme d’installation.
 
-Pour d’autres anciennes versions mondiales, ouvrez **Installs → Install Editor → Archive**, puis les [archives mondiales](https://unity.com/releases/editor/archive), choisissez une version et installez-la via Hub. Consultez le [guide officiel d’installation et Locate](https://docs.unity.com/en-us/hub/add-editor). Le lien chinois a été vérifié en ligne le 2026-09-23 ; le programme n’a pas été téléchargé ni exécuté pour cette mise à jour documentaire.
+Pour d’autres anciennes versions mondiales, ouvrez **Installs → Install Editor → Archive**, puis les [archives mondiales](https://unity.com/releases/editor/archive), choisissez une version et installez-la via Hub. Consultez le [guide officiel d’installation et Locate](https://docs.unity.com/en-us/hub/add-editor).
 
 ### Ajouter et exécuter le projet
 
