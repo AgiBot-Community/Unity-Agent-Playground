@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
 using X02Competition.Gateway;
+using X02Competition.Protocol;
 
 namespace X02Competition.Bootstrap
 {
@@ -13,9 +14,6 @@ namespace X02Competition.Bootstrap
     public sealed class UnityLogForwarder : MonoBehaviour
     {
         const int Capacity = 256;
-        const int MessageLimit = 8192;
-        const int StackLimit = 16384;
-        const int PerFrameLimit = 32;
         static readonly object Gate = new object();
         static readonly Queue<Entry> Pending = new Queue<Entry>();
         static long _sequence;
@@ -62,8 +60,8 @@ namespace X02Competition.Bootstrap
             {
                 Level = type == LogType.Log ? "info" : type == LogType.Warning ? "warning" : "error",
                 LogType = type.ToString(),
-                Message = Limit(message, MessageLimit, ref truncated),
-                Stack = Limit(stackTrace, StackLimit, ref truncated),
+                Message = Limit(message, NetworkConstants.LogMessageMaxLength, ref truncated),
+                Stack = Limit(stackTrace, NetworkConstants.LogStackMaxLength, ref truncated),
                 Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 ThreadId = Thread.CurrentThread.ManagedThreadId,
                 Truncated = truncated,
@@ -91,7 +89,7 @@ namespace X02Competition.Bootstrap
             var sent = 0;
             lock (Gate)
             {
-                while (sent < PerFrameLimit && Pending.Count > 0)
+                while (sent < NetworkConstants.MaxLogsPerFrame && Pending.Count > 0)
                 {
                     var entry = Pending.Peek();
                     // A slow subscriber may drop diagnostics but cannot block the other subscribers.

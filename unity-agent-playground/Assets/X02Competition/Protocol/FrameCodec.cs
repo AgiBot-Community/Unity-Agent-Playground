@@ -196,8 +196,15 @@ namespace X02Competition.Protocol
             {
                 o = JObject.Parse(json);
             }
+            catch (Newtonsoft.Json.JsonException)
+            {
+                // JSON 解析失败 - 返回 null 让调用者处理
+                // 注意：此方法被网关接收循环调用，异常日志在调用方记录
+                return null;
+            }
             catch (Exception)
             {
+                // 意外异常 - 同样返回 null
                 return null;
             }
             if (o == null) return null;

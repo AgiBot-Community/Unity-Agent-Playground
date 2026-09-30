@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using X02Competition.Protocol;
 
 namespace X02Competition.Gateway
 {
@@ -157,7 +158,6 @@ namespace X02Competition.Gateway
     /// </summary>
     public sealed class ServerWsConnection : IDisposable
     {
-        public const int MaxMessageBytes = 16 * 1024 * 1024;
         static readonly Task DoneTask = Task.FromResult<object>(null);
 
         readonly TcpClient _tcp;
@@ -178,6 +178,7 @@ namespace X02Competition.Gateway
         long _messageBytes;
         volatile bool _closeSent;
         volatile bool _disposed;
+        int _disposeStarted;
 
         /// <summary>seed/seedCount：握手读缓冲中已越过头部的字节（先于首帧到达的数据）。</summary>
         public ServerWsConnection(TcpClient tcp, NetworkStream io, byte[] seed, int seedCount)
@@ -234,7 +235,7 @@ namespace X02Competition.Gateway
                     for (int i = 0; i < 8; i++) len = (len << 8) | _h[i];
                     if (len < 0) return Fail(WebSocketCloseStatus.MessageTooBig, "bad length");
                 }
-                if (len > MaxMessageBytes)
+                if (len > NetworkConstants.MaxMessageSize)
                     return Fail(WebSocketCloseStatus.MessageTooBig, "frame too large");
 
                 bool isControl = (opcode & 0x8) != 0;
@@ -280,7 +281,7 @@ namespace X02Competition.Gateway
                         return Fail(WebSocketCloseStatus.ProtocolError, "bad opcode " + opcode);
                 }
 
-                if (len > MaxMessageBytes - _messageBytes)
+                if (len > NetworkConstants.MaxMessageSize - _messageBytes)
                     return Fail(WebSocketCloseStatus.MessageTooBig, "message too large");
                 _messageBytes += len;
                 _maskedFrame = masked;
@@ -474,7 +475,7 @@ namespace X02Competition.Gateway
 
         public void Dispose()
         {
-            if (_disposed) return;
+            if (Interlocked.Exchange(ref _disposeStarted, 1) != 0) return;
             _disposed = true;
             try { ((IDisposable)_tcp).Dispose(); } catch { }
         }

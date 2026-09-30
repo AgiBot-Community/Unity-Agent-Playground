@@ -12,9 +12,9 @@ namespace X02Competition.Gateway
     /// 单个 Agent 连接的会话：对外是 IGatewayPort（出站），对内把入站帧投递给 IRobotRuntime。
     /// 线程模型：
     ///   - 接收线程：WS 收帧 → FrameCodec 解析 → 入站动作压入 _toMain（由主线程泵执行）
-    ///   - 发送线程：串行化出站帧（保证音频帧有序），lock-free 队列 + 信号量唤醒
+    ///   - 发送线程：串行化出站帧；入队与关闭共用生命周期锁，信号量负责唤醒
     /// </summary>
-    public sealed class GatewaySession : IGatewayPort
+    public sealed class GatewaySession : IGatewayPort, IDisposable
     {
         readonly LinkskyGatewayServer _server;
         readonly ServerWsConnection _ws;
@@ -22,7 +22,6 @@ namespace X02Competition.Gateway
         readonly ConcurrentQueue<string> _toSend = new ConcurrentQueue<string>();
         // Diagnostics use a separate bounded queue and never log their own sends.
         readonly ConcurrentQueue<string> _logsToSend = new ConcurrentQueue<string>();
-        const int MaxQueuedLogs = 128;
         int _queuedLogs;
         long _droppedLogs;
         readonly AutoResetEvent _sendSignal = new AutoResetEvent(false);
@@ -34,6 +33,7 @@ namespace X02Competition.Gateway
         volatile bool _open = true;
         int _closeStarted;
         readonly object _runtimeLock = new object();
+        readonly object _lifecycleLock = new object();
 
         public string RobotCid { get; }
         public string CallbackType { get; }
@@ -54,7 +54,7 @@ namespace X02Competition.Gateway
         }
         IRobotRuntime _runtime;
 
-        /// <summary>会话关闭（含异常断开）时触发，在接收线程回调。</summary>
+        /// <summary>在赢得关闭权的线程同步触发；订阅者须自行切换到 Unity 主线程。</summary>
         public event Action<GatewaySession> Closed;
         /// <summary>全帧收发日志（含方向前缀），调试与争议仲裁用。</summary>
         public event Action<string> FrameLogged;
@@ -76,17 +76,21 @@ namespace X02Competition.Gateway
 
         internal void StartThreads()
         {
-            _sendThread = new Thread(SendLoop) { IsBackground = true, Name = "gw-send-" + RobotCid };
-            _recvThread = new Thread(RecvLoop) { IsBackground = true, Name = "gw-recv-" + RobotCid };
-            _sendThread.Start();
-            _recvThread.Start();
+            lock (_lifecycleLock)
+            {
+                if (!_open || _sendThread != null) return;
+                _sendThread = new Thread(SendLoop) { IsBackground = true, Name = "gw-send-" + RobotCid };
+                _recvThread = new Thread(RecvLoop) { IsBackground = true, Name = "gw-recv-" + RobotCid };
+                _sendThread.Start();
+                _recvThread.Start();
+            }
         }
 
         // ---------------- 入站（接收线程 → 主线程队列） ----------------
 
         void RecvLoop()
         {
-            var buffer = new byte[256 * 1024];
+            var buffer = new byte[NetworkConstants.ReceiveBufferSize];
             var ms = new System.IO.MemoryStream();
             try
             {
@@ -105,7 +109,7 @@ namespace X02Competition.Gateway
                             return;
                         }
                         // 字节先累积，EndOfMessage 后统一解码：多字节 UTF-8 字符跨分片安全
-                        if (result.Count > ServerWsConnection.MaxMessageBytes - ms.Length)
+                        if (result.Count > NetworkConstants.MaxMessageSize - ms.Length)
                         {
                             Close(WebSocketCloseStatus.MessageTooBig, "message too large");
                             return;
@@ -118,11 +122,26 @@ namespace X02Competition.Gateway
                     HandleMessage(text);
                 }
             }
-            catch (Exception)
+            catch (WebSocketException wsEx)
             {
+                if (_open) Log("gw  recv error: WebSocket exception: " + wsEx.Message);
                 Close(WebSocketCloseStatus.InternalServerError, "recv error");
             }
-            finally { ms.Dispose(); }
+            catch (System.IO.IOException ioEx)
+            {
+                if (_open) Log("gw  recv error: I/O exception: " + ioEx.Message);
+                Close(WebSocketCloseStatus.InternalServerError, "recv error");
+            }
+            catch (Exception ex)
+            {
+                if (_open) Log("gw  recv error: Unexpected exception: " + ex.GetType().Name + ": " + ex.Message);
+                Close(WebSocketCloseStatus.InternalServerError, "recv error");
+            }
+            finally
+            {
+                ms.Dispose();
+                while (_toMain.TryDequeue(out _)) { }
+            }
         }
 
         void HandleMessage(string text)
@@ -269,33 +288,39 @@ namespace X02Competition.Gateway
         public bool TrySendRuntimeLog(string level, string logType, string message, string stackTrace,
             long timestampMs, long sequence, int threadId, long droppedCount, bool truncated)
         {
-            if (!_open) return false;
-            if (Interlocked.Increment(ref _queuedLogs) > MaxQueuedLogs)
+            lock (_lifecycleLock)
             {
-                Interlocked.Decrement(ref _queuedLogs);
-                Interlocked.Increment(ref _droppedLogs);
-                return false;
-            }
-            try
-            {
-                _logsToSend.Enqueue(FrameCodec.BuildRuntimeLog(_server.AgentId, RobotCid,
-                    level, logType, message, stackTrace, timestampMs, sequence, threadId,
-                    droppedCount, truncated, Interlocked.Read(ref _droppedLogs)));
-                _sendSignal.Set();
-                return true;
-            }
-            catch
-            {
-                Interlocked.Decrement(ref _queuedLogs);
-                throw;
+                if (!_open) return false;
+                if (Interlocked.Increment(ref _queuedLogs) > NetworkConstants.LogQueueCapacity)
+                {
+                    Interlocked.Decrement(ref _queuedLogs);
+                    Interlocked.Increment(ref _droppedLogs);
+                    return false;
+                }
+                try
+                {
+                    _logsToSend.Enqueue(FrameCodec.BuildRuntimeLog(_server.AgentId, RobotCid,
+                        level, logType, message, stackTrace, timestampMs, sequence, threadId,
+                        droppedCount, truncated, Interlocked.Read(ref _droppedLogs)));
+                    _sendSignal.Set();
+                    return true;
+                }
+                catch
+                {
+                    Interlocked.Decrement(ref _queuedLogs);
+                    throw;
+                }
             }
         }
 
         void EnqueueFrame(string json)
         {
-            if (!_open) return;
-            _toSend.Enqueue(json);
-            _sendSignal.Set();
+            lock (_lifecycleLock)
+            {
+                if (!_open) return;
+                _toSend.Enqueue(json);
+                _sendSignal.Set();
+            }
         }
 
         void SendLoop()
@@ -311,11 +336,12 @@ namespace X02Competition.Gateway
                         if (!_open) return;
                         var bytes = Encoding.UTF8.GetBytes(json);
                         Log("gw  -> agent  " + Trunc(json));
+                        if (!_open) return; // A synchronous log subscriber may close this session.
                         _ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text,
                             true, CancellationToken.None).GetAwaiter().GetResult();
-                        if (++sent >= 64) break;
+                        if (++sent >= NetworkConstants.MaxFramesPerSendBatch) break;
                     }
-                    for (var i = 0; i < 16 && _logsToSend.TryDequeue(out var logJson); i++)
+                    for (var i = 0; i < NetworkConstants.MaxLogsPerSendBatch && _logsToSend.TryDequeue(out var logJson); i++)
                     {
                         Interlocked.Decrement(ref _queuedLogs);
                         if (!_open) return;
@@ -326,18 +352,44 @@ namespace X02Competition.Gateway
                     }
                 }
             }
-            catch (Exception)
+            catch (WebSocketException wsEx)
             {
+                if (_open) Log("gw  send error: WebSocket exception: " + wsEx.Message);
                 Close(WebSocketCloseStatus.InternalServerError, "send error");
+            }
+            catch (System.IO.IOException ioEx)
+            {
+                if (_open) Log("gw  send error: I/O exception: " + ioEx.Message);
+                Close(WebSocketCloseStatus.InternalServerError, "send error");
+            }
+            catch (Exception ex)
+            {
+                if (_open) Log("gw  send error: Unexpected exception: " + ex.GetType().Name + ": " + ex.Message);
+                Close(WebSocketCloseStatus.InternalServerError, "send error");
+            }
+            finally
+            {
+                try { Close(WebSocketCloseStatus.NormalClosure, "sender ended"); }
+                finally
+                {
+                    // Only the sender waits on this handle. Producers have been excluded by Close.
+                    lock (_lifecycleLock)
+                    {
+                        _sendSignal.Dispose();
+                        while (_toSend.TryDequeue(out _)) { }
+                        while (_logsToSend.TryDequeue(out _)) { }
+                        Interlocked.Exchange(ref _queuedLogs, 0);
+                    }
+                }
             }
         }
 
         // ---------------- 生命周期 ----------------
 
         /// <summary>主线程泵：执行入站业务回调。返回执行条数。</summary>
-        public int ExecutePendingActions(int max = 256)
+        public int ExecutePendingActions(int max = NetworkConstants.MaxActionsPerExecute)
         {
-            if (!DispatchEnabled) return 0;
+            if (!_open || !DispatchEnabled) return 0;
             var n = 0;
             while (n < max && _toMain.TryDequeue(out var action))
             {
@@ -353,14 +405,41 @@ namespace X02Competition.Gateway
         /// <summary>主动关闭会话（服务停止 / 单客户端策略抢占）。</summary>
         public void Close(WebSocketCloseStatus status, string reason)
         {
-            if (Interlocked.Exchange(ref _closeStarted, 1) != 0) return;
-            _open = false;
-            try { _ws.CloseAsync(status, reason, CancellationToken.None).Wait(500); } catch { }
-            try { _ws.Dispose(); } catch { }
+            lock (_lifecycleLock)
+            {
+                if (_closeStarted != 0) return;
+                _closeStarted = 1;
+                _open = false;
+                _sendSignal.Set();
+                if (_sendThread == null) _sendSignal.Dispose();
+            }
+            try
+            {
+                _ws.CloseAsync(status, reason, CancellationToken.None).Wait(NetworkConstants.CloseTimeoutMs);
+            }
+            catch (Exception ex)
+            {
+                Log("gw  close warning: " + ex.Message);
+            }
+            try
+            {
+                _ws.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Log("gw  dispose warning: " + ex.Message);
+            }
 
             Log("gw  session closed");
-            Closed?.Invoke(this);
+            var handlers = Closed;
+            if (handlers != null)
+                foreach (Action<GatewaySession> handler in handlers.GetInvocationList())
+                    try { handler(this); }
+                    catch (Exception error) { Log("gw  close callback error: " + error); }
         }
+
+        /// <summary>关闭传输并唤醒线程；发送线程退出时释放信号，回调内不等待其它线程。</summary>
+        public void Dispose() => Close(WebSocketCloseStatus.NormalClosure, "Disposed");
 
         static string Trunc(string s)
         {
@@ -368,6 +447,17 @@ namespace X02Competition.Gateway
             return s != null && s.Length > max ? s.Substring(0, max) + "...(" + s.Length + ")" : s;
         }
 
-        void Log(string line) => FrameLogged?.Invoke(line + "  [" + RobotCid + "]");
+        void Log(string line)
+        {
+            var handlers = FrameLogged;
+            if (handlers == null) return;
+            foreach (Action<string> handler in handlers.GetInvocationList())
+                try { handler(line + "  [" + RobotCid + "]"); }
+                catch (Exception error)
+                {
+                    // Do not re-enter a faulty subscriber through the gateway log stream.
+                    System.Diagnostics.Trace.TraceError("Gateway log callback failed: " + error);
+                }
+        }
     }
 }

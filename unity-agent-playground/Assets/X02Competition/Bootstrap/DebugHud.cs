@@ -71,6 +71,10 @@ namespace X02Competition.Bootstrap
             _runtime.AgentErrorReceived += OnError;
             _runtime.Connected += OnConnected;
             _runtime.Disconnected += OnDisconnected;
+            _runtime.RecordingStarted += OnRecordingStarted;
+            _runtime.RecordingCommitted += OnRecordingCommitted;
+            _runtime.TtsUpdated += Touch;
+            _runtime.ResponseTimedOut += OnResponseTimedOut;
             Push("调试面板已就绪 · 正在接收实时事件");
         }
 
@@ -86,6 +90,10 @@ namespace X02Competition.Bootstrap
                 _runtime.AgentErrorReceived -= OnError;
                 _runtime.Connected -= OnConnected;
                 _runtime.Disconnected -= OnDisconnected;
+                _runtime.RecordingStarted -= OnRecordingStarted;
+                _runtime.RecordingCommitted -= OnRecordingCommitted;
+                _runtime.TtsUpdated -= Touch;
+                _runtime.ResponseTimedOut -= OnResponseTimedOut;
             }
             _runtime = null;
         }
@@ -114,9 +122,27 @@ namespace X02Competition.Bootstrap
         void OnSkill(string type, string name) { Push("技能请求 · " + type + " / " + name); }
         void OnSkillState(string name, string state) { Push("技能状态 · " + name + " → " + state); }
         void OnInterrupt(string type) { _replyStarted = false; Push("对话打断 · " + type); }
-        void OnError(int code, string message) { Push("Agent 错误 · " + code + " · " + message); }
-        void OnConnected() { _replyStarted = false; Push("Agent 已连接 · 可以开始对话"); }
-        void OnDisconnected() { _replyStarted = false; Push("Agent 已断开 · 等待重新连接"); }
+        void OnError(int code, string message)
+        {
+            if (code == 3101 || code == 3102) _asrPhase = "本轮识别未完成";
+            Push("Agent 错误 · " + code + " · " + message);
+        }
+        void OnRecordingStarted()
+        {
+            _asrText = _llmText = "";
+            _asrPhase = "正在收音";
+            _replyStarted = false;
+            Touch();
+        }
+        void OnRecordingCommitted() { _asrPhase = "正在识别"; Push("录音已提交 · 等待回复"); }
+        void OnResponseTimedOut()
+        {
+            _asrPhase = "等待语音";
+            _replyStarted = false;
+            Push("本轮回复超时 · 已恢复聆听");
+        }
+        void OnConnected() { _replyStarted = false; _asrPhase = "等待语音"; Push("Agent 已连接 · 可以开始对话"); }
+        void OnDisconnected() { _replyStarted = false; _asrPhase = "等待连接"; Push("Agent 已断开 · 等待重新连接"); }
         void Touch() { _lastActivity = Time.realtimeSinceStartup; }
 
         static string LimitText(string text)
@@ -157,6 +183,7 @@ namespace X02Competition.Bootstrap
                 if (!_runtime.Input.IsRunning) return "输入已暂停";
                 if (_runtime.Port == null) return "输入就绪";
                 if (IsSpeaking) return "机器人播报中";
+                if (_runtime.ResponsePending) return "等待机器人回复";
                 return _runtime.Vad.InSpeech ? "正在收音" : "正在聆听";
             }
         }
@@ -169,6 +196,7 @@ namespace X02Competition.Bootstrap
                 if (_runtime.Port == null) return "请先启动 Agent，连接成功后即可与机器人对话。";
                 if (_runtime.Input == null || !_runtime.Input.IsRunning) return "打开调试面板并点击“开始输入”，继续语音对话。";
                 if (IsSpeaking) return "机器人正在回答，播报结束后会自动恢复聆听。";
+                if (_runtime.ResponsePending) return "正在识别并生成回复，请稍候；回答结束后会自动恢复聆听。";
                 if (Launcher != null && Launcher.Mode == CompetitionLauncher.InputMode.TestClip)
                     return "当前使用测试语料；可在调试面板中重放。";
                 return "试着说：“你好，介绍一下自己” 或 “向我挥挥手”。";

@@ -14,7 +14,7 @@ namespace X02Competition.Gateway
     /// 多客户端：默认 8 路，控制台固定最高优先级，日志广播、音频单路选举。
     /// 路径必须与 SDK 连接串一致（参与 HMAC 签名）：/api/V1/open-portal/app/wss/agent-sdk
     /// </summary>
-    public sealed class LinkskyGatewayServer : IGatewayPort
+    public sealed class LinkskyGatewayServer : IGatewayPort, IDisposable
     {
         public string AgentId = "agent-001";
         /// <summary>WS 路径（= SDK url 的 path 部分，参与签名校验，必须一致）。</summary>
@@ -25,8 +25,8 @@ namespace X02Competition.Gateway
         public string AppKey;
         public string AppSecret;
         /// <summary>时间戳最大偏移（秒），默认 5 分钟。</summary>
-        public double MaxClockSkewSec = 300;
-        public int MaxSessions = 8;
+        public double MaxClockSkewSec = NetworkConstants.DefaultMaxClockSkewSec;
+        public int MaxSessions = NetworkConstants.DefaultMaxSessions;
         public const int ControllerPriority = 1000;
         public const int DefaultAgentPriority = 50;
         public event Action RoutingChanged;
@@ -35,6 +35,7 @@ namespace X02Competition.Gateway
         string _recordingEvent, _recordingItem;
         bool _voiceResponseBlocked;
         string _allowedAudioEvent;
+        bool _disposed;
 
         /// <summary>监听线程回调：会话建立（此时应立即绑定 Runtime 并 SendRobotOnline）。</summary>
         public event Action<GatewaySession> SessionOpened;
@@ -44,6 +45,7 @@ namespace X02Competition.Gateway
 
         TcpListener _listener;
         Thread _acceptThread;
+        TcpClient _handshakeClient;
         volatile bool _running;
         readonly object _lock = new object();
         readonly List<GatewaySession> _sessions = new List<GatewaySession>();
@@ -220,31 +222,49 @@ namespace X02Competition.Gateway
 
         public void Start(int port)
         {
-            if (_running) throw new InvalidOperationException("server already running");
-            _listener = new TcpListener(IPAddress.Loopback, port);
-            _listener.Start();
-            _running = true;
-            _acceptThread = new Thread(AcceptLoop)
+            lock (_lock)
             {
-                IsBackground = true,
-                Name = "gw-accept"
-            };
-            _acceptThread.Start();
-            Log?.Invoke("gw  listening on ws://localhost:" + port + Path);
+                if (_disposed) throw new ObjectDisposedException(nameof(LinkskyGatewayServer));
+                if (_running || (_acceptThread != null && _acceptThread.IsAlive))
+                    throw new InvalidOperationException("server already running or still stopping");
+                _listener = new TcpListener(IPAddress.Loopback, port);
+                _listener.Start();
+                _running = true;
+                _acceptThread = new Thread(AcceptLoop)
+                {
+                    IsBackground = true,
+                    Name = "gw-accept"
+                };
+                _acceptThread.Start();
+            }
+            WriteLog("gw  listening on ws://localhost:" + port + Path);
         }
 
         public void Stop()
         {
-            if (!_running) return;
-            _running = false;
-            try { _listener.Stop(); } catch { }
             GatewaySession[] snapshot;
+            TcpClient handshake;
+            TcpListener listener;
             lock (_lock)
             {
+                if (!_running) return;
+                _running = false;
+                listener = _listener;
+                handshake = _handshakeClient;
+                _handshakeClient = null;
                 snapshot = _sessions.ToArray();
                 _sessions.Clear();
             }
-            foreach (var s in snapshot) s.Close(WebSocketCloseStatus.NormalClosure, "server stop");
+            try
+            {
+                listener.Stop();
+            }
+            catch (Exception ex)
+            {
+                WriteLog("gw  listener stop warning: " + ex.Message);
+            }
+            handshake?.Close();
+            foreach (var s in snapshot) s.Dispose();
         }
 
         void AcceptLoop()
@@ -264,14 +284,24 @@ namespace X02Competition.Gateway
 
                 try
                 {
+                    lock (_lock)
+                    {
+                        if (!_running) { client.Close(); break; }
+                        _handshakeClient = client;
+                    }
                     HandleConnection(client);
                 }
                 catch (Exception e)
                 {
                     // 完整异常信息（类型+堆栈），否则后台线程异常只能看到一句 Message 难以定位
-                    Log?.Invoke("gw  accept error: " + e.GetType().Name + ": " + e.Message +
+                    if (_running) WriteLog("gw  accept error: " + e.GetType().Name + ": " + e.Message +
                                 "\n" + e.StackTrace);
                     try { client.Close(); } catch { }
+                }
+                finally
+                {
+                    lock (_lock)
+                        if (ReferenceEquals(_handshakeClient, client)) _handshakeClient = null;
                 }
             }
         }
@@ -296,15 +326,18 @@ namespace X02Competition.Gateway
                 return;
             }
 
+            bool busy;
             lock (_lock)
             {
-                if (_sessions.Count >= MaxSessions)
-                {
-                    Log?.Invoke("gw  reject: max sessions reached");
-                    RawWs.WritePlainResponse(io, 503, "Service Unavailable", "busy");
-                    client.Close();
-                    return;
-                }
+                if (!_running) { client.Close(); return; }
+                busy = _sessions.Count >= MaxSessions;
+            }
+            if (busy)
+            {
+                WriteLog("gw  reject: max sessions reached");
+                RawWs.WritePlainResponse(io, 503, "Service Unavailable", "busy");
+                client.Close();
+                return;
             }
 
             var appId = Header(req, AuthVerifier.HeaderAppId);
@@ -333,7 +366,7 @@ namespace X02Competition.Gateway
             if (StrictAuth && !AuthVerifier.Verify(path, appId, appKey, ts, nonce, sig,
                     AppSecret, AppId, AppKey, MaxClockSkewSec))
             {
-                Log?.Invoke("gw  auth failed for app=" + appId);
+                WriteLog("gw  auth failed for app=" + appId);
                 RawWs.WritePlainResponse(io, 401, "Unauthorized", "unauthorized");
                 client.Close();
                 return;
@@ -347,18 +380,25 @@ namespace X02Competition.Gateway
             var session = new GatewaySession(this, conn, callbackType, role, audioEnabled, clientName, controlEnabled);
             session.FrameLogged += OnSessionLog;
             session.Closed += OnSessionClosed;
-            lock (_lock) _sessions.Add(session);
-            Log?.Invoke("gw  session opened, callbackType=" + callbackType);
+            bool accepted;
+            lock (_lock)
+            {
+                accepted = _running;
+                if (accepted) _sessions.Add(session);
+                _handshakeClient = null;
+            }
+            if (!accepted) { session.Dispose(); return; }
+            WriteLog("gw  session opened, callbackType=" + callbackType);
             try
             {
-                SessionOpened?.Invoke(session); // 装配层在此绑定 Runtime + SendRobotOnline
+                if (session.IsOpen) SessionOpened?.Invoke(session); // 装配层在此绑定 Runtime + SendRobotOnline
                 session.StartThreads();
                 PublishRouting();
             }
             catch (Exception e)
             {
                 // 装配层异常：绝不让会话泄漏（否则单客户端模式永久 503）
-                Log?.Invoke("gw  session open failed: " + e.GetType().Name + ": " + e.Message +
+                WriteLog("gw  session open failed: " + e.GetType().Name + ": " + e.Message +
                             "\n" + e.StackTrace);
                 session.Close(WebSocketCloseStatus.InternalServerError, "session open failed");
             }
@@ -366,13 +406,31 @@ namespace X02Competition.Gateway
 
         void OnSessionClosed(GatewaySession s)
         {
-            lock (_lock) _sessions.Remove(s);
-            Log?.Invoke("gw  session removed, active=" + _sessions.Count);
+            int count;
+            lock (_lock)
+            {
+                _sessions.Remove(s);
+                count = _sessions.Count;
+            }
+            WriteLog("gw  session removed, active=" + count);
             SessionClosed?.Invoke(s);
             PublishRouting();
         }
 
-        void OnSessionLog(string line) => Log?.Invoke(line);
+        void OnSessionLog(string line) => WriteLog(line);
+
+        void WriteLog(string line)
+        {
+            var handlers = Log;
+            if (handlers == null) return;
+            foreach (Action<string> handler in handlers.GetInvocationList())
+                try { handler(line); }
+                catch (Exception error)
+                {
+                    // Logging observers cannot abort registration or strand a session slot.
+                    System.Diagnostics.Trace.TraceError("Gateway server log callback failed: " + error);
+                }
+        }
 
         static string Header(RawHttpRequest req, string name)
         {
@@ -384,6 +442,17 @@ namespace X02Competition.Gateway
         internal bool IncludeItemIdFor(string callbackType)
         {
             return callbackType == CallbackTypes.Audio2Tts;
+        }
+
+        /// <summary>实现 IDisposable 模式。</summary>
+        public void Dispose()
+        {
+            lock (_lock)
+            {
+                if (_disposed) return;
+                _disposed = true;
+            }
+            Stop();
         }
     }
 }

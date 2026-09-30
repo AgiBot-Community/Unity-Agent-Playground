@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using X02Competition.Protocol;
 
 namespace X02Competition.Robot
 {
@@ -61,50 +62,67 @@ namespace X02Competition.Robot
             if (Verbose) Debug.Log("[SkillRouter] " + skillType + "/" + skillName +
                 " → " + entry.Executor);
 
-            switch (entry.Executor)
+            try
             {
-                case SkillExecutor.Locomotion:
-                    ExecuteLocomotion(skillName, skillParam, onState);
-                    break;
-                case SkillExecutor.Gesture:
-                    onState?.Invoke("running");
-                    if (Gestures == null || !Gestures.Play(skillName,
-                        ok => onState?.Invoke(ok ? "done" : "failed")))
-                        onState?.Invoke("failed");
-                    break;
-                case SkillExecutor.Emotion:
-                    if (!ExecuteEmotion(skillName, skillParam))
-                    {
-                        onState?.Invoke("failed");
-                        return;
-                    }
-                    onState?.Invoke("running");
-                    onState?.Invoke("done"); // 表情为即时状态显示，直接完成
-                    break;
-                case SkillExecutor.AnimatorTrigger:
-                    if (Legacy == null || !Legacy.Play(skillType, skillName))
-                    {
-                        onState?.Invoke("failed");
-                        return;
-                    }
-                    onState?.Invoke("done");
-                    break;
+                switch (entry.Executor)
+                {
+                    case SkillExecutor.Locomotion:
+                        ExecuteLocomotion(skillName, skillParam, onState);
+                        break;
+                    case SkillExecutor.Gesture:
+                        onState?.Invoke("running");
+                        if (Gestures == null || !Gestures.Play(skillName,
+                            ok => onState?.Invoke(ok ? "done" : "failed")))
+                            onState?.Invoke("failed");
+                        break;
+                    case SkillExecutor.Emotion:
+                        if (!ExecuteEmotion(skillName, skillParam))
+                        {
+                            onState?.Invoke("failed");
+                            return;
+                        }
+                        onState?.Invoke("running");
+                        onState?.Invoke("done"); // 表情为即时状态显示，直接完成
+                        break;
+                    case SkillExecutor.AnimatorTrigger:
+                        if (Legacy == null || !Legacy.Play(skillType, skillName))
+                        {
+                            onState?.Invoke("failed");
+                            return;
+                        }
+                        onState?.Invoke("done");
+                        break;
+                }
+            }
+            catch (ArgumentException error)
+            {
+                Debug.LogWarning("[SkillRouter] 无效参数: " + error.Message);
+                onState?.Invoke("failed");
             }
         }
 
         void ExecuteLocomotion(string skillName, Dictionary<string, object> p,
             StateCallback onState)
         {
+            if (Loco == null)
+            {
+                onState?.Invoke("failed");
+                return;
+            }
+            float distance = skillName == "walk"
+                ? InputValidator.GetFloatParam(p, "distanceM", 1f, 0.2f, 5f) : 0;
+            float angle = skillName == "turn"
+                ? InputValidator.GetFloatParam(p, "angleDeg", 90f, -360f, 360f) : 0;
             onState?.Invoke("running");
             LocomotionCommander.DoneCallback done =
                 ok => onState?.Invoke(ok ? "done" : "failed");
             switch (skillName)
             {
                 case "walk":
-                    Loco.Walk(Param(p, "distanceM", 1f), done);
+                    Loco.Walk(distance, done);
                     break;
                 case "turn":
-                    Loco.Turn(Param(p, "angleDeg", 90f), done);
+                    Loco.Turn(angle, done);
                     break;
                 case "stop":
                     Loco.Stop(done);
@@ -118,16 +136,9 @@ namespace X02Competition.Robot
 
         bool ExecuteEmotion(string skillName, Dictionary<string, object> p)
         {
-            var durationMs = Param(p, "durationMs", 3000f);
+            var durationMs = InputValidator.GetFloatParam(p, "durationMs", 3000f,
+                float.MinValue, float.MaxValue);
             return Emotions != null && Emotions.SetEmotion(skillName, durationMs / 1000f);
-        }
-
-        static float Param(Dictionary<string, object> p, string key, float def)
-        {
-            if (p == null) return def;
-            return p.TryGetValue(key, out var v) && v is IConvertible conv
-                ? Convert.ToSingle(conv)
-                : def;
         }
     }
 }

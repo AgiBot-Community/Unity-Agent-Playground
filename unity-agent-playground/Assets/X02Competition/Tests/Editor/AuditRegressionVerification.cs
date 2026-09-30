@@ -62,10 +62,16 @@ public static class AuditRegressionVerification
         try
         {
             VerifyAudio(root);
+            VerifyVoiceRounds();
             VerifyMovement(root);
+            VerifySkillParameters(root);
             VerifyMessageBoundaries();
             VerifyMessageLimit();
             VerifySlowPeerClose();
+            VerifySessionDisposal();
+            VerifyCallbackDisposal();
+            VerifyStopDuringHandshake();
+            VerifyFaultyLogObserver();
             VerifyLogForwarding(root);
             MultiSessionVerification.Verify();
             Debug.Log("AUDIT_REGRESSION_PASSED: " + _checks +
@@ -179,6 +185,148 @@ public static class AuditRegressionVerification
         Tick(loco, "FixedUpdate");
     }
 
+    static void VerifyVoiceRounds()
+    {
+        var root = new GameObject("Voice round regression");
+        try
+        {
+            var input = new BufferedInput();
+            var port = new RecordingPort();
+            var runtime = root.AddComponent<VirtualRobotRuntime>();
+            var tts = root.AddComponent<TtsStreamPlayer>();
+            runtime.Input = input;
+            runtime.Tts = tts;
+            runtime.StatePublishInterval = 0;
+            runtime.Bind(port);
+            var loud = Enumerable.Repeat(0.1f, 1600).ToArray();
+            runtime.OnAgentLlmDelta("greeting", "reply", "hello");
+            input.Frames.Enqueue(loud);
+            Tick(runtime);
+            Require(port.Events.Count == 0, "Greeting text-to-audio gap admitted a recording.");
+            runtime.OnAgentRoundDone("greeting");
+            for (var round = 0; round < 12; round++)
+            {
+                input.IsRunning = false;
+                input.Frames.Enqueue(loud);
+                var before = port.Events.Count;
+                Tick(runtime);
+                Require(port.Events.Count == before + 3, "A new voice round must start, append and commit.");
+                var eventId = port.LastEventId;
+                input.IsRunning = true;
+                // Cloud ASR/LLM has not answered yet. Noise must not supersede this committed event.
+                for (var i = 0; i < 5; i++) input.Frames.Enqueue(loud);
+                Tick(runtime);
+                Require(port.Events.Count == before + 3,
+                    "Waiting for cloud response admitted another recording and invalidated the current event.");
+                runtime.OnAgentAsrText(eventId, true, "round " + round);
+                runtime.OnAgentLlmDelta(eventId, "reply", "reply " + round);
+                if (round % 3 == 0)
+                {
+                    runtime.OnAgentError(eventId, 3102, "empty asr result");
+                    continue;
+                }
+                runtime.OnAgentTtsDelta(eventId, "reply", new byte[3200]);
+                runtime.OnAgentRoundDone(eventId);
+                Tick(tts);
+                input.Frames.Enqueue(loud);
+                Tick(runtime);
+                Require(port.Events.Count == before + 3, "TTS tail admitted a new recording.");
+                tts.Source.timeSamples = 1600;
+                Tick(tts);
+                Require(!tts.IsStreamingActive, "TTS round did not release playback.");
+            }
+            input.IsRunning = false;
+            input.Frames.Enqueue(loud);
+            Tick(runtime);
+            var timedOutEvent = port.LastEventId;
+            runtime.OnAgentTtsDelta(timedOutEvent, "unfinished", new byte[3200]);
+            var timeouts = 0;
+            runtime.ResponseTimedOut += () => timeouts++;
+            typeof(VirtualRobotRuntime).GetField("_lastResponseActivity", Private).SetValue(runtime,
+                Time.realtimeSinceStartupAsDouble - runtime.ResponseTimeoutSeconds - 1);
+            Tick(runtime);
+            Require(timeouts == 1 && !runtime.ResponsePending && !tts.IsStreamingActive,
+                "Missing done/response must time out and release input.");
+            var asrEvents = 0;
+            runtime.AsrTextReceived += (_, __) => asrEvents++;
+            runtime.OnAgentAsrText(timedOutEvent, true, "late");
+            runtime.OnAgentTtsDelta(timedOutEvent, "late", new byte[3200]);
+            runtime.OnAgentRoundDone(timedOutEvent);
+            Require(asrEvents == 0 && !tts.IsStreamingActive,
+                "Late data resurrected a timed-out response.");
+            input.Frames.Enqueue(loud);
+            Tick(runtime);
+            Require(runtime.ResponsePending && port.LastEventId != timedOutEvent,
+                "Timeout did not allow a fresh recording.");
+            var interruptedEvent = port.LastEventId;
+            runtime.OnAgentInterrupt("manual", "chat", "");
+            runtime.OnAgentTtsDelta(interruptedEvent, "late", new byte[3200]);
+            Require(!runtime.ResponsePending && !tts.IsStreamingActive,
+                "Explicit interruption did not release the waiting turn or reject late data.");
+            input.Frames.Enqueue(loud);
+            Tick(runtime);
+            var failedEvent = port.LastEventId;
+            runtime.OnAgentTtsDelta(failedEvent, "partial", new byte[3200]);
+            runtime.OnAgentError(failedEvent, 3301, "synthesis failed after first chunk");
+            Require(!runtime.ResponsePending && !tts.IsStreamingActive,
+                "An error after partial TTS must immediately release input without relying on done.");
+            runtime.OnAgentTtsDelta(failedEvent, "late", new byte[3200]);
+            Require(!tts.IsStreamingActive, "Failed TTS was resurrected by a late chunk.");
+
+            input.Frames.Enqueue(loud);
+            Tick(runtime);
+            var replacedEvent = port.LastEventId;
+            runtime.OnAgentLlmDelta("controller-reply", "override", "controller reply");
+            runtime.OnAgentTtsDelta("controller-reply", "override", new byte[3200]);
+            runtime.OnAgentRoundDone("controller-reply");
+            Tick(tts);
+            tts.Source.timeSamples = 1600;
+            Tick(tts);
+            runtime.OnAgentAsrText(replacedEvent, true, "stale voice reply");
+            runtime.OnAgentTtsDelta(replacedEvent, "late", new byte[3200]);
+            runtime.OnAgentTtsDelta("controller-reply", "late", new byte[3200]);
+            Require(!runtime.ResponsePending && !tts.IsStreamingActive && asrEvents == 0,
+                "Authorized replacement must complete its own turn and reject both old and completed audio.");
+            var skills = 0;
+            runtime.SkillRequested += (_, __) => skills++;
+            runtime.OnAgentSkill("controller-reply", "skill", "emotion", "neutral", null);
+            runtime.OnAgentSkill(replacedEvent, "skill", "emotion", "neutral", null);
+            Require(skills == 1, "Audio completion must retain same-turn skill compatibility; cancellation must not.");
+            runtime.Unbind();
+        }
+        finally { UnityEngine.Object.DestroyImmediate(root); }
+    }
+
+    static void VerifySkillParameters(GameObject root)
+    {
+        var router = root.AddComponent<SkillRouter>();
+        router.Loco = root.GetComponent<LocomotionCommander>();
+        var states = new List<string>();
+        foreach (var value in new object[] { "NaN", "Infinity", "invalid", true, null })
+        {
+            states.Clear();
+            router.Execute("movement", "walk",
+                new Dictionary<string, object> { ["distanceM"] = value }, states.Add);
+            Require(string.Join(",", states) == "failed",
+                "Invalid movement must fail without reporting running or executing a default move.");
+            Require(!router.Loco.IsBusy, "Invalid movement started locomotion.");
+        }
+        router.Emotions = root.AddComponent<EmotionController>();
+        var hold = typeof(EmotionController).GetField("_holdUntil", Private);
+        foreach (var duration in new[] { 0f, -1f, 500f, 15000f })
+        {
+            states.Clear();
+            var started = Time.time;
+            router.Execute("emotion", "happy",
+                new Dictionary<string, object> { ["durationMs"] = duration }, states.Add);
+            Require(string.Join(",", states) == "running,done", "Valid emotion rejected.");
+            var until = (float)hold.GetValue(router.Emotions);
+            Require(duration <= 0 ? until == float.MaxValue :
+                Mathf.Abs(until - started - duration / 1000f) < 0.05f,
+                "Emotion duration changed instead of preserving the established contract.");
+        }
+    }
+
     sealed class RawPair : IDisposable
     {
         public readonly TcpClient Client;
@@ -247,7 +395,7 @@ public static class AuditRegressionVerification
         {
             var writing = Task.Run(() =>
             {
-                var half = new byte[ServerWsConnection.MaxMessageBytes / 2];
+                var half = new byte[NetworkConstants.MaxMessageSize / 2];
                 SendFrame(pair.Client.GetStream(), 1, false, half);
                 SendFrame(pair.Client.GetStream(), 0, false, half);
                 SendFrame(pair.Client.GetStream(), 0, true, new byte[1]);
@@ -260,7 +408,7 @@ public static class AuditRegressionVerification
                 result = pair.Ws.ReceiveAsync(new ArraySegment<byte>(buf), CancellationToken.None).Result;
                 received += result.Count;
             } while (result.MessageType != WebSocketMessageType.Close);
-            Require(received == ServerWsConnection.MaxMessageBytes, "Message limit rejected legal prefix.");
+            Require(received == NetworkConstants.MaxMessageSize, "Message limit rejected legal prefix.");
             Require(result.CloseStatus == WebSocketCloseStatus.MessageTooBig,
                 "Fragmented message must reject the first byte beyond the aggregate limit.");
             Require(writing.Wait(3000), "Fragment writer hung.");
@@ -272,14 +420,20 @@ public static class AuditRegressionVerification
         using (var pair = new RawPair())
         {
             pair.Server.SendBufferSize = 1024;
+            // Keep ordinary write timeout beyond the observation window; only Close may unblock it.
+            pair.Server.GetStream().WriteTimeout = 5000;
+            var payload = new byte[8 * 1024 * 1024];
             var started = new ManualResetEventSlim();
             var writing = Task.Run(() =>
             {
                 started.Set();
                 try
                 {
-                    pair.Ws.SendAsync(new ArraySegment<byte>(new byte[8 * 1024 * 1024]),
-                        WebSocketMessageType.Text, true, CancellationToken.None).GetAwaiter().GetResult();
+                    // Some loopback stacks buffer a complete message despite the small SO_SNDBUF.
+                    // Keep sending until backpressured, rather than assuming one write must block.
+                    while (true)
+                        pair.Ws.SendAsync(new ArraySegment<byte>(payload),
+                            WebSocketMessageType.Text, true, CancellationToken.None).GetAwaiter().GetResult();
                 }
                 catch (IOException) { }
                 catch (ObjectDisposedException) { }
@@ -291,11 +445,189 @@ public static class AuditRegressionVerification
                 if (!Monitor.TryEnter(sendLock)) return true;
                 Monitor.Exit(sendLock);
                 return false;
-            }, 1000), "Sender did not acquire the socket lock.");
+            }, 2000), "Sender did not acquire the socket lock.");
             Require(pair.Ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "stop", CancellationToken.None)
                 .Wait(500), "Slow peer prevented bounded close.");
             Require(writing.Wait(2000), "Close failed to unblock sender.");
             started.Dispose();
+        }
+    }
+
+    static int StartServer(LinkskyGatewayServer server)
+    {
+        server.Start(0);
+        var listener = (TcpListener)typeof(LinkskyGatewayServer).GetField("_listener", Private).GetValue(server);
+        return ((IPEndPoint)listener.LocalEndpoint).Port;
+    }
+
+    static bool SessionThreadsStopped(GatewaySession session)
+    {
+        return new[] { "_sendThread", "_recvThread" }.All(name =>
+        {
+            var thread = (Thread)typeof(GatewaySession).GetField(name, Private).GetValue(session);
+            return thread == null || !thread.IsAlive;
+        });
+    }
+
+    static void VerifySessionDisposal()
+    {
+        for (var round = 0; round < 12; round++)
+        {
+            using (var server = new LinkskyGatewayServer())
+            using (var opened = new ManualResetEventSlim())
+            using (var start = new ManualResetEventSlim())
+            {
+                GatewaySession session = null;
+                var closed = 0;
+                server.SessionOpened += current => { session = current; opened.Set(); };
+                server.SessionClosed += current =>
+                {
+                    Interlocked.Increment(ref closed);
+                    current.Dispose(); // Close notification must allow reentrant disposal.
+                };
+                using (var socket = new AgentSocket(StartServer(server)))
+                {
+                    Require(opened.Wait(2000), "Disposal test did not establish a session.");
+                    var tasks = Enumerable.Range(0, 4).Select(_ => Task.Run(() =>
+                    {
+                        start.Wait();
+                        for (var i = 0; i < 100; i++)
+                        {
+                            session.SendState("test", "value");
+                            session.TrySendRuntimeLog("info", "Log", "dispose-race", "", 1, i, 1, 0, false);
+                            if (i == 20) session.Dispose();
+                        }
+                    })).ToArray();
+                    start.Set();
+                    Require(Task.WaitAll(tasks, 5000), "Concurrent producers/disposers stalled.");
+                    Require(SpinWait.SpinUntil(() => closed == 1 && SessionThreadsStopped(session), 2000),
+                        "Close must fire once and both workers must exit.");
+                    Require(!session.TrySendRuntimeLog("info", "Log", "after-close", "", 1, 1, 1, 0, false),
+                        "Closed session accepted a diagnostic.");
+                    var signal = (AutoResetEvent)typeof(GatewaySession).GetField("_sendSignal", Private).GetValue(session);
+                    var disposed = false;
+                    try { signal.Set(); }
+                    catch (ObjectDisposedException) { disposed = true; }
+                    Require(disposed, "Sender exit leaked its signal handle.");
+                }
+            }
+        }
+    }
+
+    static void VerifyCallbackDisposal()
+    {
+        foreach (var incoming in new[] { false, true })
+        {
+            using (var server = new LinkskyGatewayServer())
+            using (var opened = new ManualResetEventSlim())
+            using (var finished = new ManualResetEventSlim())
+            {
+                GatewaySession session = null;
+                var triggered = 0;
+                var elapsedMs = 0L;
+                server.SessionOpened += current =>
+                {
+                    session = current;
+                    current.FrameLogged += line =>
+                    {
+                        var prefix = incoming ? "gw  <- agent" : "gw  -> agent";
+                        if (!line.StartsWith(prefix, StringComparison.Ordinal) ||
+                            Interlocked.Exchange(ref triggered, 1) != 0) return;
+                        var watch = System.Diagnostics.Stopwatch.StartNew();
+                        current.Dispose(); // Called from receive/send worker, never Join itself.
+                        elapsedMs = watch.ElapsedMilliseconds;
+                        finished.Set();
+                    };
+                    opened.Set();
+                };
+                using (var socket = new AgentSocket(StartServer(server)))
+                {
+                    Require(opened.Wait(2000), "Callback test did not establish a session.");
+                    if (incoming) socket.Send(new JObject { ["type"] = "test.dispose" });
+                    else session.SendState("dispose", "now");
+                    Require(finished.Wait(2000), "Worker callback disposal stalled.");
+                    Require(elapsedMs < 900, "Worker callback waited for itself or another worker.");
+                    Require(SpinWait.SpinUntil(() => SessionThreadsStopped(session), 2000),
+                        "Callback disposal leaked worker threads.");
+                }
+            }
+        }
+        using (var server = new LinkskyGatewayServer())
+        using (var finished = new ManualResetEventSlim())
+        {
+            GatewaySession session = null;
+            server.SessionOpened += current =>
+            {
+                session = current;
+                current.Dispose();
+                server.Dispose(); // Accept-thread callback must not Join the accept thread.
+                finished.Set();
+            };
+            using (var socket = new AgentSocket(StartServer(server)))
+            {
+                Require(finished.Wait(2000), "SessionOpened disposal stalled.");
+                var accept = (Thread)typeof(LinkskyGatewayServer).GetField("_acceptThread", Private).GetValue(server);
+                Require(accept.Join(2000), "Disposed accept thread remained alive.");
+                Require(SessionThreadsStopped(session), "Disposed session restarted its workers.");
+                Require(typeof(GatewaySession).GetField("_sendThread", Private).GetValue(session) == null,
+                    "SessionOpened disposal must prevent workers from starting.");
+                Require(server.Sessions.Count == 0, "Disposed server retained a session.");
+            }
+        }
+    }
+
+    static void VerifyStopDuringHandshake()
+    {
+        using (var server = new LinkskyGatewayServer())
+        using (var client = new TcpClient())
+        {
+            var opened = 0;
+            server.SessionOpened += _ => Interlocked.Increment(ref opened);
+            client.Connect(IPAddress.Loopback, StartServer(server));
+            var partial = Encoding.ASCII.GetBytes("GET / HTTP/1.1\r\n");
+            client.GetStream().Write(partial, 0, partial.Length);
+            var pending = typeof(LinkskyGatewayServer).GetField("_handshakeClient", Private);
+            Require(SpinWait.SpinUntil(() => pending.GetValue(server) != null, 2000),
+                "Accept thread did not begin the partial handshake.");
+            var accept = (Thread)typeof(LinkskyGatewayServer).GetField("_acceptThread", Private).GetValue(server);
+            server.Stop();
+            Require(accept.Join(2000), "Stop did not cancel the blocked handshake.");
+            Require(opened == 0 && server.Sessions.Count == 0, "Stop registered a late session.");
+        }
+    }
+
+    static void VerifyFaultyLogObserver()
+    {
+        using (var server = new LinkskyGatewayServer { MaxSessions = 1 })
+        {
+            var observed = 0;
+            GatewaySession current = null;
+            server.Log += line =>
+            {
+                if (line.StartsWith("gw  session opened,", StringComparison.Ordinal))
+                    throw new InvalidOperationException("intentional log observer failure");
+            };
+            server.Log += line =>
+            {
+                if (line.StartsWith("gw  session opened,", StringComparison.Ordinal))
+                    Interlocked.Increment(ref observed);
+            };
+            server.SessionOpened += session =>
+            {
+                current = session;
+                session.SendRobotOnline(null, session.CallbackType);
+            };
+            var port = StartServer(server);
+            for (var i = 0; i < 3; i++)
+            {
+                using (var socket = new AgentSocket(port))
+                    Require((string)socket.Read()["state"] == "online",
+                        "A faulty log observer prevented session initialization.");
+                Require(SpinWait.SpinUntil(() =>
+                    server.Sessions.Count == 0 && current != null && SessionThreadsStopped(current), 2000),
+                    "A faulty log observer leaked a session slot or worker.");
+            }
+            Require(observed == 3, "A faulty log observer prevented later observers from running.");
         }
     }
 
@@ -492,7 +824,8 @@ public static class AuditRegressionVerification
     sealed class RecordingPort : IGatewayPort
     {
         public readonly List<string> Events = new List<string>();
-        public void SendAudioStart(string e, string i) => Events.Add("start");
+        public string LastEventId;
+        public void SendAudioStart(string e, string i) { LastEventId = e; Events.Add("start"); }
         public void SendAudioAppend(string e, string i, byte[] pcm) => Events.Add("append");
         public void SendAudioCommit(string e, string i) => Events.Add("commit");
         public void SendRobotOnline(Dictionary<string, object> meta, string type) { }
