@@ -1,0 +1,16 @@
+# Install: python -m pip install pre-commit
+# Enable: pre-commit install
+# Check: pre-commit run --all-files
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-ast
+        files: ^example/.*\.py$
+      - id: check-yaml
+        files: ^(example/.*|\.pre-commit-config)\.ya?ml$
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+        exclude: ^unity-agent-playground/Packages/
