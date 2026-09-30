@@ -6,6 +6,10 @@ import json
 import time
 import uuid
 from contextlib import aclosing, asynccontextmanager
+from typing import Dict, Any, Optional, List
+
+# 协议版本
+PROTOCOL_VERSION = "1.0.0"
 
 T = {
     "sync": "agentsdk.robot_state.sync",
@@ -99,8 +103,11 @@ async def gateway_messages(ws, on_session_state=None):
         await asyncio.gather(reader, return_exceptions=True)
 
 
-def build_headers(app_id, app_key, app_secret, path, bad_sig=False,
-                  role=None, audio_enabled=None, client_name=None):
+def build_headers(app_id: str, app_key: str, app_secret: str, path: str,
+                  bad_sig: bool = False, role: Optional[str] = None,
+                  audio_enabled: Optional[bool] = None,
+                  client_name: Optional[str] = None,
+                  protocol_version: str = PROTOCOL_VERSION) -> Dict[str, str]:
     """对齐 AuthVerifier.cs：payload = "GET\\n<path>\\n<ts>\\n<nonce>"。"""
     ts = str(int(time.time() * 1000))
     nonce = "nonce-" + uuid.uuid4().hex[:8]
@@ -114,6 +121,7 @@ def build_headers(app_id, app_key, app_secret, path, bad_sig=False,
         "X-Nonce": nonce,
         "X-Signature": "deadbeef" if bad_sig else sig,
         "X-Callback-Types": '["audio2tts"]',
+        "X-Protocol-Version": protocol_version,  # 版本标记；当前网关不进行版本协商
     }
     if role is not None:
         headers["X-Client-Role"] = role

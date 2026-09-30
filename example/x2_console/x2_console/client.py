@@ -7,12 +7,19 @@ import math
 import threading
 import time
 import uuid
+from typing import Dict, Any, Optional, Callable
 
 import websockets
 
 from .gateway import T, build_headers, envelope
 
 DEFAULT_PATH = "/api/V1/open-portal/app/wss/agent-sdk"
+
+# 控制台常量
+CONSOLE_PRIORITY = 1000  # 固定的控制台管理优先级
+EVENT_BUFFER_CAPACITY = 1500  # 事件缓冲区容量
+CONSOLE_RECONNECT_DELAY_SECONDS = 3  # 重连延迟
+CONTROL_SWITCH_TIMEOUT_SECONDS = 2  # 控制权切换超时
 
 
 @dataclass(frozen=True)
@@ -45,13 +52,14 @@ class ConnectionSettings:
 
 class EventBuffer:
     """Separate snapshots from bounded log events so a flood cannot hide disconnection."""
-    def __init__(self, capacity=1500):
+    def __init__(self, capacity: int = EVENT_BUFFER_CAPACITY):
         self._lock = threading.Lock()
-        self._logs = deque(maxlen=capacity)
-        self._snapshot = dict(state="offline", detail="尚未连接", rx=0, tx=0,
-                              activity="等待连接", skill="", robot_cid="", power="—", network="—",
-                              sessions=[], control_active=False, audio_active=False,
-                              control_enabled=False, can_manage=False, control_switch_supported=False)
+        self._logs: deque = deque(maxlen=capacity)
+        self._snapshot: Dict[str, Any] = dict(
+            state="offline", detail="尚未连接", rx=0, tx=0,
+            activity="等待连接", skill="", robot_cid="", power="—", network="—",
+            sessions=[], control_active=False, audio_active=False,
+            control_enabled=False, can_manage=False, control_switch_supported=False)
         self.dropped = 0
 
     def update(self, **values):
@@ -225,7 +233,7 @@ class ConsoleClient:
                     self._online = False
                     self._ws = None
                 self.events.update(state="reconnecting", activity="等待重连")
-                await asyncio.sleep(3)
+                await asyncio.sleep(CONSOLE_RECONNECT_DELAY_SECONDS)
         except asyncio.CancelledError:
             self.events.update(detail="连接已断开")
             raise
@@ -378,7 +386,7 @@ class ConsoleClient:
             if name == "interrupt" and not self._control_active and self._can_manage and self._control_switch_supported:
                 self._control_changed.clear()
                 await self._send(message("session_control", enabled=True))
-                deadline = asyncio.get_running_loop().time() + 2
+                deadline = asyncio.get_running_loop().time() + CONTROL_SWITCH_TIMEOUT_SECONDS
                 while not self._control_active:
                     require_connection()
                     remaining = deadline - asyncio.get_running_loop().time()

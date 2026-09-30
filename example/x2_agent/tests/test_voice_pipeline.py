@@ -146,7 +146,9 @@ class PipelineTests(unittest.IsolatedAsyncioTestCase):
                 yield b''
 
         with patch.object(self.agent.llm, 'stream', llm), patch.object(self.agent, 'speech_stream', speech):
-            await self.run_round()
+            with self.assertLogs(agent.logger, level="ERROR") as logged:
+                await self.run_round()
+        self.assertTrue(any("synthesis failed" in line for line in logged.output))
         self.assertTrue(llm_closed.is_set())
         self.assertEqual(self.agent.history, [])
         self.assertTrue(any(f.get('errorCode') == 3301 for f in self.socket.frames))
@@ -169,6 +171,26 @@ class PipelineTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(spoken)
         self.assertTrue(any(f.get('skillName') == 'wave_hands' for f in self.socket.frames))
         self.assertEqual(self.agent.history[-1]['content'], ''.join(spoken))
+
+    async def test_invalid_tool_corrects_existing_text_and_never_sends_skill(self):
+        spoken = []
+
+        async def llm(*args, **kwargs):
+            yield "text", "好的，我这就挥手。"
+            yield "tool_calls", [{"name": "robot_skill", "arguments":
+                                 '{"skillType":"emotion","skillName":"wave_hands"}'}]
+
+        async def speech(texts):
+            async for text in texts:
+                spoken.append(text)
+                yield b"\x00\x00" * 100
+
+        with patch.object(self.agent.llm, "stream", llm), patch.object(self.agent, "speech_stream", speech):
+            await self.run_round()
+        self.assertFalse(any(frame["type"] == agent.T["skill"] for frame in self.socket.frames))
+        self.assertTrue(any(frame.get("errorCode") == 4092 for frame in self.socket.frames))
+        self.assertEqual(spoken[-1], "动作参数无效，这次动作不会执行。")
+        self.assertEqual(self.agent.history[-1]["content"], "".join(spoken))
 
     async def test_partial_greeting_failure_reports_error_and_closes_round(self):
         self.agent.args.greeting = 'hello'
@@ -251,8 +273,8 @@ class TransportTests(unittest.IsolatedAsyncioTestCase):
 
         async with websockets.serve(server, '127.0.0.1', 0) as listener:
             url = 'ws://127.0.0.1:%d' % listener.sockets[0].getsockname()[1]
-            with patch('x2_agent.tts.URL', url):
-                client = BidiTtsClient('test', 'test')
+            with patch.dict("os.environ", {"TTS_WS_URL": url}):
+                client = BidiTtsClient('test', 'test', endpoint=url)
                 try:
                     for _ in range(2):
                         audio = asyncio.Event()
@@ -296,7 +318,8 @@ class TransportTests(unittest.IsolatedAsyncioTestCase):
         try:
             async with await asyncio.start_server(handle, '127.0.0.1', 0) as server:
                 url = 'http://127.0.0.1:%d/chat' % server.sockets[0].getsockname()[1]
-                with patch('x2_agent.llm.URL', url):
+                client.endpoint = url
+                with patch.dict("os.environ", {"ARK_API_URL": url}):
                     for _ in range(2):
                         self.assertEqual([x async for x in client.stream('s', [], 'm', 'test')],
                                          [('text', 'hello')])

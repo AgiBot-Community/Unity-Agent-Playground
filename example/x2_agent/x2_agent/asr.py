@@ -1,27 +1,37 @@
 """Streaming audio upload and recognition lifecycle."""
 import asyncio
+import os
 import time
 import uuid
+from typing import AsyncIterator, Optional
 import websockets
 from .speech_protocol import (
     build_full_request, build_audio_packet, parse_server_message,
     MSG_ERROR, MSG_SERVER_FULL, FLAG_LAST_PACKET,
 )
 
+# ASR 服务端点 - 可通过环境变量覆盖
 ASR_WS_URL = "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel_nostream"
 
-async def asr_transcribe(pcm16k: bytes, key: str, resource_id: str) -> str:
+# 音频处理常量
+ASR_CHUNK_SIZE = 6400  # 200ms @16k16bit = 6400 bytes
+ASR_QUEUE_MAX_SIZE = 600  # 最多积压一分钟的音频帧（假设每帧 100ms）
+ASR_TIMEOUT_SECONDS = 30  # ASR 识别超时时间
+
+async def asr_transcribe(pcm16k: bytes, key: str, resource_id: str,
+                         endpoint: Optional[str] = None) -> str:
     """16k/16bit/mono PCM → 文本。空音频/空结果返回 ''。"""
     if not pcm16k:
         return ""
 
-    async def chunks():
+    async def chunks() -> AsyncIterator[bytes]:
         yield pcm16k
 
-    return await asr_stream_transcribe(chunks(), key, resource_id)
+    return await asr_stream_transcribe(chunks(), key, resource_id, endpoint)
 
 
-async def asr_stream_transcribe(chunks, key: str, resource_id: str) -> str:
+async def asr_stream_transcribe(chunks, key: str, resource_id: str,
+                               endpoint: Optional[str] = None) -> str:
     """录音期间上传；nostream 表示整段返回结果，不要求整段上传。"""
     headers = {
         "X-Api-Key": key,
@@ -36,13 +46,15 @@ async def asr_stream_transcribe(chunks, key: str, resource_id: str) -> str:
                     "result_type": "full", "enable_itn": True},
     }
     started = time.perf_counter()
-    async with websockets.connect(ASR_WS_URL, additional_headers=headers,
+    endpoint = endpoint or os.environ.get("ASR_WS_URL", ASR_WS_URL)
+    async with websockets.connect(endpoint, additional_headers=headers,
                                   compression=None, open_timeout=10,
                                   close_timeout=1) as ws:
         print("agent     [ASR 连接 %.0fms] 开始上传"
               % ((time.perf_counter() - started) * 1000))
         await ws.send(build_full_request(req_json))
-        async def receive_result():
+        pending, first = "", True
+        async def receive_result() -> str:
             final_text = ""
             while True:
                 try:
@@ -68,12 +80,12 @@ async def asr_stream_transcribe(chunks, key: str, resource_id: str) -> str:
                 if receiver.done():
                     return receiver.result()
                 pending.extend(pcm)
-                while len(pending) >= 6400:  # 200ms @16k16bit
-                    await ws.send(build_audio_packet(bytes(pending[:6400])))
-                    del pending[:6400]
+                while len(pending) >= ASR_CHUNK_SIZE:
+                    await ws.send(build_audio_packet(bytes(pending[:ASR_CHUNK_SIZE])))
+                    del pending[:ASR_CHUNK_SIZE]
                     await asyncio.sleep(0)  # 接收任务也需及时处理响应
             await ws.send(build_audio_packet(bytes(pending), last=True))
-            return await asyncio.wait_for(receiver, timeout=30)
+            return await asyncio.wait_for(receiver, timeout=ASR_TIMEOUT_SECONDS)
         finally:
             if not receiver.done():
                 receiver.cancel()
@@ -83,14 +95,14 @@ async def asr_stream_transcribe(chunks, key: str, resource_id: str) -> str:
 class StreamingAsr:
     """录音帧进入独立上传任务，commit 时只等待最终识别。"""
 
-    def __init__(self, key, resource_id):
+    def __init__(self, key: str, resource_id: str, endpoint: Optional[str] = None):
         # Unity 每帧约 100ms；允许开场白期间缓存的录音批量到达，最多积压一分钟。
-        self.queue = asyncio.Queue(maxsize=600)
-        self.error = None
+        self.queue: asyncio.Queue = asyncio.Queue(maxsize=ASR_QUEUE_MAX_SIZE)
+        self.error: Optional[RuntimeError] = None
         self.task = asyncio.create_task(asr_stream_transcribe(
-            self._chunks(), key, resource_id))
+            self._chunks(), key, resource_id, endpoint))
 
-    async def _chunks(self):
+    async def _chunks(self) -> AsyncIterator[bytes]:
         while True:
             pcm = await self.queue.get()
             if pcm is None:
@@ -105,6 +117,7 @@ class StreamingAsr:
         except asyncio.QueueFull:
             self.error = RuntimeError("ASR 上传积压，检查网络后重试")
             self.task.cancel()
+            # 注意：任务已取消，但资源清理需要在 close() 或 finish() 中完成
 
     async def finish(self):
         if self.error:

@@ -1,0 +1,118 @@
+# 机器人技能配置文件
+# 本文件定义了机器人支持的所有技能及其参数
+
+version: "1.0"
+
+skill_categories:
+  gesture:
+    description: "手势动作"
+    skills:
+      - name: wave_hands
+        display_name: "挥手"
+        description: "挥手打招呼"
+        parameters: []
+
+      - name: open_arms
+        display_name: "张开双臂"
+        description: "张开双臂表示欢迎"
+        parameters: []
+
+  movement:
+    description: "移动动作"
+    skills:
+      - name: walk
+        display_name: "行走"
+        description: "向前行走"
+        parameters:
+          - name: distanceM
+            type: float
+            description: "行走距离（米）"
+            default: 1.0
+            min: 0.2
+            max: 5.0
+
+      - name: turn
+        display_name: "转向"
+        description: "原地转向"
+        parameters:
+          - name: angleDeg
+            type: float
+            description: "转向角度（度），正值为向右，负值为向左"
+            default: 90.0
+            min: -360.0
+            max: 360.0
+
+      - name: stop
+        display_name: "停止"
+        description: "停止当前动作"
+        parameters: []
+
+  emotion:
+    description: "情感表情"
+    skills:
+      - name: happy
+        display_name: "开心"
+        description: "显示开心表情"
+        parameters:
+          - name: durationMs
+            type: float
+            description: "表情持续时间（毫秒）；0 或负数持续显示"
+            default: 3000
+
+      - name: sad
+        display_name: "难过"
+        description: "显示难过表情"
+        parameters:
+          - name: durationMs
+            type: float
+            description: "表情持续时间（毫秒）；0 或负数持续显示"
+            default: 3000
+
+      - name: surprised
+        display_name: "惊讶"
+        description: "显示惊讶表情"
+        parameters:
+          - name: durationMs
+            type: float
+            description: "表情持续时间（毫秒）；0 或负数持续显示"
+            default: 3000
+
+      - name: angry
+        display_name: "生气"
+        description: "显示生气表情"
+        parameters:
+          - name: durationMs
+            type: float
+            description: "表情持续时间（毫秒）；0 或负数持续显示"
+            default: 3000
+
+      - name: love
+        display_name: "爱心"
+        description: "显示爱心表情"
+        parameters:
+          - name: durationMs
+            type: float
+            description: "表情持续时间（毫秒）；0 或负数持续显示"
+            default: 3000
+
+      - name: neutral
+        display_name: "中性"
+        description: "恢复中性表情"
+        parameters:
+          - name: durationMs
+            type: float
+            description: "表情持续时间（毫秒）；0 或负数持续显示"
+            default: 3000
+
+# 技能即时口播表：纯工具调用时立刻回话
+acknowledgments:
+  gesture/wave_hands: "好呀，我这就挥挥手～"
+  gesture/open_arms: "欢迎欢迎！"
+  movement/stop: "好的，我停下了。"
+  emotion/happy: "我现在好开心呀！"
+  emotion/sad: "呜，有点难过……"
+  emotion/surprised: "哇！真的吗？"
+  emotion/angry: "哼，我生气啦！"
+  emotion/love: "爱心送给您～"
+  emotion/neutral: "好的。"
+  default: "好的，我这就来！"

@@ -3,10 +3,13 @@ import argparse
 import asyncio
 import base64
 import json
+import logging
 import os
+from pathlib import Path
 import time
 import uuid
 from contextlib import aclosing
+from typing import Dict, List, Optional, Any, AsyncIterator
 import websockets
 from .asr import StreamingAsr, asr_transcribe
 from .audio import save_wav, trunc
@@ -15,43 +18,26 @@ from .gateway import T, build_headers, envelope, gateway_messages
 from .llm import LlmClient
 from .tts import BidiTtsClient
 from .sentence_tts import tts_stream
+from .agent_config import AgentConfig
+from .skill_loader import SkillLoader
+from .logging_config import setup_logger
+from .error_codes import (
+    ERR_ASR_FAILED, ERR_ASR_EMPTY_RESULT, ERR_LLM_FAILED, ERR_TTS_FAILED,
+    ERR_INVALID_SKILL_PARAM,
+)
+from .metrics import PerformanceMetrics
 
-# 机器人技能工具定义（function calling），与 Unity SkillCatalog 一一对应。
-SKILL_TOOLS = [{
-    "type": "function",
-    "function": {
-        "name": "robot_skill",
-        "description": (
-            "让机器人执行一个动作或表情技能。用户表达动作/表情/移动意图时调用；"
-            "调用后正常用自然语言回应即可。"
-        ),
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "skillType": {"type": "string",
-                             "enum": ["gesture", "movement", "emotion"]},
-                "skillName": {"type": "string", "enum": [
-                    # gesture（2 个基本动作）
-                    "wave_hands", "open_arms",
-                    # movement
-                    "walk", "turn", "stop",
-                    # emotion（5 个经典表情）
-                    "happy", "sad", "surprised", "angry", "love",
-                    "neutral"]},
-                "skillParam": {
-                    "type": "object",
-                    "description": "walk: distanceM(米,默认1)；turn: angleDeg(度,右转为正)；emotion: durationMs(默认3000)",
-                    "properties": {
-                        "distanceM": {"type": "number"},
-                        "angleDeg": {"type": "number"},
-                        "durationMs": {"type": "number"},
-                    },
-                },
-            },
-            "required": ["skillType", "skillName"],
-        },
-    },
-}]
+logger = logging.getLogger(__name__)
+
+# 断句和音频参数常量
+SENTENCE_MIN_WEAK_CHARS = 8  # 弱标点需要凑够的最少字符数
+SENTENCE_MAX_BUFFER = 40  # 超长无标点时的强制切分长度
+SENTENCE_MIN_WEAK_CHARS_FIRST = 4  # 首句的最小弱标点字符数（更激进）
+SENTENCE_MAX_BUFFER_FIRST = 24  # 首句的最大缓冲长度
+
+# ASR 音频参数
+ASR_CHUNK_SIZE = 6400  # 200ms @16k16bit = 6400 bytes
+ASR_QUEUE_MAX_SIZE = 600  # 最多积压一分钟的音频帧
 
 def slice_history(history: list, turns: int) -> list:
     """取最近 turns 轮对话；截断点对齐到 user 消息边界，
@@ -71,7 +57,8 @@ _SENT_STRONG = "。！？!?…\n"
 _SENT_WEAK = "，、；;:,"
 
 
-def cut_sentences(pending: str, min_weak: int = 8, max_buf: int = 40):
+def cut_sentences(pending: str, min_weak: int = SENTENCE_MIN_WEAK_CHARS,
+                  max_buf: int = SENTENCE_MAX_BUFFER) -> tuple:
     """把待合成文本切成完整句子。返回 (句子列表, 剩余待拼文本)。"""
     out = []
     rest = pending
@@ -94,19 +81,6 @@ def cut_sentences(pending: str, min_weak: int = 8, max_buf: int = 40):
     return out, rest
 
 
-# 技能即时口播表：纯工具调用时立刻回话（与动作并行），不等二轮 LLM
-SKILL_ACKS = {
-    ("gesture", "wave_hands"): "好呀，我这就挥挥手～",
-    ("gesture", "open_arms"): "欢迎欢迎！",
-    ("movement", "stop"): "好的，我停下了。",
-    ("emotion", "happy"): "我现在好开心呀！",
-    ("emotion", "sad"): "呜，有点难过……",
-    ("emotion", "surprised"): "哇！真的吗？",
-    ("emotion", "angry"): "哼，我生气啦！",
-    ("emotion", "love"): "爱心送给您～",
-    ("emotion", "neutral"): "好的。",
-}
-SKILL_ACK_GENERIC = "好的，我这就来！"
 NO_CONTROL_REPLY = "当前语音会话没有动作控制权，这次动作不会执行。请先在控制台确认控制权归属。"
 
 
@@ -131,22 +105,6 @@ def is_direct_gesture_request(text):
                     "张开双臂", "张开你的双臂", "张开手臂", "张开你的手臂"}
 
 
-def pick_ack(skill_type, skill_name, param):
-    """按技能挑即时口播；walk/turn 带上参数。"""
-    if skill_name == "walk":
-        try:
-            d = float((param or {}).get("distanceM", 1))
-            return "好，我往前走%s米。" % ("%g" % d)
-        except (TypeError, ValueError):
-            pass
-    elif skill_name == "turn":
-        try:
-            deg = float((param or {}).get("angleDeg", 90))
-            return "好，我向%s转。" % ("右" if deg >= 0 else "左")
-        except (TypeError, ValueError):
-            pass
-    return SKILL_ACKS.get((skill_type, skill_name), SKILL_ACK_GENERIC)
-
 class TtsFailure(RuntimeError):
     pass
 
@@ -161,8 +119,11 @@ class DoubaoAgent:
         self._authority_revision = -1
         self._tts_seq = 0
         self._asr = None
-        self.llm = LlmClient()
-        self.tts = BidiTtsClient(args.speech_key, args.tts_speaker)
+        self.skills = SkillLoader(getattr(args, "skills_file", None))
+        self.skill_tools = self.skills.get_tool_definition()
+        self.metrics = PerformanceMetrics()
+        self.llm = LlmClient(getattr(args, "ark_api_url", None))
+        self.tts = BidiTtsClient(args.speech_key, args.tts_speaker, getattr(args, "tts_ws_url", None))
         self._tts_warm = None
         self._llm_warm = None
 
@@ -172,7 +133,7 @@ class DoubaoAgent:
                 try:
                     await self.llm.warm(self.args.ark_key)
                 except Exception as exc:
-                    print("agent     LLM 预连接未完成，实际请求时重试: %s" % exc)
+                    logger.warning("agent     LLM 预连接未完成，实际请求时重试: %s" % exc)
             self._llm_warm = asyncio.create_task(prepare_llm())
         if self.args.tts_mode != "bidirectional":
             return
@@ -183,7 +144,7 @@ class DoubaoAgent:
             try:
                 await self.tts.connect()
             except Exception as exc:
-                print("agent     TTS 预连接失败，实际合成时重试: %s" % exc)
+                logger.warning("agent     TTS 预连接失败，实际合成时重试: %s" % exc)
 
         self._tts_warm = asyncio.create_task(prepare())
 
@@ -198,6 +159,10 @@ class DoubaoAgent:
             await asyncio.gather(self._tts_warm, return_exceptions=True)
         await self.tts.close()
         await self.llm.close()
+        if getattr(self.args, "metrics_file", None):
+            Path(self.args.metrics_file).write_text(
+                json.dumps(self.metrics.get_summary(), ensure_ascii=False, indent=2),
+                encoding="utf-8")
 
     async def speech_stream(self, texts):
         if self.args.tts_mode == "bidirectional":
@@ -208,23 +173,28 @@ class DoubaoAgent:
         pending, first = "", True
         async for text in texts:
             pending += text
-            sentences, pending = cut_sentences(pending, min_weak=4 if first else 8,
-                                               max_buf=24 if first else 40)
+            sentences, pending = cut_sentences(
+                pending,
+                min_weak=SENTENCE_MIN_WEAK_CHARS_FIRST if first else SENTENCE_MIN_WEAK_CHARS,
+                max_buf=SENTENCE_MAX_BUFFER_FIRST if first else SENTENCE_MAX_BUFFER
+            )
             for sentence in sentences:
                 first = False
                 async with aclosing(tts_stream(sentence, self.args.tts_speaker,
-                                               self.args.speech_key)) as stream:
+                                               self.args.speech_key,
+                                               self.args.tts_sentence_ws_url)) as stream:
                     async for pcm in stream:
                         yield pcm
         if pending:
             async with aclosing(tts_stream(pending, self.args.tts_speaker,
-                                           self.args.speech_key)) as stream:
+                                           self.args.speech_key,
+                                           self.args.tts_sentence_ws_url)) as stream:
                 async for pcm in stream:
                     yield pcm
 
     async def send(self, ws, obj):
         text = json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
-        print("agent -> gw  %s" % trunc(text))
+        logger.info("agent -> gw  %s" % trunc(text))
         await ws.send(text)
 
     async def send_error(self, ws, event_id, code, msg):
@@ -237,12 +207,12 @@ class DoubaoAgent:
         a = self.args
         event_id = req.get("eventId", "")
         item_id = req.get("itemId") or ("item-" + uuid.uuid4().hex[:8])
-        t0 = time.time()
+        t0 = time.perf_counter()
 
         # 诊断：保存上行音频（验证 Unity→agent 音频链路内容）
         if a.save_input:
             save_wav(a.save_input, bytes(audio_buf))
-            print("agent     已保存上行音频 → %s (%d bytes)"
+            logger.info("agent     已保存上行音频 → %s (%d bytes)"
                   % (a.save_input, len(audio_buf)))
 
         # ---- 1) ASR ----
@@ -251,16 +221,20 @@ class DoubaoAgent:
                 asr_text = await streaming_asr.finish()
             else:
                 asr_text = await asr_transcribe(bytes(audio_buf),
-                                               a.speech_key, a.asr_resource_id)
+                                               a.speech_key, a.asr_resource_id, a.asr_ws_url)
         except Exception as e:
-            print("agent     ASR 失败: %s" % e)
-            await self.send_error(ws, event_id, 3101, "asr failed: %s" % e)
+            self.metrics.increment_counter("asr_failure_count")
+            logger.error("agent     ASR 失败: %s" % e)
+            await self.send_error(ws, event_id, ERR_ASR_FAILED, "asr failed: %s" % e)
             return
-        print("agent     [ASR %.0fms（commit 后）] %r"
-              % ((time.time() - t0) * 1000, asr_text))
+        self.metrics.record_duration("asr_duration_ms", (time.perf_counter() - t0) * 1000)
+        logger.info("agent     [ASR %.0fms（commit 后）] %r"
+              % ((time.perf_counter() - t0) * 1000, asr_text))
         if not asr_text:
-            await self.send_error(ws, event_id, 3102, "empty asr result")
+            self.metrics.increment_counter("asr_failure_count")
+            await self.send_error(ws, event_id, ERR_ASR_EMPTY_RESULT, "empty asr result")
             return
+        self.metrics.increment_counter("asr_success_count")
         await self.send(ws, envelope(T["asr_final"], a.app_id, self.robot_cid,
                                     event_id, text=asr_text))
 
@@ -288,8 +262,10 @@ class DoubaoAgent:
                 async for pcm in stream:
                     if first_audio is None:
                         first_audio = time.perf_counter()
-                        print("agent     [TTS 首包 %.0fms（自轮次开始）; 首文字后 %.0fms]"
-                              % ((time.time() - t0) * 1000,
+                        self.metrics.record_duration("tts_first_chunk_ms",
+                                                     (first_audio - (first_text or t1)) * 1000)
+                        logger.info("agent     [TTS 首包 %.0fms（自轮次开始）; 首文字后 %.0fms]"
+                              % ((time.perf_counter() - t0) * 1000,
                                  (first_audio - (first_text or t1)) * 1000))
                     total.extend(pcm)
                     await self.send(ws, envelope(
@@ -331,7 +307,7 @@ class DoubaoAgent:
                 prompt += "\n当前机器人动作由高优先级控制台接管。你可以对话，但不能执行动作，也不要声称已执行动作。"
             stream = self.llm.stream(
                 prompt, slice_history(self.history, a.history_turns),
-                a.llm_model, a.ark_key, tools=SKILL_TOOLS if self.control_active else None)
+                a.llm_model, a.ark_key, tools=self.skill_tools if self.control_active else None)
             next_item = None
             try:
                 while True:
@@ -361,6 +337,7 @@ class DoubaoAgent:
                     continue
                 if first_text is None:
                     first_text = time.perf_counter()
+                    self.metrics.record_duration("llm_first_token_ms", (first_text - t1) * 1000)
                 reply += payload
                 await self.send(ws, envelope(T["llm_delta"], a.app_id, self.robot_cid,
                                             event_id, item_id=item_id, text=payload))
@@ -383,15 +360,27 @@ class DoubaoAgent:
                     continue
                 try:
                     args = json.loads(tc.get("arguments") or "{}")
+                    if not isinstance(args, dict):
+                        raise ValueError("工具参数必须为对象")
+                    params = self.skills.validate_request(
+                        args.get("skillType"), args.get("skillName"), args.get("skillParam"))
                 except ValueError:
-                    print("agent     工具参数非法: %r" % tc.get("arguments"))
+                    logger.warning("agent     工具参数非法: %r" % tc.get("arguments"))
+                    await self.send_error(ws, event_id, ERR_INVALID_SKILL_PARAM, "invalid skill parameters")
+                    correction = "动作参数无效，这次动作不会执行。"
+                    first_text = first_text or time.perf_counter()
+                    reply += correction
+                    await self.send(ws, envelope(T["llm_delta"], a.app_id, self.robot_cid,
+                                                event_id, item_id=item_id, text=correction))
+                    await enqueue(correction)
                     continue
                 await self.send(ws, envelope(
                     T["skill"], a.app_id, self.robot_cid, event_id, item_id=item_id,
                     skillType=args.get("skillType", ""), skillName=args.get("skillName", ""),
-                    skillParam=args.get("skillParam") or {}))
-                ack = pick_ack(args.get("skillType", ""), args.get("skillName", ""),
-                               args.get("skillParam"))
+                    skillParam=params))
+                self.metrics.increment_counter("skill_executed_count")
+                ack = self.skills.get_acknowledgment(
+                    args.get("skillType", ""), args.get("skillName", ""), params)
             if not reply:
                 if not tool_calls:
                     raise RuntimeError("empty llm reply")
@@ -404,24 +393,31 @@ class DoubaoAgent:
             await self.send(ws, envelope(T["llm_done_item"], a.app_id, self.robot_cid,
                                         event_id, item_id=item_id))
             await self.send(ws, envelope(T["llm_done"], a.app_id, self.robot_cid, event_id))
-            print("agent     [LLM 完 %.0fms] %s"
+            logger.info("agent     [LLM 完 %.0fms] %s"
                   % ((time.perf_counter() - t1) * 1000, trunc(reply, 80)))
+            self.metrics.record_duration("llm_total_duration_ms", (time.perf_counter() - t1) * 1000)
+            self.metrics.increment_counter("llm_success_count")
             await enqueue(None)
             await worker
+            self.metrics.increment_counter("tts_success_count")
+            self.metrics.record_duration("tts_total_duration_ms",
+                                         (time.perf_counter() - (first_text or t1)) * 1000)
             self.history.append({"role": "assistant", "content": reply})
             if a.save_audio and total:
                 save_wav(a.save_audio, total)
-            print("agent     本轮完成: 总耗时 %.0fms（音频 %d bytes PCM）"
-                  % ((time.time() - t0) * 1000, len(total)))
+            logger.info("agent     本轮完成: 总耗时 %.0fms（音频 %d bytes PCM）"
+                  % ((time.perf_counter() - t0) * 1000, len(total)))
         except Exception as exc:
             del self.history[history_start:]
-            stage, code = ("tts", 3301) if isinstance(exc, TtsFailure) else ("llm", 3201)
-            print("agent     %s 失败: %s" % (stage.upper(), exc))
+            stage, code = ("tts", ERR_TTS_FAILED) if isinstance(exc, TtsFailure) else ("llm", ERR_LLM_FAILED)
+            self.metrics.increment_counter(stage + "_failure_count")
+            logger.error("agent     %s 失败: %s" % (stage.upper(), exc))
             await self.send_error(ws, event_id, code, "%s failed: %s" % (stage, exc))
         except asyncio.CancelledError:
             del self.history[history_start:]
             raise
         finally:
+            self.metrics.record_duration("round_total_duration_ms", (time.perf_counter() - t0) * 1000)
             await events.aclose()
             if not worker.done():
                 worker.cancel()
@@ -462,12 +458,12 @@ class DoubaoAgent:
                         item_id=item_id,
                         audio=base64.b64encode(pcm).decode("ascii"),
                         audioLen=len(pcm)))
-            print("agent     开场播报已下发: %r" % a.greeting)
+            logger.info("agent     开场播报已下发: %r" % a.greeting)
         except websockets.exceptions.ConnectionClosed:
             raise
         except Exception as e:
-            print("agent     开场播报失败（不影响对话）: %s" % e)
-            await self.send_error(ws, event_id, 3301, "greeting tts failed: %s" % e)
+            logger.warning("agent     开场播报失败（不影响对话）: %s" % e)
+            await self.send_error(ws, event_id, ERR_TTS_FAILED, "greeting tts failed: %s" % e)
         finally:
             try:
                 await self.send(ws, envelope(T["tts_done_item"], a.app_id,
@@ -508,10 +504,10 @@ class DoubaoAgent:
         async for raw, f in frames:
             ftype = f.get("type", "")
             if ftype != T["a_append"]:        # append 太吵，不打
-                print("agent <- gw  %s" % trunc(raw))
+                logger.info("agent <- gw  %s" % trunc(raw))
 
             if ftype == T["sync"]:
-                print("agent     会话就绪 state=%s callbackType=%s"
+                logger.info("agent     会话就绪 state=%s callbackType=%s"
                       % (f.get("state"), f.get("callbackType")))
                 if self.audio_active:
                     self.warm_connections()
@@ -521,7 +517,7 @@ class DoubaoAgent:
                     await self._asr.close()
                     self._asr = None
                     audio_buf = bytearray()
-                print("agent     控制权=%s 语音接收=%s" %
+                logger.info("agent     控制权=%s 语音接收=%s" %
                       (self.control_active, self.audio_active))
             elif ftype == T["a_start"]:
                 self.warm_connections()
@@ -530,7 +526,7 @@ class DoubaoAgent:
                 audio_buf = bytearray()
                 recording_started = time.perf_counter()
                 self._asr = (None if a.asr_after_commit else
-                             StreamingAsr(a.speech_key, a.asr_resource_id))
+                             StreamingAsr(a.speech_key, a.asr_resource_id, a.asr_ws_url))
             elif ftype == T["a_append"]:
                 b64 = f.get("audio", "")
                 pcm = base64.b64decode(b64) if b64 else b""
@@ -539,10 +535,10 @@ class DoubaoAgent:
                     self._asr.feed(pcm)
             elif ftype == T["a_commit"]:
                 ms = len(audio_buf) / 32.0
-                print("agent     收到 commit：%d bytes（约 %.0f ms 语音）"
+                logger.info("agent     收到 commit：%d bytes（约 %.0f ms 语音）"
                       % (len(audio_buf), ms))
                 if recording_started is not None:
-                    print("agent     [录音 start→commit %.0fms]"
+                    logger.info("agent     [录音 start→commit %.0fms]"
                           % ((time.perf_counter() - recording_started) * 1000))
                 active_asr, self._asr = self._asr, None
                 try:
@@ -553,16 +549,16 @@ class DoubaoAgent:
                     audio_buf = bytearray()
                     recording_started = None
             elif ftype == T["error"]:
-                print("agent     网关错误: code=%s msg=%s"
+                logger.warning("agent     网关错误: code=%s msg=%s"
                       % (f.get("errorCode"), f.get("errorMsg")))
             elif ftype == "agentsdk.skill_response.state":
-                print("agent     技能状态: %s → %s %s"
+                logger.info("agent     技能状态: %s → %s %s"
                       % (f.get("skillName"), f.get("state"),
                          f.get("detail", "")))
             elif ftype == "agentsdk.state_request.meta":
                 pass
             else:
-                print("agent     （忽略 %s）" % ftype)
+                logger.info("agent     （忽略 %s）" % ftype)
 
     async def run(self):
         try:
@@ -574,24 +570,25 @@ class DoubaoAgent:
         a = self.args
         uri = "ws://%s:%d%s" % (a.host, a.port, a.path)
         while True:
-            headers = build_headers(a.app_id, a.app_key, a.app_secret, a.path)
+            headers = build_headers(a.app_id, a.app_key, a.app_secret, a.path,
+                                    protocol_version=a.protocol_version)
             try:
-                print("agent     连接 %s ..." % uri)
+                logger.info("agent     连接 %s ..." % uri)
                 async with websockets.connect(
                         uri,
                         additional_headers=headers,
                         compression=None,       # Unity 手写 WS 服务端不支持压缩扩展
                         user_agent_header=None,
                         open_timeout=5) as ws:
-                    print("agent     握手成功（101 Switching Protocols）")
+                    logger.info("agent     握手成功（101 Switching Protocols）")
                     await self.session(ws)
             except websockets.exceptions.InvalidStatus as e:
-                print("agent     握手被拒绝: HTTP %s" % e.response.status_code)
-                print("agent     （400=握手头不兼容 401=签名错 404=路径错 503=连接数达到上限）")
+                logger.warning("agent     握手被拒绝: HTTP %s" % e.response.status_code)
+                logger.warning("agent     （400=握手头不兼容 401=签名错 404=路径错 503=连接数达到上限）")
             except (websockets.exceptions.ConnectionClosed, OSError,
                     asyncio.TimeoutError) as e:
-                print("agent     连接断开：%s" % e)
-            print("agent     3 秒后重连 ...")
+                logger.warning("agent     连接断开：%s" % e)
+            logger.info("agent     3 秒后重连 ...")
             await asyncio.sleep(3)
 
 
@@ -602,58 +599,58 @@ def parse_args(argv=None):
     load_env(options.env_file)
     p = argparse.ArgumentParser(description="X02 豆包真实智能体客户端")
     p.add_argument("--env-file", help="Explicit .env path; existing environment variables take priority")
-    p.add_argument("--host", default="localhost")
-    p.add_argument("--port", type=int, default=9002)
-    p.add_argument("--path", default="/api/V1/open-portal/app/wss/agent-sdk")
-    p.add_argument("--app-id", default="demo-app")
-    p.add_argument("--app-key", default="demo-key")
-    p.add_argument("--app-secret", default="demo-secret")
+    p.add_argument("--host", default=AgentConfig.host)
+    p.add_argument("--port", type=int, default=AgentConfig.port)
+    p.add_argument("--path", default=AgentConfig.path)
+    p.add_argument("--app-id", default=AgentConfig.app_id)
+    p.add_argument("--app-key", default=AgentConfig.app_key)
+    p.add_argument("--app-secret", default=AgentConfig.app_secret)
     p.add_argument("--speech-key", default=os.environ.get("DOUBAO_SPEECH_API_KEY", ""),
                    help="语音控制台 API Key（ASR+TTS），或环境变量 DOUBAO_SPEECH_API_KEY")
     p.add_argument("--ark-key", default=os.environ.get("ARK_API_KEY", ""),
                    help="火山方舟 API Key（LLM），或环境变量 ARK_API_KEY")
     p.add_argument("--llm-model", default=os.environ.get("DOUBAO_LLM_MODEL",
-                   "doubao-seed-2-0-mini-260428"))
+                   AgentConfig.llm_model))
     p.add_argument("--tts-speaker", default=os.environ.get("DOUBAO_TTS_SPEAKER",
-                   "zh_female_wanqudashu_moon_bigtts"))
+                   AgentConfig.tts_speaker))
     p.add_argument("--tts-mode", choices=["bidirectional", "sentence"],
-                   default="bidirectional",
+                   default=AgentConfig.tts_mode,
                    help="默认双向流式（文本边生成边合成）；sentence 使用逐句合成兼容模式")
     p.add_argument("--asr-resource-id", default=os.environ.get(
-        "DOUBAO_ASR_RESOURCE_ID", "volc.bigasr.sauc.duration"))
+        "DOUBAO_ASR_RESOURCE_ID", AgentConfig.asr_resource_id))
     p.add_argument("--asr-after-commit", action="store_true",
                    help="对照模式：收到整段录音后才连接 ASR（默认边录边传）")
-    p.add_argument("--system-prompt",
-                   default="你是人形机器人X2的语音助手，名叫灵犀。"
-                           "回答口语化、简洁（一般不超过两句话），不要用列表和markdown。"
-                           "你可以通过 robot_skill 工具做动作和表情：动作有挥手"
-                           "（wave_hands）、张开双臂（open_arms）；"
-                           "表情有开心（happy）、"
-                           "难过（sad）、惊讶（surprised）、生气（angry）、爱心"
-                           "（love）。用户表达这类意图时调用工具，同时必须给一句"
-                           "简短的口头回应（如'好呀，我这就挥手'），不能只调用工具"
-                           "不说话。还可以走（walk）、转（turn）、停（stop）。")
-    p.add_argument("--history-turns", type=int, default=5,
+    p.add_argument("--system-prompt", default=AgentConfig.system_prompt)
+    p.add_argument("--history-turns", type=int, default=AgentConfig.history_turns,
                    help="LLM 记忆的对话轮数")
     p.add_argument("--greeting",
-                   default="你好，我是灵犀，有什么可以帮您？",
+                   default=AgentConfig.greeting,
                    help="连接就绪后的开场播报（置空 '' 禁用）")
     p.add_argument("--save-audio", metavar="PATH", default=None,
                    help="保存最后一轮 TTS 音频到 wav")
     p.add_argument("--save-input", metavar="PATH", default=None,
                    help="保存最近一轮上行语音到 wav（诊断用）")
+    for name in ("asr_ws_url", "ark_api_url", "tts_ws_url", "tts_sentence_ws_url"):
+        p.add_argument("--" + name.replace("_", "-"),
+                       default=os.environ.get(name.upper(), getattr(AgentConfig, name)))
+    p.add_argument("--skills-file", help="技能 YAML 路径；默认使用项目 skills.yaml")
+    p.add_argument("--log-level", choices=["DEBUG", "INFO", "WARNING", "ERROR"], default="INFO")
+    p.add_argument("--log-file", help="保存 Python Agent 日志到 UTF-8 文件")
+    p.add_argument("--metrics-file", help="退出时写入耗时统计和计数 JSON")
+    p.add_argument("--protocol-version", default=AgentConfig.protocol_version,
+                   help="发送版本标记；不代表网关已协商版本")
     return p.parse_args(argv)
 
 
 def main():
-    args = parse_args()
-
-    if not args.speech_key:
-        raise SystemExit("缺少语音 API Key：填 .env 的 DOUBAO_SPEECH_API_KEY 或 --speech-key")
-    if not args.ark_key:
-        raise SystemExit("缺少方舟 API Key：填 .env 的 ARK_API_KEY 或 --ark-key")
-
-    asyncio.run(DoubaoAgent(args).run())
+    try:
+        args = AgentConfig.from_args(parse_args())
+        setup_logger("x2_agent", args.log_level, args.log_file)
+        asyncio.run(DoubaoAgent(args).run())
+    except (ValueError, OSError) as error:
+        raise SystemExit(str(error)) from error
+    except KeyboardInterrupt:
+        logger.info("Agent 已停止")
 
 
 if __name__ == "__main__":

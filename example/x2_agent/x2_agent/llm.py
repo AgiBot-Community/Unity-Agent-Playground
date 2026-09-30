@@ -1,34 +1,48 @@
 """Reusable async HTTP/SSE connection for Ark chat completions."""
 import json
+import os
 import time
+from typing import AsyncIterator, Dict, Any, List, Optional, Set, Tuple
 
 import httpx
 
-URL = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions'
+# 火山方舟 API 端点 - 可通过环境变量覆盖
+ARK_API_URL = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions'
+
+# HTTP 连接参数
+HTTP_TIMEOUT_SECONDS = 60
+HTTP_CONNECT_TIMEOUT_SECONDS = 10
+HTTP_MAX_CONNECTIONS = 2
+HTTP_KEEPALIVE_EXPIRY_SECONDS = 120
+HTTP_WARM_INTERVAL_SECONDS = 60  # 连接预热的最小间隔
 
 
 class LlmClient:
-    def __init__(self):
+    def __init__(self, endpoint: Optional[str] = None):
+        self.endpoint = endpoint or os.environ.get("ARK_API_URL", ARK_API_URL)
         self.http = httpx.AsyncClient(
-            timeout=httpx.Timeout(60, connect=10),
-            limits=httpx.Limits(max_connections=2, max_keepalive_connections=2,
-                               keepalive_expiry=120))
-        self.unsupported_thinking = set()
+            timeout=httpx.Timeout(HTTP_TIMEOUT_SECONDS, connect=HTTP_CONNECT_TIMEOUT_SECONDS),
+            limits=httpx.Limits(max_connections=HTTP_MAX_CONNECTIONS,
+                               max_keepalive_connections=HTTP_MAX_CONNECTIONS,
+                               keepalive_expiry=HTTP_KEEPALIVE_EXPIRY_SECONDS))
+        self.unsupported_thinking: Set[str] = set()
         self.last_used = 0.0
 
-    async def warm(self, api_key):
-        if time.perf_counter() - self.last_used < 60:
+    async def warm(self, api_key: str) -> None:
+        if time.perf_counter() - self.last_used < HTTP_WARM_INTERVAL_SECONDS:
             return
         # HEAD 不触发模型推理。该端点返回 404 也能完成 TLS 并复用连接，
         # 已在方舟实测确认；真正的 POST 仍独立检查授权和状态码。
-        await self.http.head(URL, headers={'Authorization': 'Bearer ' + api_key},
+        await self.http.head(self.endpoint, headers={'Authorization': 'Bearer ' + api_key},
                              timeout=httpx.Timeout(3, connect=3))
         self.last_used = time.perf_counter()
 
-    async def close(self):
+    async def close(self) -> None:
         await self.http.aclose()
 
-    async def stream(self, system_prompt, history, model, api_key, tools=None):
+    async def stream(self, system_prompt: str, history: List[Dict[str, Any]],
+                     model: str, api_key: str,
+                     tools: Optional[List[Dict[str, Any]]] = None) -> AsyncIterator[Tuple[str, Any]]:
         payload = {'model': model,
                    'messages': [{'role': 'system', 'content': system_prompt}] + list(history),
                    'temperature': 0.7, 'stream': True}
@@ -40,7 +54,7 @@ class LlmClient:
         first = True
         tc_acc = {}
         for attempt in range(2):
-            async with self.http.stream('POST', URL, json=payload,
+            async with self.http.stream('POST', self.endpoint, json=payload,
                                         headers={'Authorization': 'Bearer ' + api_key}) as resp:
                 if resp.status_code >= 400:
                     error = (await resp.aread()).decode('utf-8', errors='replace')

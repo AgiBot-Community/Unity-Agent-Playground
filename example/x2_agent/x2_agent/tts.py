@@ -2,17 +2,27 @@
 import asyncio
 import gzip
 import json
+import os
 import struct
 import uuid
+from typing import AsyncIterator, Optional, Tuple, Dict, Any
 
 import websockets
 from websockets.protocol import State
 
+# TTS 服务端点 - 可通过环境变量覆盖
+TTS_WS_URL = 'wss://openspeech.bytedance.com/api/v3/tts/bidirection'
 
-URL = 'wss://openspeech.bytedance.com/api/v3/tts/bidirection'
+# TTS 连接和超时参数
+TTS_CONNECT_TIMEOUT_SECONDS = 10
+TTS_CLOSE_TIMEOUT_SECONDS = 1
+TTS_HANDSHAKE_TIMEOUT_SECONDS = 10
+TTS_AUDIO_TIMEOUT_SECONDS = 60
+TTS_MAX_MESSAGE_SIZE = 10 * 1024 * 1024  # 10MB
 
 
-def event_packet(event, payload, session_id=None):
+def event_packet(event: int, payload: Dict[str, Any],
+                 session_id: Optional[str] = None) -> bytes:
     body = struct.pack('>i', event)
     if session_id is not None:
         sid = session_id.encode()
@@ -21,7 +31,7 @@ def event_packet(event, payload, session_id=None):
     return b'\x11\x14\x10\x00' + body + struct.pack('>I', len(data)) + data
 
 
-def parse_event(raw):
+def parse_event(raw: bytes) -> Tuple[int, int, str, Any]:
     if not isinstance(raw, bytes) or len(raw) < 8:
         raise ValueError('Invalid TTS frame')
     kind, flags = raw[1] >> 4, raw[1] & 15
@@ -62,28 +72,31 @@ def parse_event(raw):
 
 
 class BidiTtsClient:
-    def __init__(self, key, speaker):
+    def __init__(self, key: str, speaker: str, endpoint: Optional[str] = None):
         self.key, self.speaker = key, speaker
-        self.ws = None
+        self.endpoint = endpoint or os.environ.get("TTS_WS_URL", TTS_WS_URL)
+        self.ws: Optional[websockets.WebSocketClientProtocol] = None
         self._connect_lock = asyncio.Lock()
 
-    async def connect(self):
+    async def connect(self) -> None:
         async with self._connect_lock:
             await self._connect()
 
-    async def _connect(self):
+    async def _connect(self) -> None:
         if self.ws is not None and self.ws.state == State.OPEN:
             return
         await self.close()
         ws = await websockets.connect(
-            URL, additional_headers={'X-Api-Key': self.key,
+            self.endpoint, additional_headers={'X-Api-Key': self.key,
                                      'X-Api-Resource-Id': 'seed-tts-1.0',
                                      'X-Api-Connect-Id': str(uuid.uuid4())},
-            compression=None, open_timeout=10, close_timeout=1,
-            max_size=10 * 1024 * 1024)
+            compression=None, open_timeout=TTS_CONNECT_TIMEOUT_SECONDS,
+            close_timeout=TTS_CLOSE_TIMEOUT_SECONDS,
+            max_size=TTS_MAX_MESSAGE_SIZE)
         try:
             await ws.send(event_packet(1, {}))
-            _, event, _, payload = parse_event(await asyncio.wait_for(ws.recv(), 10))
+            _, event, _, payload = parse_event(
+                await asyncio.wait_for(ws.recv(), TTS_HANDSHAKE_TIMEOUT_SECONDS))
             if event != 50:
                 raise RuntimeError('TTS connection rejected: %s %s' % (event, payload))
         except BaseException:
@@ -91,12 +104,12 @@ class BidiTtsClient:
             raise
         self.ws = ws
 
-    async def close(self):
+    async def close(self) -> None:
         ws, self.ws = self.ws, None
         if ws is not None:
             await ws.close()
 
-    def request(self, event, text=None):
+    def request(self, event: int, text: Optional[str] = None) -> Dict[str, Any]:
         params = {'speaker': self.speaker,
                   'audio_params': {'format': 'pcm', 'sample_rate': 16000}}
         if text is not None:
@@ -104,19 +117,19 @@ class BidiTtsClient:
         return {'user': {'uid': 'x02-agent-demo'}, 'event': event,
                 'namespace': 'BidirectionalTTS', 'req_params': params}
 
-    async def stream(self, texts):
+    async def stream(self, texts: AsyncIterator[str]) -> AsyncIterator[bytes]:
         await self.connect()
         sid = str(uuid.uuid4())
-        sender = None
+        sender: Optional[asyncio.Task] = None
         completed = False
         try:
             await self.ws.send(event_packet(100, self.request(100), sid))
             _, event, response_sid, payload = parse_event(
-                await asyncio.wait_for(self.ws.recv(), 10))
+                await asyncio.wait_for(self.ws.recv(), TTS_HANDSHAKE_TIMEOUT_SECONDS))
             if event != 150 or response_sid != sid:
                 raise RuntimeError('TTS session rejected: %s %s' % (event, payload))
 
-            async def send_text():
+            async def send_text() -> None:
                 async for text in texts:
                     if text:
                         await self.ws.send(event_packet(200, self.request(200, text), sid))
@@ -128,13 +141,13 @@ class BidiTtsClient:
                 try:
                     # Surface sender errors immediately instead of waiting for recv timeout.
                     waiting = {receive} if sender.done() else {receive, sender}
-                    done, _ = await asyncio.wait(waiting, timeout=60,
+                    done, _ = await asyncio.wait(waiting, timeout=TTS_AUDIO_TIMEOUT_SECONDS,
                                                  return_when=asyncio.FIRST_COMPLETED)
                     if not done:
                         raise TimeoutError('TTS audio timeout')
                     if sender.done():
                         sender.result()
-                    raw = await asyncio.wait_for(receive, 60)
+                    raw = await asyncio.wait_for(receive, TTS_AUDIO_TIMEOUT_SECONDS)
                 finally:
                     if not receive.done():
                         receive.cancel()

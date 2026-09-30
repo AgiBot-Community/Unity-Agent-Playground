@@ -8,6 +8,7 @@ import unittest
 import wave
 
 from x2_agent import agent, demo
+from x2_agent.skill_loader import SkillLoader
 
 
 class RecordingTests(unittest.TestCase):
@@ -34,7 +35,7 @@ class RecordingTests(unittest.TestCase):
             self.skipTest("Unity source is not included in this standalone Agent distribution")
         catalog = catalog_path.read_text(encoding='utf-8')
         expected = set(re.findall(r'SkillName = "([^"]+)"', catalog))
-        actual = agent.SKILL_TOOLS[0]['function']['parameters']['properties']['skillName']['enum']
+        actual = SkillLoader().get_tool_definition()[0]['function']['parameters']['properties']['skillName']['enum']
         self.assertEqual(set(actual), expected)
 
 

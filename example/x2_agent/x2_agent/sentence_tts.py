@@ -2,6 +2,7 @@
 import asyncio
 import gzip
 import json
+import os
 import struct
 import uuid
 import websockets
@@ -50,7 +51,7 @@ def parse_tts_frame(msg: bytes):
     return msg_type, event, payload
 
 
-async def tts_stream(text: str, speaker: str, key: str):
+async def tts_stream(text: str, speaker: str, key: str, endpoint=None):
     """async generator：逐段产出 16k PCM bytes。"""
     headers = {
         "X-Api-Key": key,
@@ -60,7 +61,8 @@ async def tts_stream(text: str, speaker: str, key: str):
     body = {"req_params": {"text": text, "speaker": speaker,
                            "audio_params": {"format": "pcm",
                                             "sample_rate": 16000}}}
-    async with websockets.connect(TTS_WS_URL, additional_headers=headers,
+    endpoint = endpoint or os.environ.get("TTS_SENTENCE_WS_URL", TTS_WS_URL)
+    async with websockets.connect(endpoint, additional_headers=headers,
                                   compression=None, open_timeout=10,
                                   max_size=10 * 1024 * 1024) as ws:
         await ws.send(build_full_request(body))
