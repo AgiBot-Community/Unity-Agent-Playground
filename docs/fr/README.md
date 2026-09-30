@@ -197,7 +197,7 @@ Un accès distant nécessite de modifier l’adresse d’écoute de la passerell
 
 ## Limites
 
-- Le dialogue est semi-duplex : la détection s’arrête pendant la lecture. Utilisez une interruption explicite ou la console pour arrêter la lecture.
+- Le dialogue est semi-duplex : après `audio_request.commit`, la détection reste suspendue pendant la reconnaissance, la génération et la lecture de la réponse. L’écoute reprend à la fin de la réponse, lors d’une interruption explicite ou après 90 secondes sans progression.
 - La passerelle accepte huit connexions par défaut. Seul l’agent vocal sélectionné reçoit le microphone. La console peut modifier les priorités des autres clients.
 - La voix et le prompt par défaut sont en chinois. La documentation existe en chinois, anglais et français ; les services vocaux et l’interface Unity ont leur propre prise en charge linguistique.
 - Ce projet est un environnement de simulation. Vérifiez le protocole et les actions disponibles avant de connecter du matériel réel.
@@ -219,8 +219,11 @@ Les exécutables portables et empreintes sont distribués via GitHub Releases. `
 Installez les dépendances Python correspondantes et lancez les tests depuis la racine du dépôt :
 
 ```powershell
-python -B -m unittest discover -s example/x2_agent/tests -v
-python -B -m unittest discover -s example/x2_console/tests -v
+cd example/x2_agent
+python -B -m unittest discover -s tests -v
+cd ../x2_console
+python -B -m unittest discover -s tests -v
+cd ../..
 ```
 
 Ces tests utilisent des services simulés locaux, sans Unity ni clés cloud. Le [guide de développement](development.md) décrit les vérifications Unity Play Mode, gestes, expressions et sessions multiples.

@@ -163,6 +163,8 @@ Le simulateur renvoie `running`, `done` ou `failed` par `agentsdk.skill_response
 
 Une interruption explicite arrête le TTS et les mouvements/gestes en cours. Parler pendant la lecture ne déclenche pas d’interruption dans le build semi-duplex actuel.
 
+Après le commit audio, la détection reste suspendue pendant le traitement ASR/LLM/TTS, y compris avant le premier fragment audio. Une reconnaissance vide, un échec ou 90 secondes sans progression rétablissent l’écoute. Le panneau distingue l’enregistrement, la reconnaissance, l’attente de réponse et la lecture.
+
 | Code d’erreur de l’exemple | Signification |
 |---|---|
 | 3101 / 3102 | Échec ASR / résultat vide |
@@ -185,7 +187,7 @@ Les gestes ne commandent ni taille, ni racine, ni jambes ; un reset annule l’a
 
 ## Audio et délais
 
-Audio PCM mono signé 16 bits à 16 000 Hz, encodé en base64 dans JSON. Un fragment montant fait généralement 100 ms, soit 1 600 échantillons ou 3 200 octets. Les valeurs de détection d’activité vocale (VAD) dans `Assets/X02Competition/Robot/Audio/VadGate.cs` sont : seuil RMS de départ 0,02, arrêt 0,008, silence 600 ms et tour maximal 15 000 ms. L’application portable n’expose pas tous les paramètres ; consultez les journaux pour les délais réels. Le VAD s’arrête pendant le TTS pour éviter de capter la voix du robot.
+Audio PCM mono signé 16 bits à 16 000 Hz, encodé en base64 dans JSON. Un fragment montant fait généralement 100 ms, soit 1 600 échantillons ou 3 200 octets. Les valeurs de détection d’activité vocale (VAD) dans `Assets/X02Competition/Robot/Audio/VadGate.cs` sont : seuil RMS de départ 0,02, arrêt 0,008, silence 600 ms et tour maximal 15 000 ms. L’application portable n’expose pas tous les paramètres ; consultez les journaux pour les délais réels. Après commit, le VAD reste suspendu pendant le traitement ASR/LLM et la lecture TTS pour séparer les tours et éviter de capter la voix du robot.
 
 Un tour suit `start → append × N → commit → ASR final`, puis les deltas LLM et fragments TTS entrelacés, les fins de flux et éventuellement les états d’action. Distinguez temps d’enregistrement/silence, attente ASR après commit, premier jeton LLM et premier audio. Aucun délai global fixe n’est garanti.
 

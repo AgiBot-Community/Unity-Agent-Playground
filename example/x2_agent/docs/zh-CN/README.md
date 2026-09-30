@@ -93,7 +93,7 @@ python agent.py
 
 回答时嘴巴随语音张合。技能名称和参数见[网关协议的技能表](../../../../docs/zh-CN/interface.md)。
 
-当前语音流程是半双工，播报期间 VAD 暂停；等待播报结束后再说话。默认音色和提示词面向中文，文档翻译不改变语音服务或界面语言。
+当前语音流程是半双工，录音提交后，识别、生成回复及播报期间 VAD 暂停；等待回答结束后再说话。空识别、失败或连续 90 秒无回复进展会恢复聆听。默认音色和提示词面向中文，文档翻译不改变语音服务或界面语言。
 
 没有 Key 也能验证动作：按 **F1** 呼出调试面板（默认隐藏），上面的按钮可以直接触发挥手、表情、行走。
 
@@ -141,6 +141,14 @@ python demo.py --interrupt chat
 | `DOUBAO_LLM_MODEL` | 否 | 默认 `doubao-seed-2-0-mini-260428` |
 | `DOUBAO_TTS_SPEAKER` | 否 | 默认 `zh_female_wanqudashu_moon_bigtts`（1.0 音色，勿混用 2.0 音色） |
 | `DOUBAO_ASR_RESOURCE_ID` | 否 | 默认 `volc.bigasr.sauc.duration` |
+
+服务端点可用 `ARK_API_URL`、`ASR_WS_URL`、`TTS_WS_URL`、`TTS_SENTENCE_WS_URL`
+配置，也可分别使用 `--ark-api-url`、`--asr-ws-url`、`--tts-ws-url`、
+`--tts-sentence-ws-url` 覆盖。单向和双向 TTS 使用独立端点。
+Agent 默认使用项目 `skills.yaml` 定义工具、参数和即时口播，`--skills-file` 可替换它。
+`--log-level`、`--log-file` 控制调度日志，`--metrics-file` 在正常退出或 Ctrl+C 时导出
+计数与最近 1000 个耗时样本的统计。指标不包含真人录音时长；下发技能计数不代表执行成功。
+完整示例见[配置参考](../../../../docs/zh-CN/environment-config.md)。
 
 ## 常见问题
 

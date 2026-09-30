@@ -159,6 +159,8 @@ The simulator reports `running`, `done` or `failed` through `agentsdk.skill_resp
 
 An explicit interrupt stops TTS and current movement/gestures. Speaking during playback does not trigger an interrupt in the current half-duplex build.
 
+After an audio commit, capture remains gated while ASR/LLM/TTS processes that turn, including the gap before the first audio chunk. Empty recognition or failure releases the wait; 90 seconds without response progress also restores listening. The HUD distinguishes recording, recognition, waiting for a reply and playback.
+
 | Example error code | Meaning |
 |---|---|
 | 3101 / 3102 | ASR failure / empty result |
@@ -180,7 +182,7 @@ Gestures do not command the waist, root or legs, and an episode reset cancels th
 
 ## Audio and timing
 
-Audio is 16,000 Hz, signed 16-bit mono PCM, base64-encoded in JSON. Typical upstream chunks are 100 ms = 1,600 samples = 3,200 bytes. Voice activity detection (VAD) defaults in `Assets/X02Competition/Robot/Audio/VadGate.cs` are RMS start 0.02, stop 0.008, silence 600 ms and maximum turn 15,000 ms. The portable application does not expose every setting; use runtime logs for actual timing. VAD pauses during TTS to avoid recording the robot's own voice.
+Audio is 16,000 Hz, signed 16-bit mono PCM, base64-encoded in JSON. Typical upstream chunks are 100 ms = 1,600 samples = 3,200 bytes. Voice activity detection (VAD) defaults in `Assets/X02Competition/Robot/Audio/VadGate.cs` are RMS start 0.02, stop 0.008, silence 600 ms and maximum turn 15,000 ms. The portable application does not expose every setting; use runtime logs for actual timing. VAD pauses after commit through ASR/LLM processing and TTS playback, keeping turns separate and avoiding recording the robot's voice.
 
 A normal turn is `start → append × N → commit → ASR final`, followed by interleaved LLM deltas and TTS chunks, completion messages and optional skill status. Distinguish recording/silence time, post-commit ASR wait, first LLM token and first audio latency. There is no fixed end-to-end latency guarantee.
 

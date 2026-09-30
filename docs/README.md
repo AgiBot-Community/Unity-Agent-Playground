@@ -9,7 +9,11 @@
 | Agent | [语音配置与排障](../example/x2_agent/docs/zh-CN/README.md) | [Voice setup and troubleshooting](../example/x2_agent/docs/en/README.md) | [Configuration vocale et dépannage](../example/x2_agent/docs/fr/README.md) |
 | 控制台 / Console | [操作与会话管理](zh-CN/console.md) | [Controls and sessions](en/console.md) | [Commandes et sessions](fr/console.md) |
 | 网关 / Gateway / Passerelle | [协议参考](zh-CN/interface.md) | [Protocol reference](en/interface.md) | [Référence du protocole](fr/interface.md) |
+| 错误代码 / Error codes | [错误代码参考](zh-CN/error-codes.md) | — | — |
+| 环境配置 / Environment config | [环境变量配置](zh-CN/environment-config.md) | — | — |
 | 开发 / Development / Développement | [测试与发布](zh-CN/development.md) | [Tests and releases](en/development.md) | [Tests et publications](fr/development.md) |
+| 线程 / Threads | [网关线程与关闭](zh-CN/unity-threading-guide.md) | — | — |
+| 日志 / Logging | [Unity 日志](zh-CN/unity-logging-standards.md) | — | — |
 | 贡献 / Contributing / Contribution | [贡献指南](../CONTRIBUTING.md) | [Contributing guide](en/CONTRIBUTING.md) | [Guide de contribution](fr/CONTRIBUTING.md) |
 
 ## 阅读顺序 / Reading order / Ordre de lecture

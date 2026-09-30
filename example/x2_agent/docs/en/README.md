@@ -59,7 +59,7 @@ Keep `x2_agent/` beside the entry scripts and run them with the same Python envi
 
 For a remote connection, set `--host <address> --port 9002` and ensure the gateway listens on a reachable network address. Client options alone do not change Unity's default loopback listener.
 
-The log `agent 会话就绪 state=online` confirms the connection. Wait for the greeting to finish before speaking. The current flow is half-duplex. The default prompt and voice target Chinese; translating these documents does not change language support in the speech services or Unity UI.
+The log `agent 会话就绪 state=online` confirms the connection. Wait for the greeting to finish before speaking. After commit, listening pauses through ASR, LLM processing and TTS playback. It resumes when the reply ends, on an explicit interrupt, after empty recognition or failure, or after 90 seconds without response progress. The default prompt and voice use Chinese.
 
 ## Skills
 
@@ -86,9 +86,19 @@ Configuration loads at CLI startup, not on import. Precedence: CLI arguments > e
 | `DOUBAO_TTS_SPEAKER` | No | `zh_female_wanqudashu_moon_bigtts`; compatible with `seed-tts-1.0` |
 | `DOUBAO_ASR_RESOURCE_ID` | No | `volc.bigasr.sauc.duration` |
 
-The versioned configuration template is [`.env.example`](../../.env.example). Keep the `.env` containing your keys private; follow the repository [`.gitignore`](../../../../.gitignore) when adding files.
+Copy [`.env.example`](../../.env.example) for your local configuration. Keep keys out of Git; the repository [`.gitignore`](../../../../.gitignore) excludes `.env` files.
 
 ## Useful options
+
+Override service endpoints with `ARK_API_URL`, `ASR_WS_URL`, `TTS_WS_URL` and
+`TTS_SENTENCE_WS_URL`, or the higher-priority `--ark-api-url`, `--asr-ws-url`,
+`--tts-ws-url` and `--tts-sentence-ws-url` options. Sentence and bidirectional TTS
+use separate endpoints. The project's `skills.yaml` supplies tool definitions,
+parameter validation and acknowledgments; select another file with `--skills-file`.
+Use `--log-level` and `--log-file` for Python orchestration logs, and `--metrics-file`
+to export counters and statistics over the most recent 1000 duration samples per
+metric on normal exit or Ctrl+C. Timing excludes human recording time; a dispatched
+skill counter does not confirm execution. Unity logs still appear in the terminal.
 
 Run these from the repository’s `example/x2_agent/` directory with your virtual environment's Python:
 

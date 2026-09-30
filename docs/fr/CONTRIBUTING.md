@@ -25,8 +25,11 @@ Pour une fonctionnalité, décrivez le cas d’usage, la limite actuelle et le r
 Les tests Python utilisent des services simulés locaux, sans Unity ni clés cloud. Après installation des dépendances correspondantes, exécutez depuis la racine :
 
 ```powershell
-python -B -m unittest discover -s example/x2_agent/tests -v
-python -B -m unittest discover -s example/x2_console/tests -v
+cd example/x2_agent
+python -B -m unittest discover -s tests -v
+cd ../x2_console
+python -B -m unittest discover -s tests -v
+cd ../..
 ```
 
 Vérifiez l’agent et la console lors d’une modification du protocole. Pour les actions, l’audio ou les sessions Unity, utilisez les vérifications du [guide de développement](development.md).

@@ -40,7 +40,8 @@ cd ../..
 Tests use local mock services, with no Unity or API keys.
 
 The Unity regression suite enters Play Mode and checks short audio, bounded input,
-skill cancellation, WebSocket fragmentation/limits/slow-peer shutdown and log forwarding:
+skill cancellation, multi-turn response gating, error/timeout recovery, concurrent shutdown,
+WebSocket fragmentation/limits/slow-peer shutdown and log forwarding:
 
 ```powershell
 # $unityEditor is the local 2022.3.62f3c1 Editor/Unity.exe
@@ -58,7 +59,7 @@ editable other priorities, rejected commands, single-recipient audio, log broadc
 Validate manually in two stages:
 
 1. **Local integration:** start one simulator, connect `demo.py`, confirm `state=online`, captions and audio playback, then test skills through the F1 panel.
-2. **Cloud voice:** stop the demo, configure credentials and start `agent.py`. Wait for the greeting, speak, verify ASR text, the LLM reply and TTS playback, then request a skill. Finally, disconnect and reconnect.
+2. **Cloud voice:** stop the demo, configure credentials and start `agent.py`. After the greeting, run several conversation turns. Check ASR text, the LLM reply, TTS playback and resumed listening on each turn, then test skills, explicit interruption and reconnection. A pending cloud reply must not be superseded by another recording.
 
 Record the model, speech resources, results and per-stage timings. Separate recording and silence detection from cloud processing; a single measurement is not a performance guarantee.
 
@@ -94,7 +95,7 @@ Curves belong to `GestureMotion.cs`; smoothing, limits and lifecycle belong to `
 
 The [Unity project](../../unity-agent-playground/) uses `2022.3.62f3c1`. The launcher, HUD and cameras are under `Assets/X02Competition/Bootstrap/`; regression checks are under `Assets/X02Competition/Tests/Editor/`. Build changes through Build Settings following the [Unity guide](unity.md), and keep the full output.
 
-Attach the portable EXE and matching checksum to the same [GitHub Release](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases). Package the Unity build, verify startup, Agent connections and view switching, then upload both assets. A normal Unity Build does not automatically package or publish them.
+A Unity build produces the Player directory; packaging and release uploads are separate steps.
 
 For a batch Windows x64 Player build:
 
@@ -110,7 +111,7 @@ then package the complete Player directory with `tools/unity-packager/pack-x2.ps
 For a release:
 
 1. Name the asset `x2-simulator-windows-x64.exe` and ensure the `.sha256` file names that exact EXE.
-2. Verify startup, agent connections, skills and camera switching. Record the build version, size and SHA-256.
+2. Check that the EXE is below 100,000,000 bytes. Verify extraction into a fresh cache, startup, agent connections, skills and camera switching. Record the version and SHA-256.
 3. Upload the EXE and checksum to the same GitHub Release.
 
 `exe/`, `build/` and `release/` are ignored local directories. Keep release assets out of the source repository.

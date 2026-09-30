@@ -197,7 +197,7 @@ Remote connections require changing the Unity gateway's listen address and makin
 
 ## Limitations
 
-- Voice is half-duplex: detection pauses during playback. Use an explicit interrupt or the console to stop playback.
+- Voice is half-duplex: after a recording is committed, detection pauses through recognition, response generation and playback. Listening resumes when the reply ends, on an explicit interrupt, or after 90 seconds without response progress.
 - The gateway accepts eight connections by default. Only the selected voice client receives microphone audio. The console can adjust other clients' priorities.
 - The default voice and prompt use Chinese. Documentation is available in Chinese, English and French; speech services and the Unity UI have their own language support.
 - This is a simulation environment. Confirm device protocol and skill support before connecting real hardware.
@@ -219,8 +219,11 @@ Portable executables and checksums are distributed through GitHub Releases. `exe
 Install the relevant Python dependencies, then run tests from the repository root:
 
 ```powershell
-python -B -m unittest discover -s example/x2_agent/tests -v
-python -B -m unittest discover -s example/x2_console/tests -v
+cd example/x2_agent
+python -B -m unittest discover -s tests -v
+cd ../x2_console
+python -B -m unittest discover -s tests -v
+cd ../..
 ```
 
 These tests use local mock services without Unity or cloud credentials. The [development guide](development.md) covers Unity Play Mode, gesture, expression and multi-session checks.

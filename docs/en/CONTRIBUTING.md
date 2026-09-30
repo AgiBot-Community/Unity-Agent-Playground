@@ -25,8 +25,11 @@ For feature requests, describe the use case, the current limitation and the expe
 Python client tests use local mock services and require neither Unity nor cloud keys. With the relevant dependencies installed, run from the repository root:
 
 ```powershell
-python -B -m unittest discover -s example/x2_agent/tests -v
-python -B -m unittest discover -s example/x2_console/tests -v
+cd example/x2_agent
+python -B -m unittest discover -s tests -v
+cd ../x2_console
+python -B -m unittest discover -s tests -v
+cd ../..
 ```
 
 Check both the agent and console when changing the gateway protocol. For Unity skills, audio or sessions, run the relevant checks in the [development guide](development.md).

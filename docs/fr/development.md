@@ -41,7 +41,8 @@ Les tests utilisent des services simulés locaux, sans Unity ni clés API.
 
 La régression Unity entre en mode Play réel et vérifie les sons courts, les files audio,
 l’annulation des actions, les fragments et limites WebSocket, la fermeture face à un client
-lent et la transmission des journaux :
+lent et la transmission des journaux. Elle couvre aussi plusieurs tours de dialogue,
+la reprise après erreur ou expiration et les fermetures concurrentes :
 
 ```powershell
 # $unityEditor désigne Editor/Unity.exe de la version locale 2022.3.62f3c1
@@ -61,7 +62,7 @@ la diffusion des journaux et le transfert après déconnexion.
 Effectuez la validation manuelle en deux étapes :
 
 1. **Intégration locale :** lancez un simulateur et connectez `demo.py`. Vérifiez `state=online`, les sous-titres et la lecture audio, puis testez les actions dans le panneau F1.
-2. **Voix et services cloud :** arrêtez la démo, configurez les clés et lancez `agent.py`. Après l’accueil, parlez et vérifiez le texte ASR, la réponse LLM et la lecture TTS. Demandez une action, puis déconnectez et reconnectez le client.
+2. **Voix et services cloud :** arrêtez la démo, configurez les clés et lancez `agent.py`. Après l’accueil, enchaînez plusieurs tours. Vérifiez à chaque fois le texte ASR, la réponse LLM, le TTS et la reprise de l’écoute, puis testez les actions, l’interruption explicite et la reconnexion. Un nouvel enregistrement ne doit pas remplacer un tour dont la réponse est encore attendue.
 
 Notez le modèle, les ressources vocales, les résultats et les délais par étape. Distinguez l’enregistrement et la détection du silence du traitement cloud ; une mesure isolée ne garantit pas les performances.
 
@@ -98,7 +99,7 @@ le lissage, les limites et le cycle de vie dans `GesturePlayer.cs`.
 
 Le [projet Unity](../../unity-agent-playground/) utilise `2022.3.62f3c1`. Le lanceur, le HUD et les caméras sont dans `Assets/X02Competition/Bootstrap/`, les vérifications dans `Assets/X02Competition/Tests/Editor/`. Compilez les changements via Build Settings selon le [guide Unity](unity.md), puis conservez toute la sortie.
 
-Joignez l’EXE portable et son empreinte à la même [GitHub Release](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases). Après empaquetage, vérifiez le démarrage, les connexions Agent et le changement de vue, puis téléversez les deux fichiers. Un Build Unity normal ne les empaquette ni ne les publie automatiquement.
+La compilation Unity produit le dossier du Player ; l’empaquetage et la publication sont des étapes distinctes.
 
 Pour compiler le Player Windows x64 en batch :
 
@@ -114,7 +115,7 @@ puis empaquetez tout le dossier Player avec `tools/unity-packager/pack-x2.ps1`.
 Pour publier :
 
 1. Nommez l’exécutable `x2-simulator-windows-x64.exe` et vérifiez que le fichier `.sha256` indique ce nom exact.
-2. Vérifiez le démarrage, les connexions Agent, les actions et les caméras. Notez la version, la taille et le SHA-256.
+2. Vérifiez que l’EXE fait moins de 100 000 000 octets. Testez l’extraction dans un cache neuf, le démarrage, les connexions Agent, les actions et les caméras. Notez la version et le SHA-256.
 3. Téléversez l’EXE et son empreinte dans la même GitHub Release.
 
 `exe/`, `build/` et `release/` sont des dossiers locaux ignorés. Les fichiers distribués ne sont pas versionnés dans le dépôt source.

@@ -25,8 +25,11 @@
 Python 客户端的测试使用本机模拟服务，无需 Unity 或云端密钥。在已安装对应依赖的环境中，从仓库根目录执行：
 
 ```powershell
-python -B -m unittest discover -s example/x2_agent/tests -v
-python -B -m unittest discover -s example/x2_console/tests -v
+cd example/x2_agent
+python -B -m unittest discover -s tests -v
+cd ../x2_console
+python -B -m unittest discover -s tests -v
+cd ../..
 ```
 
 修改网关协议时检查 Agent 和控制台两端；修改 Unity 技能、音频或会话行为时，运行[开发指南](docs/zh-CN/development.md)中对应的 Unity 验证。

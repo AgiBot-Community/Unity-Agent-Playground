@@ -59,7 +59,7 @@ Conservez `x2_agent/` à côté des scripts et utilisez le même environnement P
 
 Pour une connexion distante, utilisez `--host <adresse> --port 9002` et vérifiez que la passerelle écoute sur une adresse réseau accessible. Ces options ne modifient pas l’écoute locale par défaut de Unity.
 
-Le journal `agent 会话就绪 state=online` confirme la connexion. Attendez la fin de l’accueil avant de parler. Le fonctionnement est semi-duplex. Le prompt et la voix par défaut ciblent le chinois ; ces traductions ne modifient pas les langues prises en charge par les services vocaux ou l’interface Unity.
+Le journal `agent 会话就绪 state=online` confirme la connexion. Attendez la fin de l’accueil avant de parler. Après commit, l’écoute reste suspendue pendant le traitement ASR/LLM et la lecture TTS. Elle reprend à la fin de la réponse, lors d’une interruption explicite, après une reconnaissance vide ou un échec, ou après 90 secondes sans progression. Le prompt et la voix par défaut utilisent le chinois.
 
 ## Commandes du robot
 
@@ -86,9 +86,20 @@ La configuration se charge au lancement, jamais à l’import. Priorité : argum
 | `DOUBAO_TTS_SPEAKER` | Non | `zh_female_wanqudashu_moon_bigtts`, compatible avec `seed-tts-1.0` |
 | `DOUBAO_ASR_RESOURCE_ID` | Non | `volc.bigasr.sauc.duration` |
 
-Le modèle de configuration versionné est [`.env.example`](../../.env.example). Gardez privé le `.env` contenant vos clés ; respectez le [`.gitignore`](../../../../.gitignore) du dépôt lors de l’ajout de fichiers.
+Copiez [`.env.example`](../../.env.example) pour votre configuration locale. Ne versionnez pas les clés ; le [`.gitignore`](../../../../.gitignore) exclut les fichiers `.env`.
 
 ## Paramètres utiles
+
+Configurez les services avec `ARK_API_URL`, `ASR_WS_URL`, `TTS_WS_URL` et
+`TTS_SENTENCE_WS_URL`, ou avec les options prioritaires `--ark-api-url`,
+`--asr-ws-url`, `--tts-ws-url` et `--tts-sentence-ws-url`. Les deux modes TTS
+utilisent des adresses distinctes. Le fichier `skills.yaml` définit les outils,
+la validation des paramètres et les messages de confirmation ; `--skills-file` sélectionne un autre fichier.
+`--log-level` et `--log-file` contrôlent les journaux d’orchestration Python.
+`--metrics-file` exporte les compteurs et les statistiques des 1000 dernières durées
+par mesure à l’arrêt normal ou par Ctrl+C. Ces durées excluent l’enregistrement humain ;
+le compteur de commandes envoyées ne garantit pas leur exécution. Les journaux Unity
+restent affichés dans le terminal.
 
 Depuis le dossier `example/x2_agent/` du dépôt, avec le Python de votre environnement virtuel :
 
@@ -115,9 +126,9 @@ Par défaut, l’audio ASR est envoyé pendant l’enregistrement, les connexion
 | Connexion refusée | Lancer l’EXE ou passer en mode Play ; vérifier hôte et port. À distance, la passerelle doit aussi écouter sur une adresse réseau accessible |
 | HTTP 401 | Identifiants, signature et horodatage si l’authentification stricte est activée |
 | HTTP 503 | La limite de connexions de la passerelle est atteinte (huit par défaut) |
-| Geste annoncé mais non exécuté / `4091` | Si une console manuelle est connectée, cédez son contrôle des actions dans l’onglet sessions. Sa priorité reste 1000. Vérifiez l’Agent détenteur et les états `running` / `done` |
+| Geste annoncé mais non exécuté / `4091` | Si une console manuelle est connectée, cédez son contrôle des actions dans l’onglet sessions. Sa priorité reste 1000. Vérifiez que l’agent détient le contrôle et que l’action renvoie `running` puis `done` |
 | Aucune transcription | Microphone coupé, volume d’entrée et durée de l’enregistrement |
-| Attente après la parole | Distinguer start→commit, ASR après commit, premier jeton LLM et premier audio TTS ; le silence détecté n’est pas du calcul ASR |
+| Attente après la parole | Distinguez la durée start→commit, l’attente ASR après commit, le premier jeton LLM et le premier audio TTS ; le temps de détection du silence ne fait pas partie du traitement ASR |
 | LLM 404 | Identifiant complet du modèle, avec date, ou point d’accès `ep-...` |
 | TTS 403 | Autorisation et compatibilité voix/ressource ; une voix 2.0 ne correspond pas à `seed-tts-1.0` |
 | Réponse inaudible | Périphérique et volume de sortie Windows ; journaux TTS et fichier `--save-audio` |

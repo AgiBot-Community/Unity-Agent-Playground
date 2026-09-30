@@ -40,7 +40,8 @@ cd ../..
 请使用已安装本项目依赖的 Python。测试使用本机模拟服务，不需要 Unity 或 API Key。
 
 Unity 回归测试进入 Play Mode，验证短音频、输入缓存、技能取消、
-WebSocket 分片与大小限制、慢客户端关闭以及 Unity 日志外发。在仓库根目录执行：
+多轮回复等待、错误与超时恢复、WebSocket 分片与大小限制、并发关闭和 Unity 日志外发。
+在仓库根目录执行：
 
 ```powershell
 # $unityEditor 指向本机 2022.3.62f3c1 的 Editor/Unity.exe
@@ -58,7 +59,7 @@ WebSocket 分片与大小限制、慢客户端关闭以及 Unity 日志外发。
 手动验收分两步进行：
 
 1. **本机联调：** 启动一个模拟器，连接 `demo.py`，确认 `state=online`、字幕和音频播放，再测试 F1 面板中的技能按钮。
-2. **云端语音：** 停止 demo，配置密钥并启动 `agent.py`。等开场白结束后说一句话，核对 ASR 识别、LLM 回复与 TTS 播放，再请求一个技能，最后退出并重新连接。
+2. **云端语音：** 停止 demo，配置密钥并启动 `agent.py`。等开场白结束后连续进行多轮对话，逐轮核对 ASR 识别、LLM 回复、TTS 播放及恢复聆听，再测试技能、显式打断和重新连接。等待云端回复时不应产生覆盖当前轮次的新录音。
 
 记录所用模型、语音资源、测试结果和各阶段耗时。区分录音时间、静音检测和云端处理时间，避免把一次测量当作固定性能。
 
@@ -93,7 +94,7 @@ episode reset；成功标记为 `GESTURE_VERIFICATION_PASSED`。测试自行退�
 
 Unity 工程位于 [unity-agent-playground/](../../unity-agent-playground/)，使用 `2022.3.62f3c1`。启动入口、HUD 和相机位于 `Assets/X02Competition/Bootstrap/`，回归检查位于 `Assets/X02Competition/Tests/Editor/`。修改后按 [Unity 指南](unity.md) 使用 Build Settings 构建，并保留完整输出。
 
-发布文件为同一 [GitHub Release](https://github.com/AgiBot-Community/Unity-Agent-Playground/releases) 下的便携 EXE 和校验文件。构建后运行便携打包器，验证启动、Agent 连接与视角切换，再上传两个附件。普通 Unity Build 不会自动打包或发布。
+Unity 构建生成完整 Player 目录；单文件打包和 Release 上传分别执行。
 
 也可通过批处理构建 Windows x64 Player：
 
@@ -109,7 +110,7 @@ Unity 工程位于 [unity-agent-playground/](../../unity-agent-playground/)，�
 发布时：
 
 1. 使用 `x2-simulator-windows-x64.exe` 作为附件名，确保 `.sha256` 文件记录同名 EXE。
-2. 验证启动、Agent 连接、技能与视角切换，记录构建版本、文件大小和 SHA-256。
+2. 确认单文件小于 100,000,000 字节，验证新缓存解包、启动、Agent 连接、技能与视角切换，记录版本和 SHA-256。
 3. 将 EXE 和校验文件上传到同一个 GitHub Release。
 
 `exe/`、`build/` 和 `release/` 是被 Git 忽略的本地目录。发布附件不提交到源码仓库。

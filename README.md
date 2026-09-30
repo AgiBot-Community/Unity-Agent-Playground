@@ -197,7 +197,7 @@ Unity 的运行时日志通过同一 WebSocket 发往客户端。控制台支持
 
 ## 运行限制
 
-- 语音为半双工：播报期间暂停语音检测，停止播报需要显式打断指令或控制台操作。
+- 语音为半双工：录音提交后，识别、生成回复和播报期间暂停语音检测，回答结束后恢复聆听。停止等待或播报需要显式打断指令或控制台操作；回复连续 90 秒无进展时自动恢复聆听。
 - 网关默认接受 8 路连接，麦克风只发送给选中的语音客户端。控制台可调整其他客户端的优先级。
 - 默认音色和提示词使用中文。文档提供中、英、法三个版本，语音服务和 Unity 界面有各自的语言支持范围。
 - 本项目提供仿真环境；连接真机前需确认设备支持的协议与技能。
@@ -219,8 +219,11 @@ Unity 的运行时日志通过同一 WebSocket 发往客户端。控制台支持
 安装对应 Python 依赖后，在仓库根目录运行测试：
 
 ```powershell
-python -B -m unittest discover -s example/x2_agent/tests -v
-python -B -m unittest discover -s example/x2_console/tests -v
+cd example/x2_agent
+python -B -m unittest discover -s tests -v
+cd ../x2_console
+python -B -m unittest discover -s tests -v
+cd ../..
 ```
 
 这些测试使用本机模拟服务，无需启动 Unity 或配置云端密钥。Unity Play Mode、手势、表情和多会话验证见[开发指南](docs/zh-CN/development.md)。

@@ -27,6 +27,9 @@ Unity player's window/taskbar icon. Set the latter in Unity Player Settings
 and rebuild the Unity player. The output folder also receives a
 `MySimulator.sha256` checksum file.
 
+Packaging fails if the EXE reaches 100,000,000 bytes. The check uses decimal
+megabytes, so the default limit is stricter than 100 MiB.
+
 ### X2 builds
 
 For the X2 project, `assets/agibot-x2.ico` is the matching icon and
